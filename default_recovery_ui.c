@@ -29,6 +29,7 @@ char* MENU_ITEMS[] = { "Reboot System Now",
                        "Backup and Restore",
                        "Mounts and Storage",
                        "Advanced",
+                       "Power Off",
                        NULL };
 
 void device_ui_init(UIParameters* ui_parameters) {
