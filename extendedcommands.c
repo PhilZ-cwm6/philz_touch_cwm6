@@ -310,8 +310,10 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
         i++;
     }
     fixed_headers[i] = directory;
-    fixed_headers[i + 1] = "";
-    fixed_headers[i + 2 ] = NULL;
+    //let's spare some header space
+    //fixed_headers[i + 1] = "";
+    //fixed_headers[i + 2 ] = NULL;
+    fixed_headers[i + 1 ] = NULL;
 
     char** files = gather_files(directory, fileExtensionOrDirectory, &numFiles);
     char** dirs = NULL;
@@ -376,7 +378,8 @@ void show_choose_zip_menu(const char *mount_point)
     }
 
     static char* headers[] = {  "Choose a zip to apply",
-                                "",
+                                 //let's spare some header space
+                                //"",
                                 NULL
     };
 
@@ -398,7 +401,6 @@ void show_nandroid_restore_menu(const char* path)
     }
 
     static char* headers[] = {  "Choose an image to restore",
-                                "",
                                 NULL
     };
 
@@ -420,7 +422,6 @@ void show_nandroid_delete_menu(const char* path)
     }
 
     static char* headers[] = {  "Choose an image to delete",
-                                "",
                                 NULL
     };
 
@@ -600,7 +601,7 @@ int confirm_selection(const char* title, const char* confirm)
     if (0 == stat("/sdcard/clockworkmod/.no_confirm", &info))
         return 1;
 
-    char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
+    char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", NULL }; //let's spare some header space in Yes/No menu
     if (0 == stat("/sdcard/clockworkmod/.one_confirm", &info)) {
         char* items[] = { "No",
                         confirm, //" Yes -- wipe partition",   // [1]
@@ -828,7 +829,6 @@ int is_safe_to_format(char* name)
 void show_partition_menu()
 {
     static char* headers[] = {  "Mounts and Storage Menu",
-                                "",
                                 NULL
     };
 
@@ -961,8 +961,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                                 "",
                                 "Choose an image to restore",
                                 "first. The next menu will",
-                                "you more options.",
-                                "",
+                                "give you more options.", //fix for original phrasing
                                 NULL
     };
 
@@ -973,7 +972,6 @@ void show_nandroid_advanced_restore_menu(const char* path)
         return;
 
     static char* headers[] = {  "Advanced Restore",
-                                "",
                                 NULL
     };
 
@@ -1041,7 +1039,8 @@ static void choose_backup_format() {
     };
 
     char* list[] = { "dup (default)",
-        "tar"
+                     "tar",
+                     NULL //we fix original menu echoing older menu (null termination)
     };
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
@@ -1060,16 +1059,15 @@ static void choose_backup_format() {
 void show_nandroid_menu()
 {
     static char* headers[] = {  "Backup and Restore",
-                                "",
                                 NULL
     };
 
-    char* list[] = { "backup",
-                            "restore",
-                            "delete",
-                            "advanced restore",
-                            "free unused backup data",
-                            "choose backup format",
+    char* list[] = { "Backup",
+                            "Restore",
+                            "Delete",
+                            "Advanced Restore",
+                            "Free Unused Backup Data",
+                            "Choose Backup Format",
                             NULL,
                             NULL,
                             NULL,
@@ -1082,17 +1080,17 @@ void show_nandroid_menu()
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc";
-        list[6] = "backup to internal sdcard";
-        list[7] = "restore from internal sdcard";
-        list[8] = "advanced restore from internal sdcard";
-        list[9] = "delete from internal sdcard";
+        list[6] = "Backup to Internal sdcard";
+        list[7] = "Restore from Internal sdcard";
+        list[8] = "Advanced Restore from Internal sdcard";
+        list[9] = "Delete from Internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
         other_sd = "/external_sd";
-        list[6] = "backup to external sdcard";
-        list[7] = "restore from external sdcard";
-        list[8] = "advanced restore from external sdcard";
-        list[9] = "delete from external sdcard";
+        list[6] = "Backup to External sdcard";
+        list[7] = "Restore from External sdcard";
+        list[8] = "Advanced Restore from External sdcard";
+        list[9] = "Delete from External sdcard";
     }
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
     extend_nandroid_menu(list, 10, sizeof(list) / sizeof(char*));
@@ -1273,7 +1271,6 @@ int can_partition(const char* volume) {
 void show_advanced_menu()
 {
     static char* headers[] = {  "Advanced Menu",
-                                "",
                                 NULL
     };
 
