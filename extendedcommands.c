@@ -1292,6 +1292,7 @@ void show_advanced_menu()
         }
     }
 }
+
 //start PhilZ Menu settings and functions
   // custom open recovery script code
 #define SCRIPT_COMMAND_SIZE 512
@@ -1900,6 +1901,72 @@ void show_custom_ors_menu() {
         }
     }
 }
+  //start show partition backup/restore menu
+void show_efs_menu() {
+    static char* headers[] = {  "EFS/Boot Backup & Restore",
+                                "",
+                                NULL
+    };
+
+    static char* list[] = { "Backup /boot to External",
+                     "Backup /efs to Internal SD",
+                     "Restore /efs from Internal",
+                     "Backup /efs to External",
+                     "Restore /efs from External",
+                     NULL
+    };
+
+    for (;;) {
+        //header function so that "Toggle menu" doesn't reset to main menu on action selected
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                    ensure_path_mounted("/sdcard");
+                    __system("kernel-backup.sh /sdcard");
+                    ui_print("/sdcard/clockworkmod/.kernel_bak/boot.img created\n");
+                    break;
+            case 1:
+                    ensure_path_mounted("/emmc");
+                    ensure_path_unmounted("/efs");
+                    __system("efs-backup.sh /emmc");
+                    ui_print("/emmc/clockworkmod/.efsbackup/efs.img created\n");
+                    break;
+            case 2:
+                    ensure_path_mounted("/emmc");
+                    ensure_path_unmounted("/efs");
+                    if (access("/emmc/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
+                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                            __system("efs-restore.sh /emmc");
+                            ui_print("/emmc/clockworkmod/.efsbackup/efs.img restored to /efs\n");
+                        }
+                    } else {
+                       ui_print("No efs.img backup found.\n");
+                    }
+                    break;
+            case 3:
+                    ensure_path_mounted("/sdcard");
+                    ensure_path_unmounted("/efs");
+                        __system("efs-backup.sh /sdcard");
+                    ui_print("/sdcard/clockworkmod/.efsbackup/efs.img created\n");
+                    break;
+            case 4:
+                    ensure_path_mounted("/sdcard");
+                    ensure_path_unmounted("/efs");
+                    if (access("/sdcard/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
+                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                            __system("efs-restore.sh /sdcard");
+                            ui_print("/sdcard/clockworkmod/.efsbackup/efs.img restored to /efs\n");
+                        }
+                    } else {
+                       ui_print("No efs.img backup found.\n");
+                    }
+                    break;
+        }
+    }
+}
   //start show PhilZ Settings Menu
 void show_philz_settings()
 {
@@ -1971,6 +2038,7 @@ void show_philz_settings()
                 android_reboot(ANDROID_RB_RESTART, 0, 0);
                 break;
             case 1:
+                show_efs_menu();
                 break;
             case 2:
                     break;
