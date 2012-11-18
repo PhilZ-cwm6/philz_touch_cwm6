@@ -1302,9 +1302,11 @@ void show_advanced_menu()
             case 7:
                 ensure_path_mounted("/system");
                 ensure_path_mounted("/data");
-                ui_print("Fixing permissions...\n");
-                __system("fix_permissions");
-                ui_print("Done!\n");
+                if (confirm_selection("Confirm ?", "Yes - Fix Permissions")) {
+                    ui_print("Fixing permissions...\n");
+                    __system("fix_permissions");
+                    ui_print("Done!\n");
+                }
                 break;
             case 8:
                 partition_sdcard("/sdcard");
@@ -2131,6 +2133,9 @@ void show_philz_settings()
             case 3:
                 break;
             case 4:
+                ui_print("CWM Base 6.0.1.5\n");
+                ui_print("PhilZ Touch 3.00 (i9100)\n");
+                ui_print("Compiled in 2012 Nov 09\n");
                 break;
         }
     }
