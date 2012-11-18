@@ -1427,7 +1427,15 @@ int run_custom_ors(const char* ors_script) {
                 // Install zip
                 ui_print("Installing zip file '%s'\n", value);
                 ensure_path_mounted("/emmc");
-                ensure_path_mounted("/sdcard");
+                char *other_sd = NULL;
+                if (volume_for_path("/external_sd") != NULL) {
+                    other_sd = "/external_sd";
+                } else if (volume_for_path("/sdcard") != NULL) {
+                    other_sd = "/sdcard";
+                }
+                if (other_sd != NULL){
+                    ensure_path_mounted(other_sd);
+                }
                 ret_val = install_zip(value);
                 if (ret_val != INSTALL_SUCCESS) {
                     LOGE("Error installing zip file '%s'\n", value);
@@ -1465,6 +1473,15 @@ int run_custom_ors(const char* ors_script) {
                 }
             } else if (strcmp(command, "backup") == 0) {
                 // Backup
+                char *other_sd = NULL;
+                if (volume_for_path("/external_sd") != NULL) {
+                    other_sd = "/external_sd";
+                } else if (volume_for_path("/sdcard") != NULL) {
+                    other_sd = "/sdcard";
+                } else {
+                    //backup to internal sd support
+                    other_sd = "/emmc";
+                }
                 char backup_path[PATH_MAX];
                 tok = strtok(value, " ");
                 strcpy(value1, tok);
@@ -1482,7 +1499,7 @@ int run_custom_ors(const char* ors_script) {
                         remove_nl = 0;
                     strncpy(value2, tok, line_len - remove_nl);
                     ui_print("Backup folder set to '%s'\n", value2);
-                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%s", value2);
+                    sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
                 } else {
                     time_t t = time(NULL);
                     struct tm *tmp = localtime(&t);
@@ -1490,11 +1507,17 @@ int run_custom_ors(const char* ors_script) {
                     {
                         struct timeval tp;
                         gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+                        sprintf(backup_path, "%s/clockworkmod/backup/%d", other_sd, tp.tv_sec);
                     }
-                    else
-                    {
-                        strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    else {
+                        if (strcmp(other_sd, "/sdcard") == 0) {
+                            strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        } else if (strcmp(other_sd, "/external_sd") == 0) {
+                            strftime(backup_path, sizeof(backup_path), "/external_sd/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        } else {
+                            //backup to internal sd support
+                            strftime(backup_path, sizeof(backup_path), "/emmc/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        }
                     }
                 }
                 ui_print("Backup options are ignored in CWMR: '%s'\n", value1);
@@ -1657,9 +1680,9 @@ int run_script_file(void) {
             memset(command, 0, sizeof(command));
             memset(value, 0, sizeof(value));
             if ((int)script_line[line_len - 1] == 10)
-                    remove_nl = 2;
-                else
-                    remove_nl = 1;
+                remove_nl = 2;
+            else
+                remove_nl = 1;
             if (cindex != 0) {
                 strncpy(command, script_line, cindex);
                 ui_print("command is: '%s' and ", command);
@@ -1675,7 +1698,15 @@ int run_script_file(void) {
                 // Install zip
                 ui_print("Installing zip file '%s'\n", value);
                 ensure_path_mounted("/emmc");
-                ensure_path_mounted("/sdcard");
+                char *other_sd = NULL;
+                if (volume_for_path("/external_sd") != NULL) {
+                    other_sd = "/external_sd";
+                } else if (volume_for_path("/sdcard") != NULL) {
+                    other_sd = "/sdcard";
+                }
+                if (other_sd != NULL){
+                    ensure_path_mounted(other_sd);
+                }
                 ret_val = install_zip(value);
                 if (ret_val != INSTALL_SUCCESS) {
                     LOGE("Error installing zip file '%s'\n", value);
@@ -1711,6 +1742,14 @@ int run_script_file(void) {
                 }
             } else if (strcmp(command, "backup") == 0) {
                 // Backup
+                char *other_sd = NULL;
+                if (volume_for_path("/external_sd") != NULL) {
+                    other_sd = "/external_sd";
+                } else if (volume_for_path("/sdcard") != NULL) {
+                    other_sd = "/sdcard";
+                } else {
+                    other_sd = "/emmc";
+                }
                 char backup_path[PATH_MAX];
                 tok = strtok(value, " ");
                 strcpy(value1, tok);
@@ -1728,7 +1767,7 @@ int run_script_file(void) {
                         remove_nl = 0;
                     strncpy(value2, tok, line_len - remove_nl);
                     ui_print("Backup folder set to '%s'\n", value2);
-                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%s", value2);
+                    sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
                 } else {
                     time_t t = time(NULL);
                     struct tm *tmp = localtime(&t);
@@ -1736,11 +1775,16 @@ int run_script_file(void) {
                     {
                         struct timeval tp;
                         gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+                        sprintf(backup_path, "%s/clockworkmod/backup/%d", other_sd, tp.tv_sec);
                     }
-                    else
-                    {
-                        strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    else {
+                        if (strcmp(other_sd, "/sdcard") == 0) {
+                            strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        } else if (strcmp(other_sd, "/external_sd") == 0) {
+                            strftime(backup_path, sizeof(backup_path), "/external_sd/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        } else {
+                            strftime(backup_path, sizeof(backup_path), "/emmc/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        }
                     }
                 }
                 ui_print("Backup options are ignored in CWMR: '%s'\n", value1);
@@ -1919,7 +1963,18 @@ void show_custom_ors_menu() {
         switch (chosen_item)
         {
             case 0:
-                choose_custom_ors_menu("/sdcard/");
+                {
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd/";
+                    }
+                    else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard/";
+                    }
+                    if (other_sd != NULL){
+                        choose_custom_ors_menu(other_sd);
+                    } else ui_print("No external sd card found\n");
+                }
                 break;
             case 1:
                 choose_custom_ors_menu("/emmc/");
@@ -1958,13 +2013,22 @@ void show_philz_settings()
                     ui_print("/cache/recovery/openrecoveryscript not found.\n");
                     ui_print("Trying default ORS path...\n");
                     //let's look in default custom ors locations
-                    ensure_path_mounted("/sdcard");
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd";
+                    } else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard";
+                    }
+                    ensure_path_mounted(other_sd);
                     //without this check, we get 2 errors in log: "directory not found":
-                    if (access("/sdcard/clockworkmod/ors", F_OK) != -1) {
+                    char ors_dir[PATH_MAX];
+                    sprintf(ors_dir, "%s/clockworkmod/ors", other_sd);
+                    if (access(ors_dir, F_OK) != -1) {
                         //folder exists, but could be empty!
-                        choose_default_ors_menu("/sdcard"); //we search for .ors files in /sdcard/clockworkmod/ors
+                        choose_default_ors_menu(other_sd);
+                        //we search for .ors files in external sd /clockworkmod/ors
                     } else {
-                        ui_print("/sdcard/clockworkmod/ors not found.\n");
+                        ui_print("%s/clockworkmod/ors not found.\n", other_sd);
                         browse_for_ors = 1;
                     }
                     if (browse_for_ors == 1) {
