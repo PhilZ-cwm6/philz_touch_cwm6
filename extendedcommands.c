@@ -1192,6 +1192,32 @@ int can_partition(const char* volume) {
     return 1;
 }
 
+//we create a new show log menu easier to read
+void show_log_menu()
+{
+    static char* headers[] = {  "Show Log",
+                                NULL
+    };
+
+    static char* list[] = { "Show Last 36 Lines",
+                             NULL
+    };
+
+    for (;;) {
+        //header function so that "Toggle menu" doesn't reset to main menu on action selected
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK) {
+            break;
+        }
+        switch (chosen_item)
+        {
+            case 0:
+                ui_printlogtail(36);
+                break;
+        }
+    }
+}
+
 void show_advanced_menu()
 {
     static char* headers[] = {  "Advanced Menu",
@@ -1271,7 +1297,7 @@ void show_advanced_menu()
                 break;
             }
             case 6:
-                ui_printlogtail(12);
+                show_log_menu(); //we use dedicated showlog menu
                 break;
             case 7:
                 ensure_path_mounted("/system");
