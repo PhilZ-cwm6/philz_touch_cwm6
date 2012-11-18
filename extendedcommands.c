@@ -2043,40 +2043,78 @@ void show_efs_menu() {
                 }
                     break;
             case 2:
-                    ensure_path_mounted("/emmc");
-                    ensure_path_unmounted("/efs");
-                    __system("efs-backup.sh /emmc");
-                    ui_print("/emmc/clockworkmod/.efsbackup/efs.img created\n");
-                    break;
+                ensure_path_unmounted("/efs");
+                ensure_path_mounted("/emmc");
+                __system("efs-backup.sh /emmc");
+                //prints log
+                char logname[PATH_MAX];
+                sprintf(logname, "/emmc/clockworkmod/.efsbackup/log.txt");
+                ui_print_custom_logtail(logname, 1);
+                break;
             case 3:
-                    ensure_path_mounted("/emmc");
-                    ensure_path_unmounted("/efs");
-                    if (access("/emmc/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
-                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                            __system("efs-restore.sh /emmc");
-                            ui_print("/emmc/clockworkmod/.efsbackup/efs.img restored to /efs\n");
-                        }
-                    } else {
-                       ui_print("No efs.img backup found.\n");
+                ensure_path_unmounted("/efs");
+                ensure_path_mounted("/emmc");
+                if (access("/emmc/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
+                    if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                        __system("efs-restore.sh /emmc");
+                        //prints log
+                        char logname[PATH_MAX];
+                        sprintf(logname, "/emmc/clockworkmod/.efsbackup/log.txt");
+                        ui_print_custom_logtail(logname, 1);
                     }
-                    break;
+                } else {
+                    ui_print("No efs.img backup found.\n");
+                }
+                break;
             case 4:
-                    ensure_path_mounted("/sdcard");
-                    ensure_path_unmounted("/efs");
-                        __system("efs-backup.sh /sdcard");
-                    ui_print("/sdcard/clockworkmod/.efsbackup/efs.img created\n");
-                    break;
-            case 5:
-                    ensure_path_mounted("/sdcard");
-                    ensure_path_unmounted("/efs");
-                    if (access("/sdcard/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
-                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                            __system("efs-restore.sh /sdcard");
-                            ui_print("/sdcard/clockworkmod/.efsbackup/efs.img restored to /efs\n");
-                        }
-                    } else {
-                       ui_print("No efs.img backup found.\n");
+                {
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd";
+                    } else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard";
                     }
+                    if (other_sd != NULL){
+                        char tmp[PATH_MAX];
+                        ensure_path_unmounted("/efs");
+                        ensure_path_mounted(other_sd);
+                        sprintf(tmp, "efs-backup.sh %s", other_sd);
+                        __system(tmp);
+                        //prints log
+                        char logname[PATH_MAX];
+                        sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
+                        ui_print_custom_logtail(logname, 1);
+                    } else ui_print("No external sd card found\n");
+                }
+                break;
+            case 5:
+                {
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd";
+                    } else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard";
+                    }
+                    if (other_sd != NULL){
+                        ensure_path_unmounted("/efs");
+                        ensure_path_mounted(other_sd);
+                        char filename[PATH_MAX];
+                        sprintf(filename, "%s/clockworkmod/.efsbackup/efs.img", other_sd);
+                        if (access(filename, F_OK ) != -1) {
+                            if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                                char tmp[PATH_MAX];
+                                sprintf(tmp, "efs-restore.sh %s", other_sd);
+                                __system(tmp);
+                                //prints log
+                                char logname[PATH_MAX];
+                                sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
+                                ui_print_custom_logtail(logname, 1);
+                            }
+                        } else {
+                            ui_print("No efs.img backup found.\n");
+                        }
+                    } else ui_print("No external sd card found\n");
+                }
                     break;
         }
     }
@@ -2123,8 +2161,16 @@ void show_aromafm_menu() {
         switch (chosen_item)
         {
             case 0:
-                choose_aromafm_menu("/sdcard/");
-                break;
+                {
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd/";
+                    } else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard/";
+                    }
+                    choose_aromafm_menu(other_sd);
+                }
+                    break;
             case 1:
                 choose_aromafm_menu("/emmc/");
                 break;
@@ -2205,17 +2251,30 @@ void show_philz_settings()
                 show_efs_menu();
                 break;
             case 2:
-                ensure_path_mounted("/emmc");
-                ensure_path_mounted("/sdcard");
-                if (access("/emmc/clockworkmod/.aromafm/aromafm.zip", F_OK) != -1) {
-                    install_zip("/emmc/clockworkmod/.aromafm/aromafm.zip");
-                } else if (access("/sdcard/clockworkmod/.aromafm/aromafm.zip", F_OK) != -1) {
-                    install_zip("/sdcard/clockworkmod/.aromafm/aromafm.zip");
-                } else {
-                    ui_print("No aromafm.zip in clockworkmod/.aromafm\n");
-                    show_aromafm_menu();
+                {
+                    char *other_sd = NULL;
+                    if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd";
+                    }
+                    else if (volume_for_path("/sdcard") != NULL) {
+                        other_sd = "/sdcard";
+                    }
+                    ensure_path_mounted("/emmc");
+                    if (access("/emmc/clockworkmod/.aromafm/aromafm.zip", F_OK) != -1) {
+                        install_zip("/emmc/clockworkmod/.aromafm/aromafm.zip");
+                    } else if (other_sd != NULL){
+                        ensure_path_mounted(other_sd);
+                        char aroma_file[PATH_MAX];
+                        sprintf(aroma_file, "%s/clockworkmod/.aromafm/aromafm.zip", other_sd);
+                        if (access(aroma_file, F_OK) != -1) {
+                            install_zip(aroma_file);
+                        } else {
+                            ui_print("No aromafm.zip in sdcards under /clockworkmod/.aromafm\n");
+                            show_aromafm_menu();
+                        }
+                    }
                 }
-                break;
+                    break;
             case 3:
                 break;
             case 4:
