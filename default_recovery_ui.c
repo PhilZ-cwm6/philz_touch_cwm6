@@ -29,6 +29,7 @@ char* MENU_ITEMS[] = { "Reboot System Now",
                        "Backup and Restore",
                        "Mounts and Storage",
                        "Advanced",
+                       "PhilZ Settings",
                        "Power Off",
                        NULL };
 

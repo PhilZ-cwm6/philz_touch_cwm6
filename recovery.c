@@ -412,7 +412,6 @@ copy_sideloaded_package(const char* original_path) {
 static char**
 prepend_title(char** headers) {
     char* title[] = { EXPAND(RECOVERY_VERSION),
-                      "",
                       NULL };
 
     // count the number of lines in our title, plus the
@@ -639,7 +638,6 @@ wipe_data(int confirm) {
         if (title_headers == NULL) {
             char* headers[] = { "Confirm wipe of all user data?",
                                 "  THIS CAN NOT BE UNDONE.",
-                                "",
                                 NULL };
             title_headers = prepend_title((const char**)headers);
         }
@@ -734,6 +732,10 @@ prompt_and_wait() {
 
             case ITEM_ADVANCED:
                 show_advanced_menu();
+                break;
+                
+            case ITEM_PHILZ_MENU:
+                show_philz_settings();
                 break;
 
             case ITEM_POWEROFF:

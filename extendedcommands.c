@@ -1368,6 +1368,43 @@ void show_advanced_menu()
         }
     }
 }
+//start PhilZ Menu settings and functions
+  //start show PhilZ Settings Menu
+void show_philz_settings()
+{
+    static char* headers[] = {  "PhilZ Settings",
+                                NULL
+    };
+
+    static char* list[] = { "Open Recovery Script",
+                            "EFS/Boot Backup & Restore",
+                            "Aroma File Manager",
+                            "GUI Preferences",
+                            "About",
+                             NULL
+    };
+
+    for (;;) {
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                break;
+            case 1:
+                break;
+            case 2:
+                    break;
+            case 3:
+                break;
+            case 4:
+                break;
+        }
+    }
+}
+  //end show PhilZ Menu
+//end PhilZ Menu settings and functions
 
 void write_fstab_root(char *path, FILE *file)
 {
