@@ -71,6 +71,9 @@ int device_wipe_data();
 #define HIGHLIGHT_DOWN      -3
 #define SELECT_ITEM         -4
 #define GO_BACK             -5
+#ifdef PHILZ_TOUCH_RECOVERY
+#define HIGHLIGHT_ON_TOUCH  -6
+#endif
 
 #define ITEM_REBOOT          0
 #define ITEM_APPLY_EXT       1
@@ -101,5 +104,9 @@ void
 set_sdcard_update_bootloader_message();
 
 extern int ui_handle_key(int key, int visible);
+
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
+#endif
 
 #endif

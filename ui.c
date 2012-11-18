@@ -51,7 +51,9 @@ static int gShowBackButton = 0;
 #define MIN_LOG_ROWS 3
 
 #define CHAR_WIDTH BOARD_RECOVERY_CHAR_WIDTH
+#ifndef PHILZ_TOUCH_RECOVERY
 #define CHAR_HEIGHT BOARD_RECOVERY_CHAR_HEIGHT
+#endif
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
 #define UI_KEY_REPEAT_INTERVAL 80
@@ -70,6 +72,9 @@ static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
 static gr_surface gProgressBarEmpty;
 static gr_surface gProgressBarFill;
+#ifdef PHILZ_TOUCH_RECOVERY
+static gr_surface gVirtualKeys; // surface for our virtual key buttons
+#endif
 static gr_surface gBackground;
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
@@ -85,6 +90,9 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
+#ifdef PHILZ_TOUCH_RECOVERY
+    { &gVirtualKeys,                    VIRTUAL_KEYS_PNG },
+#endif
     { &gBackground,                "stitch" },
     { NULL,                             NULL },
 };
@@ -226,6 +234,9 @@ static void draw_progress_locked()
     }
 }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_defines.c"
+#else
 static void draw_text_line(int row, const char* t) {
   if (t[0] != '\0') {
     gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
@@ -236,6 +247,7 @@ static void draw_text_line(int row, const char* t) {
 #define MENU_TEXT_COLOR 0, 191, 255, 255
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+#endif
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
@@ -250,6 +262,9 @@ static void draw_screen_locked(void)
         // gr_color(0, 0, 0, 160);
         // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
+#ifdef PHILZ_TOUCH_RECOVERY
+        draw_touch_menu();
+#else
         int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
         int j = 0;
@@ -306,7 +321,11 @@ static void draw_screen_locked(void)
         for (r = 0; r < (available_rows < MAX_ROWS ? available_rows : MAX_ROWS); r++) {
             draw_text_line(start_row + r, text[(cur_row + r) % MAX_ROWS]);
         }
+#endif
     }
+#ifdef PHILZ_TOUCH_RECOVERY
+    draw_virtualkeys_locked(); //added to draw the virtual keys
+#endif
 }
 
 // Redraw everything on the screen and flip the screen (make it visible).
@@ -389,6 +408,9 @@ static int input_callback(int fd, short revents, void *data)
     struct input_event ev;
     int ret;
     int fake_key = 0;
+#ifdef PHILZ_TOUCH_RECOVERY
+    gr_surface surface = gVirtualKeys;
+#endif
 
     ret = ev_get_input(fd, revents, &ev);
     if (ret)
@@ -400,6 +422,9 @@ static int input_callback(int fd, short revents, void *data)
 #endif
 
     if (ev.type == EV_SYN) {
+#ifdef PHILZ_TOUCH_RECOVERY
+        s_cur_slot = 0;
+#endif
         return 0;
     } else if (ev.type == EV_REL) {
         if (ev.code == REL_Y) {
@@ -422,6 +447,9 @@ static int input_callback(int fd, short revents, void *data)
                 rel_sum = 0;
             }
         }
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_gestures.c"
+#endif
     } else {
         rel_sum = 0;
     }
@@ -490,15 +518,22 @@ void ui_init(void)
     touch_init();
 #endif
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    gr_surface surface = gVirtualKeys;
+#endif
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
+
 #ifdef BOARD_TOUCH_RECOVERY
     max_menu_rows = get_max_menu_rows(max_menu_rows);
 #endif
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
+#ifdef PHILZ_TOUCH_RECOVERY
+    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
+#endif
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH;
@@ -553,7 +588,12 @@ void ui_init(void)
 
     char enable_key_repeat[PROPERTY_VALUE_MAX];
     property_get("ro.cwm.enable_key_repeat", enable_key_repeat, "");
-    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1")) {
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1") || check_boardEnableKeyRepeat())
+#else
+    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1"))
+#endif
+    {
         boardEnableKeyRepeat = 1;
 
         char key_list[PROPERTY_VALUE_MAX];

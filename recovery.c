@@ -476,7 +476,21 @@ get_menu_selection(char** headers, char** items, int menu_only,
                     ++selected;
                     selected = ui_menu_select(selected);
                     break;
+#ifdef PHILZ_TOUCH_RECOVERY
+                case HIGHLIGHT_ON_TOUCH:
+                    selected = ui_menu_touch_select(selected);
+                    break;
+#endif
                 case SELECT_ITEM:
+#ifdef PHILZ_TOUCH_RECOVERY
+                    if (check_valid_menu == 1) {
+                        selected = ui_menu_touch_select(selected);
+                        check_valid_menu = 0;
+                        if (found_valid_menu == 0) {
+                            break;
+                        }
+                    }
+#endif
                     chosen_item = selected;
                     if (ui_is_showing_back_button()) {
                         if (chosen_item == item_count) {
@@ -813,7 +827,10 @@ main(int argc, char **argv) {
 
     device_ui_init(&ui_parameters);
     ui_init();
+#ifndef PHILZ_TOUCH_RECOVERY
+    //fast_ui_init() launched by below device_recovery_start() will wipe any ui_print before it
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
+#endif
     load_volume_table();
     process_volumes();
     LOGI("Processing arguments.\n");
@@ -846,7 +863,10 @@ main(int argc, char **argv) {
 
     LOGI("device_recovery_start()\n");
     device_recovery_start();
-
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print(EXPAND(RECOVERY_VERSION)"\n");
+    ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
+#endif
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {
         printf(" \"%s\"", argv[arg]);

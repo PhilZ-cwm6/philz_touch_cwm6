@@ -1986,6 +1986,11 @@ void flash_kernel_default (const char* kernel_path) {
         return;
     }
 }
+
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
+#endif
+
   //start show partition backup/restore menu
 void show_efs_menu() {
     static char* headers[] = {  "EFS/Boot Backup & Restore",
@@ -2276,11 +2281,16 @@ void show_philz_settings()
                 }
                     break;
             case 3:
+#ifdef PHILZ_TOUCH_RECOVERY
+                show_touch_gui_menu();
+#endif
                 break;
             case 4:
-                ui_print("CWM Base 6.0.1.5\n");
-                ui_print("PhilZ Touch 3.00 (i9100)\n");
-                ui_print("Compiled in 2012 Nov 09\n");
+                ui_print(EXPAND(RECOVERY_VERSION)"\n");
+                ui_print("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
+                ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
+                //ui_print(EXPAND(BUILD_DATE)"\n");
+                ui_print("Compiled %s at %s\n", __DATE__, __TIME__);
                 break;
         }
     }

@@ -51,6 +51,11 @@ int ui_start_menu(char** headers, char** items, int initial_selection);
 // Set the menu highlight to the given index, and return it (capped to
 // the range [0..numitems).
 int ui_menu_select(int sel);
+
+#ifdef PHILZ_TOUCH_RECOVERY
+int ui_menu_touch_select(int sel);
+#endif
+
 // End menu mode, resetting the text overlay so that ui_print()
 // statements will be displayed.
 void ui_end_menu();

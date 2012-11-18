@@ -36,7 +36,16 @@ char* MENU_ITEMS[] = { "Reboot System Now",
 void device_ui_init(UIParameters* ui_parameters) {
 }
 
+//add here what we want to run on recovery start, even for temporary recovery
 int device_recovery_start() {
+#ifdef PHILZ_TOUCH_RECOVERY
+    check_menu_height();
+    check_row_offset();
+    fast_ui_init();
+    check_touch_sensitivity();
+    check_vibration_enabled();
+    check_touch_to_validate();
+#endif
     return 0;
 }
 
