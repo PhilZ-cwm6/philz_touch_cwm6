@@ -2043,7 +2043,10 @@ void flash_kernel_default (const char* kernel_path) {
     static char* headers[] = {  "Flash kernel image",
                                 NULL
     };
-    ensure_path_mounted(kernel_path);
+    if (ensure_path_mounted(kernel_path) != 0) {
+        LOGE ("Can't mount %s\n", kernel_path);
+        return;
+    }
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/.kernel_bak/", kernel_path);
     //without this check, we get 2 errors in log: "directory not found":
@@ -2068,7 +2071,7 @@ void flash_kernel_default (const char* kernel_path) {
             //prints log
             char logname[PATH_MAX];
             sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", kernel_path);
-            ui_print_custom_logtail(logname, 1);
+            ui_print_custom_logtail(logname, 3);
         }
     } else {
         ui_print("%s not found.\n", tmp);
@@ -2087,14 +2090,31 @@ void show_efs_menu() {
                                 NULL
     };
 
-    static char* list[] = { "Backup /boot to External",
-                     "Flash /boot from External",
-                     "Backup /efs to Internal SD",
-                     "Restore /efs from Internal",
-                     "Backup /efs to External",
-                     "Restore /efs from External",
+    static char* list[] = { "Backup /boot to sdcard",
+                     "Flash /boot from sdcard",
+                     "Backup /efs to sdcard",
+                     "Restore /efs from sdcard",
+                     NULL,
+                     NULL,
+                     NULL,
+                     NULL,
                      NULL
     };
+
+    char *other_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        other_sd = "/emmc";
+        list[4] = "Backup /boot to Internal sdcard";
+        list[5] = "Flash /boot from Internal sdcard";
+        list[6] = "Backup /efs to Internal sdcard";
+        list[7] = "Restore /efs from Internal sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        other_sd = "/external_sd";
+        list[4] = "Backup /boot to External sdcard";
+        list[5] = "Flash /boot from External sdcard";
+        list[6] = "Backup /efs to External sdcard";
+        list[7] = "Restore /efs from External sdcard";
+    }
 
     for (;;) {
         //header function so that "Toggle menu" doesn't reset to main menu on action selected
@@ -2104,112 +2124,98 @@ void show_efs_menu() {
         switch (chosen_item)
         {
             case 0:
-                {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    } else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard";
-                    }
-                    if (other_sd != NULL){
-                        char tmp[PATH_MAX];
-                        ensure_path_mounted(other_sd);
-                        sprintf(tmp, "kernel-backup.sh %s", other_sd);
-                        __system(tmp);
-                        //prints log
-                        char logname[PATH_MAX];
-                        sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", other_sd);
-                        ui_print_custom_logtail(logname, 1);
-                    } else ui_print("No external sd card found\n");
-                }
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
                     break;
+                }
+                __system("kernel-backup.sh /sdcard");
+                ui_print_custom_logtail("/sdcard/clockworkmod/.kernel_bak/log.txt", 3);
+                break;
             case 1:
-                {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    } else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard";
-                    }
-                    if (other_sd != NULL){
-                        flash_kernel_default(other_sd);
-                    } else ui_print("No external sd card found\n");
-                }
-                    break;
+                flash_kernel_default("/sdcard");
+                break;
             case 2:
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
                 ensure_path_unmounted("/efs");
-                ensure_path_mounted("/emmc");
-                __system("efs-backup.sh /emmc");
-                //prints log
-                char logname[PATH_MAX];
-                sprintf(logname, "/emmc/clockworkmod/.efsbackup/log.txt");
-                ui_print_custom_logtail(logname, 1);
+                __system("efs-backup.sh /sdcard");
+                ui_print_custom_logtail("/sdcard/clockworkmod/.efsbackup/log.txt", 3);
                 break;
             case 3:
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
                 ensure_path_unmounted("/efs");
-                ensure_path_mounted("/emmc");
-                if (access("/emmc/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
+                if (access("/sdcard/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
                     if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                        __system("efs-restore.sh /emmc");
-                        //prints log
-                        char logname[PATH_MAX];
-                        sprintf(logname, "/emmc/clockworkmod/.efsbackup/log.txt");
-                        ui_print_custom_logtail(logname, 1);
+                        __system("efs-restore.sh /sdcard");
+                        ui_print_custom_logtail("/sdcard/clockworkmod/.efsbackup/log.txt", 3);
                     }
                 } else {
-                    ui_print("No efs.img backup found.\n");
+                    ui_print("No efs.img backup found in sdcard.\n");
                 }
                 break;
             case 4:
                 {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    } else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard";
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
                     }
-                    if (other_sd != NULL){
-                        char tmp[PATH_MAX];
-                        ensure_path_unmounted("/efs");
-                        ensure_path_mounted(other_sd);
-                        sprintf(tmp, "efs-backup.sh %s", other_sd);
-                        __system(tmp);
-                        //prints log
-                        char logname[PATH_MAX];
-                        sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
-                        ui_print_custom_logtail(logname, 1);
-                    } else ui_print("No external sd card found\n");
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "kernel-backup.sh %s", other_sd);
+                    __system(tmp);
+                    //prints log
+                    char logname[PATH_MAX];
+                    sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", other_sd);
+                    ui_print_custom_logtail(logname, 3);
                 }
                 break;
             case 5:
+                flash_kernel_default(other_sd);
+                break;
+            case 6:
                 {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    } else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard";
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
                     }
-                    if (other_sd != NULL){
-                        ensure_path_unmounted("/efs");
-                        ensure_path_mounted(other_sd);
-                        char filename[PATH_MAX];
-                        sprintf(filename, "%s/clockworkmod/.efsbackup/efs.img", other_sd);
-                        if (access(filename, F_OK ) != -1) {
-                            if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                                char tmp[PATH_MAX];
-                                sprintf(tmp, "efs-restore.sh %s", other_sd);
-                                __system(tmp);
-                                //prints log
-                                char logname[PATH_MAX];
-                                sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
-                                ui_print_custom_logtail(logname, 1);
-                            }
-                        } else {
-                            ui_print("No efs.img backup found.\n");
-                        }
-                    } else ui_print("No external sd card found\n");
+                    ensure_path_unmounted("/efs");
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "efs-backup.sh %s", other_sd);
+                    __system(tmp);
+                    //prints log
+                    char logname[PATH_MAX];
+                    sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
+                    ui_print_custom_logtail(logname, 3);
                 }
-                    break;
+                break;
+            case 7:
+                {
+                    if (ensure_path_mounted(other_sd) != 0) {
+                        ui_print("Can't mount %s\n", other_sd);
+                        break;
+                    }
+                    ensure_path_unmounted("/efs");
+                    char filename[PATH_MAX];
+                    sprintf(filename, "%s/clockworkmod/.efsbackup/efs.img", other_sd);
+                    if (access(filename, F_OK ) != -1) {
+                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
+                            char tmp[PATH_MAX];
+                            sprintf(tmp, "efs-restore.sh %s", other_sd);
+                            __system(tmp);
+                            //prints log
+                            char logname[PATH_MAX];
+                            sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
+                            ui_print_custom_logtail(logname, 3);
+                        }
+                    } else {
+                        ui_print("No efs.img backup found in %s\n", other_sd);
+                    }
+                }
+                break;
         }
     }
 }

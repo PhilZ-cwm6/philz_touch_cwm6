@@ -2,5 +2,11 @@
 
 BOOT_PATH=`cat /etc/recovery.fstab | grep -v "#" | grep /boot | awk '{print $3}'`;
 
-dd if=$1 of=$BOOT_PATH bs=4096;
-echo "Kernel $1 flashed to $BOOT_PATH">>$2/clockworkmod/.kernel_bak/log.txt;
+echo "">>"$2"/clockworkmod/.kernel_bak/log.txt;
+echo "Flash kernel $1 to $BOOT_PATH">>"$2"/clockworkmod/.kernel_bak/log.txt;
+(cat "$1" > "$BOOT_PATH") 2>> "$2"/clockworkmod/.kernel_bak/log.txt;
+
+if [ $? = 0 ];
+     then echo "Success!">>"$2"/clockworkmod/.kernel_bak/log.txt
+     else echo "Error!">>"$2"/clockworkmod/.kernel_bak/log.txt
+fi;
