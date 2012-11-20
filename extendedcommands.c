@@ -2213,7 +2213,7 @@ void show_efs_menu() {
         }
     }
 }
-  //browse for Aroma File Manager menu
+  //browse and select Aroma File Manager from custom locations on sdcards
 void choose_aromafm_menu(const char* aromafm_path)
 {
     if (ensure_path_mounted(aromafm_path) != 0) {
@@ -2235,17 +2235,26 @@ void choose_aromafm_menu(const char* aromafm_path)
         install_zip(aroma_file);
     }
 }
-  //show Aroma file manager menu
-void show_aromafm_menu() {
+  //Show custom aroma menu: manually browse sdcards for Aroma file manager
+void custom_aroma_menu() {
     static char* headers[] = {  "Browse for aromafm.zip",
                                 "",
                                 NULL
     };
 
-    static char* list[] = { "Search External sdcard",
-                            "Search Internal sdcard",
-                             NULL
+    static char* list[] = { "Search sdcard",
+                            NULL,
+                            NULL
     };
+
+    char *other_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        other_sd = "/emmc/";
+        list[1] = "Search Internal sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        other_sd = "/external_sd/";
+        list[1] = "Search External sdcard";
+    }
 
     for (;;) {
         //header function so that "Toggle menu" doesn't reset to main menu on action selected
@@ -2255,21 +2264,27 @@ void show_aromafm_menu() {
         switch (chosen_item)
         {
             case 0:
-                {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd/";
-                    } else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard/";
-                    }
-                    choose_aromafm_menu(other_sd);
-                }
-                    break;
+                choose_aromafm_menu("/sdcard/");
+                break;
             case 1:
-                choose_aromafm_menu("/emmc/");
+                choose_aromafm_menu(other_sd);
                 break;
         }
     }
+}
+  //launch aromafm.zip from default locations
+static int default_aromafm (const char* aromafm_path) {
+        if (ensure_path_mounted(aromafm_path) != 0) {
+            //no sdcard at moint point
+            return 0;
+        }
+        char aroma_file[PATH_MAX];
+        sprintf(aroma_file, "%s/clockworkmod/.aromafm/aromafm.zip", aromafm_path);
+        if (access(aroma_file, F_OK) != -1) {
+            install_zip(aroma_file);
+            return 1;
+        }
+        return 0;
 }
   //start show PhilZ Settings Menu
 void show_philz_settings()
@@ -2287,6 +2302,7 @@ void show_philz_settings()
     };
 
     for (;;) {
+        //header function so that "Toggle menu" doesn't reset to main menu on action selected
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
@@ -2345,30 +2361,26 @@ void show_philz_settings()
                 show_efs_menu();
                 break;
             case 2:
-                {
-                    char *other_sd = NULL;
-                    if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    }
-                    else if (volume_for_path("/sdcard") != NULL) {
-                        other_sd = "/sdcard";
-                    }
-                    ensure_path_mounted("/emmc");
-                    if (access("/emmc/clockworkmod/.aromafm/aromafm.zip", F_OK) != -1) {
-                        install_zip("/emmc/clockworkmod/.aromafm/aromafm.zip");
-                    } else if (other_sd != NULL){
-                        ensure_path_mounted(other_sd);
-                        char aroma_file[PATH_MAX];
-                        sprintf(aroma_file, "%s/clockworkmod/.aromafm/aromafm.zip", other_sd);
-                        if (access(aroma_file, F_OK) != -1) {
-                            install_zip(aroma_file);
-                        } else {
-                            ui_print("No aromafm.zip in sdcards under /clockworkmod/.aromafm\n");
-                            show_aromafm_menu();
-                        }
+                //look for clockworkmod/.aromafm/aromafm.zip in /external_sd, then /sdcard and finally /emmc
+                if (volume_for_path("/external_sd") != NULL) {
+                    if (default_aromafm("/external_sd")) {
+                        break;
                     }
                 }
-                    break;
+                if (volume_for_path("/sdcard") != NULL) {
+                    if (default_aromafm("/sdcard")) {
+                        break;
+                    }
+                }
+                if (volume_for_path("/emmc") != NULL) {
+                    if (default_aromafm("/emmc")) {
+                        break;
+                    }
+                }
+                ui_print("No clockworkmod/.aromafm/aromafm.zip on sdcards\n");
+                ui_print("Browsing custom locations\n");
+                custom_aroma_menu();
+                break;
             case 3:
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_touch_gui_menu();
