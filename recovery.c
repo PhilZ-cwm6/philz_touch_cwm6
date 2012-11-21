@@ -49,6 +49,7 @@
 #include "flashutils/flashutils.h"
 #include "dedupe/dedupe.h"
 #include "recovery.h" //for ors functions
+int ors_boot_script = 0;
 
 struct selabel_handle *sehandle = NULL;
 
