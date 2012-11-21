@@ -1412,6 +1412,8 @@ void show_advanced_menu()
 }
 
 //start PhilZ Menu settings and functions
+static int browse_for_file = 1;
+           // 0 == stop browsing default file locations
   //start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
     char * backup_log;
@@ -1688,20 +1690,19 @@ int run_ors_script(const char* ors_script) {
 }
   //end of open recovery script file code
   //show menu: select ors from default path
-static int browse_for_ors = 1; // 0 == stop browsing locations for a custom ors script
 void choose_default_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
         LOGE("Can't mount %s\n", ors_path);
-        browse_for_ors = 1;
+        browse_for_file = 1;
         return;
     }
 
     char ors_dir[PATH_MAX];
-    sprintf(ors_dir, "%s/clockworkmod/ors", ors_path);
+    sprintf(ors_dir, "%s/clockworkmod/ors/", ors_path);
     if (access(ors_dir, F_OK) == -1) {
         //custom folder does not exist
-        browse_for_ors = 1;
+        browse_for_file = 1;
         return;
     }
 
@@ -1710,15 +1711,13 @@ void choose_default_ors_menu(const char* ors_path)
                                 NULL
     };
 
-    char tmp[PATH_MAX];
-    sprintf(tmp, "%s/clockworkmod/ors/", ors_path);
-    char* ors_file = choose_file_menu(tmp, ".ors", headers);
+    char* ors_file = choose_file_menu(ors_dir, ".ors", headers);
     if (no_files_found == 1) {
         //0 valid files to select, let's continue browsing next locations
         ui_print("No *.ors files in %s/clockworkmod/ors\n", ors_path);
-        browse_for_ors = 1;
+        browse_for_file = 1;
     } else {
-        browse_for_ors = 0;
+        browse_for_file = 0;
         //we found ors scripts in clockworkmod/ors folder: do not proceed other locations even if no file is chosen
     }
     if (ors_file == NULL) {
@@ -1796,10 +1795,12 @@ void flash_kernel_default (const char* kernel_path) {
     static char* headers[] = {  "Flash kernel image",
                                 NULL
     };
+
     if (ensure_path_mounted(kernel_path) != 0) {
         LOGE ("Can't mount %s\n", kernel_path);
         return;
     }
+
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/.kernel_bak/", kernel_path);
     //without this check, we get 2 errors in log: "directory not found":
@@ -1831,6 +1832,54 @@ void flash_kernel_default (const char* kernel_path) {
         return;
     }
 }
+  //start flash modem menu
+void flash_modem_menu(const char* modem_path)
+{
+    if (ensure_path_mounted(modem_path) != 0) {
+        LOGE ("Can't mount %s\n", modem_path);
+        browse_for_file = 1;
+        return;
+    }
+    
+    char modem_dir[PATH_MAX];
+    sprintf(modem_dir, "%s/clockworkmod/.modem_bak/", modem_path);
+    if (access(modem_dir, F_OK) == -1) {
+        //custom folder does not exist
+        browse_for_file = 1;
+        return;
+    }
+
+    static char* headers[] = {  "Flash modem image",
+                                "",
+                                NULL
+    };
+
+    char* modem_file = choose_file_menu(modem_dir, ".bin", headers);
+    if (no_files_found == 1) {
+        //0 valid files to select, let's continue browsing next locations
+        ui_print("No *.bin files in %s\n", modem_dir);
+        browse_for_file = 1;
+    } else {
+        browse_for_file = 0;
+        //we found modem image in clockworkmod/.modem_bak folder: do not proceed other locations even if no file is chosen
+    }
+    if (modem_file == NULL) {
+        //either no valid files found or we selected no files by pressing back menu
+        return;
+    }
+    static char* confirm_install  = "Confirm flash modem?";
+    static char confirm[PATH_MAX];
+    sprintf(confirm, "Yes - Flash %s", basename(modem_file));
+    if (confirm_selection(confirm_install, confirm)) {
+        char tmp[PATH_MAX];
+        sprintf(tmp, "modem-flash.sh %s %s", modem_file, modem_path);
+        __system(tmp);
+        //prints log
+        char logname[PATH_MAX];
+        sprintf(logname, "%s/clockworkmod/.modem_bak/log.txt", modem_path);
+        ui_print_custom_logtail(logname, 3);
+    }
+}
 
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
@@ -1838,35 +1887,36 @@ void flash_kernel_default (const char* kernel_path) {
 
   //start show partition backup/restore menu
 void show_efs_menu() {
-    static char* headers[] = {  "EFS/Boot Backup & Restore",
+    static char* headers[] = {  "Special Backup & Restore",
                                 "",
                                 NULL
     };
 
-    static char* list[] = { "Backup /boot to sdcard",
-                     "Flash /boot from sdcard",
-                     "Backup /efs to sdcard",
-                     "Restore /efs from sdcard",
+    static char* list[] = { "Backup Kernel to sdcard",
+                     "Flash Kernel from sdcard",
+                     "Backup EFS to sdcard",
+                     "Restore EFS from sdcard",
                      NULL,
                      NULL,
                      NULL,
                      NULL,
+                     "Flash Modem",
                      NULL
     };
 
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc";
-        list[4] = "Backup /boot to Internal sdcard";
-        list[5] = "Flash /boot from Internal sdcard";
-        list[6] = "Backup /efs to Internal sdcard";
-        list[7] = "Restore /efs from Internal sdcard";
+        list[4] = "Backup Kernel to Internal sdcard";
+        list[5] = "Flash Kernel from Internal sdcard";
+        list[6] = "Backup EFS to Internal sdcard";
+        list[7] = "Restore EFS from Internal sdcard";
     } else if (volume_for_path("/external_sd") != NULL) {
         other_sd = "/external_sd";
-        list[4] = "Backup /boot to External sdcard";
-        list[5] = "Flash /boot from External sdcard";
-        list[6] = "Backup /efs to External sdcard";
-        list[7] = "Restore /efs from External sdcard";
+        list[4] = "Backup Kernel to External sdcard";
+        list[5] = "Flash Kernel from External sdcard";
+        list[6] = "Backup EFS to External sdcard";
+        list[7] = "Restore EFS from External sdcard";
     }
 
     for (;;) {
@@ -1969,6 +2019,30 @@ void show_efs_menu() {
                     }
                 }
                 break;
+            case 8:
+                {
+                    flash_modem_menu("/sdcard");
+                    if (browse_for_file == 0) {
+                        //we found modem files in /sdcard default location
+                        break;
+                    }
+
+                    char *other_sd = NULL;
+                    if (volume_for_path("/emmc") != NULL) {
+                        other_sd = "/emmc";
+                    } else if (volume_for_path("/external_sd") != NULL) {
+                        other_sd = "/external_sd";
+                    }
+                    if (other_sd != NULL) {
+                        flash_modem_menu(other_sd);
+                        //we search for modem files in second sd under default location
+                        if (browse_for_file == 0) {
+                            break;
+                        }
+                    }
+                    ui_print("Nothing to flash.\n Put *.bin file under clockworkmod/.modem_bak\n");
+                }
+                break;
         }
     }
 }
@@ -2053,7 +2127,7 @@ void show_philz_settings()
     };
 
     static char* list[] = { "Open Recovery Script",
-                            "EFS/Boot Backup & Restore",
+                            "Special Backup and Restore",
                             "Aroma File Manager",
                             "GUI Preferences",
                             "About",
@@ -2072,8 +2146,8 @@ void show_philz_settings()
                     __system("ors-mount.sh");
                     //search in default ors path
                     choose_default_ors_menu("/sdcard");
-                    if (browse_for_ors == 0) {
-                        //there were were .ors files in /sdcard default location
+                    if (browse_for_file == 0) {
+                        //we found .ors scripts in /sdcard default location
                         break;
                     }
 
@@ -2086,7 +2160,7 @@ void show_philz_settings()
                     if (other_sd != NULL) {
                         choose_default_ors_menu(other_sd);
                         //we search for .ors files in second sd under default location
-                        if (browse_for_ors == 0) {
+                        if (browse_for_file == 0) {
                             //.ors files found
                             break;
                         }

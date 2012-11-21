@@ -1,13 +1,13 @@
 __<center><big>PhilZ Touch 3 (clockworkmod 6 based recovery)</big></center>__
 
+.
 
 __Home page__
 http://forum.xda-developers.com/showthread.php?t=1877270
 
+.
 
-__Features__
-
-<u>Touch interface</u>
+__Touch interface__
 
 toggle between 3 touch modes: __FULL TOUCH__ , __DOUBLE TAP__ to validate and __SEMI TOUCH__ (scroll but no touch validation)
 
@@ -22,13 +22,13 @@ toggle between 3 touch modes: __FULL TOUCH__ , __DOUBLE TAP__ to validate and __
 
 .
 
-
-<u>Additional features through PhilZ Settings</u>
+__Additional features through PhilZ Settings__
 
 - openrecovery script support
 - backup and flash kernels directly from recovery
 - time stamped kernel backups
 - backup and restore EFS from recovery
+- flash modem from recovery
 - browse phone with root access using full GUI in Aroma File Manager: default location or browse for path
 - support openrecovery script in 3 modes using a smart one touch menu: goomanager, default custom scripts location, browse for script
 - poweroff, reboot to recovery and reboot to download mode options
@@ -38,16 +38,26 @@ toggle between 3 touch modes: __FULL TOUCH__ , __DOUBLE TAP__ to validate and __
 .
 
 
-__<center><big>PhilZ Touch 3.0 Quick Guide</big></center>__
+__<center><big>PhilZ Touch 3 Quick Guide</big></center>__
+
+.
+
+__Special Backup and Restore menu__
+
+- Backup/Flash Kernel: backup kernel in time stamped boot_$date.img file. To flash kernels, they must be in one of the sdcards under clockworkmod/.kernel_back folder. If you have zImage files, rename them to *.img file
+
+- Backup/Flash EFS: creates/restores efs.img file under one of the sdcards in clockworkmod/.efsbackup folder
+
+- Flash modem: you can put *.bin modem files under clockworkmod/.modem_back folder in one of the sdcards. Note, if you recompile my recovery from source, you must verify that recovery.fstab file for your device has the /boot entry or you need to add it manually
 
 .
 
 __Open Recovery Script Support (ORS) *Credits to sk8erwitskil__
 
-When you tap the ORS menu, it first looks for <code>/cache/recovery/openrecoveryscript</code> installed by goomanager
-
+On start, recovery looks automatically for <code>/cache/recovery/openrecoveryscript</code> installed by goomanager
 If it finds it, it is run and phone will reboot
-If no goomanager job available, it will look at default locations for your custom scripts:
+
+You can also add custom ors scripts you edit your self. When pressing the ors menu, it will look at default locations for your custom scripts:
 
 <code>clockworkmod/ors</code> in external sd, then <code>clockworkmod/ors</code> in internal sd. Put your custom scripts there with file extension __.ors__
 
@@ -101,3 +111,4 @@ When Full Touch mode is selected, it will automatically set recommended menu hei
 <u>Config files</u> are saved in <code>/system/philz-cwm6/</code> folder. That way your settings are saved and remembered after restart or even a factory reset
 
 <u>All settings are applied live</u>, no restart needed (except toggle key repeat) and they are saved after recovery restart
+
