@@ -2175,6 +2175,15 @@ void show_philz_settings()
                 show_efs_menu();
                 break;
             case 2:
+                //we mount sdcards so that they can be accessed when in aroma file manager gui
+                if (volume_for_path("/sdcard") != NULL) {
+                    ensure_path_mounted("/sdcard");
+                }
+                if (volume_for_path("/external_sd") != NULL) {
+                    ensure_path_mounted("/external_sd");
+                } else if (volume_for_path("/emmc") != NULL) {
+                    ensure_path_mounted("/emmc");
+                }
                 //look for clockworkmod/.aromafm/aromafm.zip in /external_sd, then /sdcard and finally /emmc
                 if (volume_for_path("/external_sd") != NULL) {
                     if (default_aromafm("/external_sd")) {
