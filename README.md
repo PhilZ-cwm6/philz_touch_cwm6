@@ -48,7 +48,7 @@ __Special Backup and Restore menu__
 
 - Backup/Flash EFS: creates/restores efs.img file under one of the sdcards in clockworkmod/.efsbackup folder
 
-- Flash modem: you can put *.bin modem files under clockworkmod/.modem_back folder in one of the sdcards. Note, if you recompile my recovery from source, you must verify that recovery.fstab file for your device has the /boot entry or you need to add it manually
+- Flash modem: you can put *.bin modem files under clockworkmod/.modem_back folder in one of the sdcards. Note, if you recompile my recovery from source, you must verify that recovery.fstab file for your device has the /modem entry or you need to add it manually
 
 .
 
