@@ -44,11 +44,11 @@ __<center><big>PhilZ Touch 3 Quick Guide</big></center>__
 
 __Special Backup and Restore menu__
 
-- Backup/Flash Kernel: backup kernel in time stamped boot_$date.img file. To flash kernels, they must be in one of the sdcards under clockworkmod/.kernel_back folder. If you have zImage files, rename them to *.img file
+- Backup/Flash Kernel: backup kernel in time stamped boot_$date.img file. To flash kernels, they must be in one of the sdcards under clockworkmod/.kernel_bak folder. If you have zImage files, rename them to *.img file
 
 - Backup/Flash EFS: creates/restores efs.img file under one of the sdcards in clockworkmod/.efsbackup folder
 
-- Flash modem: you can put *.bin modem files under clockworkmod/.modem_back folder in one of the sdcards. Note, if you recompile my recovery from source, you must verify that recovery.fstab file for your device has the /modem entry or you need to add it manually
+- Flash modem: you can put *.bin modem files under clockworkmod/.modem_bak folder in one of the sdcards. Note, if you recompile my recovery from source, you must verify that recovery.fstab file for your device has the /modem entry or you need to add it manually
 
 .
 
