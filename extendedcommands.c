@@ -1461,9 +1461,41 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         fclose(f);
     }
 }
-  // open recovery script code
+  // ** start open recovery script support ** //
 #define SCRIPT_COMMAND_SIZE 512
+ //check ors script at boot (called from recovery.c)
+int check_for_script_file(const char* ors_boot_script)
+{
+    ensure_path_mounted("/sdcard");
+    if (volume_for_path("/external_sd") != NULL) {
+        ensure_path_mounted("/external_sd");
+    } else if (volume_for_path("/emmc") != NULL) {
+        ensure_path_mounted("/emmc");
+    }
 
+    int ret_val = -1;
+    char exec[512];
+    FILE *fp = fopen(ors_boot_script, "r");
+    if (fp != NULL) {
+        ret_val = 0;
+        LOGI("Script file found: '%s'\n", ors_boot_script);
+        fclose(fp);
+        __system("ors-mount.sh");
+        // Copy script file to /tmp
+        strcpy(exec, "cp ");
+        strcat(exec, ors_boot_script);
+        strcat(exec, " ");
+        strcat(exec, "/tmp/openrecoveryscript");
+        __system(exec);
+        // Delete the file from /cache
+        strcpy(exec, "rm ");
+        strcat(exec, ors_boot_script);
+        // __system(exec);
+    }
+    return ret_val;
+}
+  //run ors script code
+  //this can start on boot or manually for custom ors
 int run_ors_script(const char* ors_script) {
     FILE *fp = fopen(ors_script, "r");
     int ret_val = 0, cindex, line_len, i, remove_nl;
@@ -1541,7 +1573,7 @@ int run_ors_script(const char* ors_script) {
                     }
                     ensure_path_mounted("/sd-ext");
                     ensure_path_mounted("/cache");
-                    if (ors_boot_script) {
+                    if (no_wipe_confirm) {
                         //do not confirm before wipe for scripts started at boot
                         __system("rm -r /data/dalvik-cache");
                         __system("rm -r /cache/dalvik-cache");
@@ -1818,6 +1850,7 @@ void show_custom_ors_menu() {
         }
     }
 }
+  // ** end open recovery script support ** //
   //start show flash kernel menu (flash/restore from default location)
 void flash_kernel_default (const char* kernel_path) {
     static char* headers[] = {  "Flash kernel image",
