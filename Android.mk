@@ -45,7 +45,7 @@ endif
 
 ifdef PHILZ_TOUCH_RECOVERY
 RECOVERY_VERSION := $(RECOVERY_NAME) 3
-PHILZ_BUILD := 3.35
+PHILZ_BUILD := 3.36
 CWM_BASE_VERSION := 6.0.1.9
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
@@ -60,6 +60,8 @@ RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 
 #device specific config
+#Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com>
+#adapted from kbc-developers
 #Galaxy S3 International
 ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_DEVICE := i9300

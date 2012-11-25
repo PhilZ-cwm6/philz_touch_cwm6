@@ -1290,7 +1290,7 @@ int can_partition(const char* volume) {
 
     int vol_len = strlen(vol->device);
     // do not allow partitioning of a device that isn't mmcblkX or mmcblkXp1
-    if (vol->device[vol_len - 2] == 'p' && vol->device[vol_len - 2] != '1') {
+    if (vol->device[vol_len - 2] == 'p' && vol->device[vol_len - 1] != '1') {
         LOGI("Can't partition unsafe device: %s\n", vol->device);
         return 0;
     }
@@ -1462,6 +1462,7 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
     }
 }
   // ** start open recovery script support ** //
+  // ** adapted code from sk8erwitskil ** //
 #define SCRIPT_COMMAND_SIZE 512
  //check ors script at boot (called from recovery.c)
 int check_for_script_file(const char* ors_boot_script)
