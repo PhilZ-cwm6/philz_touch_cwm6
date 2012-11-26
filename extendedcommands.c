@@ -2283,11 +2283,13 @@ void show_philz_settings()
                 break;
             case 4:
                 {
-                    //clean for new ROM: formats /data, /datadata, /cache, /system, /sd-ext, /sdcard/.android_secure
+                    //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, /sdcard/.android_secure
                     if (confirm_selection("Confirm wipe data & system?", "Yes, I will install a new ROM!")) {
                         wipe_data(0);
                         ui_print("-- Wiping system...\n");
                         erase_volume("/system");
+                        ui_print("-- Wiping preload...\n");
+                        erase_volume("/preload");
                         ui_print("Now flash a new ROM!\n");
                     }
                 }
