@@ -2192,6 +2192,7 @@ void show_philz_settings()
                             "Special Backup and Restore",
                             "Aroma File Manager",
                             "GUI Preferences",
+                            "Clean Before Flash New ROM",
                             "About",
                              NULL
     };
@@ -2272,6 +2273,17 @@ void show_philz_settings()
 #endif
                 break;
             case 4:
+                {
+                    //clean for new ROM: formats /data, /datadata, /cache, /system, /sd-ext, /sdcard/.android_secure
+                    if (confirm_selection("Confirm wipe data & system?", "Yes, I will install a new ROM!")) {
+                        wipe_data(0);
+                        ui_print("-- Wiping system...\n");
+                        erase_volume("/system");
+                        ui_print("Now flash a new ROM!\n");
+                    }
+                }
+                break;
+            case 5:
                 ui_print(EXPAND(RECOVERY_VERSION)"\n");
                 ui_print("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
