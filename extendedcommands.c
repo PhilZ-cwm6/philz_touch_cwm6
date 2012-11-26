@@ -1345,20 +1345,20 @@ void show_advanced_menu()
                             "Key Test",
                             "Show log",
                             "Fix Permissions",
-                            "Partition sdcard",
-                            "Partition External sdcard",
-                            "Partition Internal sdcard",
+                            NULL,
+                            NULL,
                             NULL
     };
 
-    if (!can_partition("/sdcard")) {
-        list[8] = NULL;
-    }
-    if (!can_partition("/external_sd")) {
-        list[9] = NULL;
-    }
-    if (!can_partition("/emmc")) {
-        list[10] = NULL;
+    char *other_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        other_sd = "/emmc";
+        list[8] = "Partition External sdcard";
+        list[9] = "Partition Internal sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        other_sd = "/external_sd";
+        list[8] = "Partition Internal sdcard";
+        list[9] = "Partition External sdcard";
     }
 
     for (;;)
@@ -1427,13 +1427,22 @@ void show_advanced_menu()
                 }
                 break;
             case 8:
-                partition_sdcard("/sdcard");
+                if (ensure_path_mounted("/sdcard") != 0) {
+                    ui_print("Can't mount /sdcard\n");
+                    break;
+                }
+                if (can_partition("/sdcard")) {
+                    partition_sdcard("/sdcard");
+                }
                 break;
             case 9:
-                partition_sdcard("/external_sd");
-                break;
-            case 10:
-                partition_sdcard("/emmc");
+                if (ensure_path_mounted(other_sd) != 0) {
+                    ui_print("Can't mount %s\n", other_sd);
+                    break;
+                }
+                if (can_partition(other_sd)) {
+                    partition_sdcard(other_sd);
+                }
                 break;
         }
     }
