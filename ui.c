@@ -79,7 +79,11 @@ static gr_surface gBackground;
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
 
+#ifdef PHILZ_TOUCH_RECOVERY
+int boardEnableKeyRepeat = 0;
+#else
 static int boardEnableKeyRepeat = 0;
+#endif
 static int boardRepeatableKeys[64], boardNumRepeatableKeys = 0;
 
 static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
@@ -585,12 +589,9 @@ void ui_init(void)
     } else {
         gInstallationOverlay = NULL;
     }
-
+#ifndef PHILZ_TOUCH_RECOVERY
     char enable_key_repeat[PROPERTY_VALUE_MAX];
     property_get("ro.cwm.enable_key_repeat", enable_key_repeat, "");
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1") || check_boardEnableKeyRepeat())
-#else
     if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1"))
 #endif
     {
