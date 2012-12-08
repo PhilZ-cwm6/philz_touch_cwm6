@@ -40,13 +40,13 @@ void device_ui_init(UIParameters* ui_parameters) {
 int device_recovery_start() {
 #ifdef PHILZ_TOUCH_RECOVERY
     //these must be called before fast_ui_init()
-    check_menu_height();
-    check_row_offset();
+    apply_menu_height(0);
+    apply_row_offset(0);
     fast_ui_init();
-    check_boardEnableKeyRepeat();
-    check_touch_sensitivity();
+    apply_touch_sensitivity(0);
+    apply_touch_to_validate(0);
     check_vibration_enabled();
-    check_touch_to_validate();
+    check_boardEnableKeyRepeat();
 #endif
     return 0;
 }
