@@ -105,8 +105,13 @@ set_sdcard_update_bootloader_message();
 
 extern int ui_handle_key(int key, int visible);
 
+/**************************/
+/*     PhilZ Settings     */
+/**************************/
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
 #endif
+
+/**************************/
 
 #endif

@@ -1140,7 +1140,11 @@ void show_nandroid_menu()
             case 0:
                 {
                     char backup_path[PATH_MAX];
+#ifdef PHILZ_TOUCH_RECOVERY
+                    time_t t = time(NULL) + t_zone;
+#else
                     time_t t = time(NULL);
+#endif
                     struct tm *tmp = localtime(&t);
                     if (tmp == NULL)
                     {
@@ -1173,7 +1177,11 @@ void show_nandroid_menu()
             case 6:
                 {
                     char backup_path[PATH_MAX];
+#ifdef PHILZ_TOUCH_RECOVERY
+                    time_t t = time(NULL) + t_zone;
+#else
                     time_t t = time(NULL);
+#endif
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
                     {
@@ -1448,10 +1456,12 @@ void show_advanced_menu()
     }
 }
 
-//start PhilZ Menu settings and functions
+/***************************************************/
+/*     start PhilZ Menu settings and functions     */
+/***************************************************/
 static int browse_for_file = 1;
            // 0 == stop browsing default file locations
-  //start print tail from custom log file
+//start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
     char * backup_log;
     char tmp[PATH_MAX];
@@ -1470,10 +1480,10 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         fclose(f);
     }
 }
-  // ** start open recovery script support ** //
-  // ** adapted code from sk8erwitskil ** //
+// ** start open recovery script support ** //
+// ** adapted code from sk8erwitskil ** //
 #define SCRIPT_COMMAND_SIZE 512
- //check ors script at boot (called from recovery.c)
+//check ors script at boot (called from recovery.c)
 int check_for_script_file(const char* ors_boot_script)
 {
     ensure_path_mounted("/sdcard");
@@ -1504,8 +1514,8 @@ int check_for_script_file(const char* ors_boot_script)
     }
     return ret_val;
 }
-  //run ors script code
-  //this can start on boot or manually for custom ors
+//run ors script code
+//this can start on boot or manually for custom ors
 int run_ors_script(const char* ors_script) {
     FILE *fp = fopen(ors_script, "r");
     int ret_val = 0, cindex, line_len, i, remove_nl;
@@ -1637,7 +1647,11 @@ int run_ors_script(const char* ors_script) {
                     ui_print("Backup folder set to '%s'\n", value2);
                     sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
                 } else {
+#ifdef PHILZ_TOUCH_RECOVERY
+                    time_t t = time(NULL) + t_zone;
+#else
                     time_t t = time(NULL);
+#endif
                     struct tm *tmp = localtime(&t);
                     if (tmp == NULL)
                     {
@@ -1758,8 +1772,8 @@ int run_ors_script(const char* ors_script) {
     }
     return ret_val;
 }
-  //end of open recovery script file code
-  //show menu: select ors from default path
+//end of open recovery script file code
+//show menu: select ors from default path
 void choose_default_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
@@ -1801,7 +1815,7 @@ void choose_default_ors_menu(const char* ors_path)
         run_ors_script(ors_file);
     }
 }
-  //show menu: browse for custom Open Recovery Script
+//show menu: browse for custom Open Recovery Script
 void choose_custom_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
@@ -1823,7 +1837,7 @@ void choose_custom_ors_menu(const char* ors_path)
         run_ors_script(ors_file);
     }
 }
-  //show menu: select sdcard volume to search for custom ors file
+//show menu: select sdcard volume to search for custom ors file
 void show_custom_ors_menu() {
     static char* headers[] = {  "Search .ors script to run",
                                 "",
@@ -1860,8 +1874,8 @@ void show_custom_ors_menu() {
         }
     }
 }
-  // ** end open recovery script support ** //
-  //start show flash kernel menu (flash/restore from default location)
+// ** end open recovery script support ** //
+//start show flash kernel menu (flash/restore from default location)
 void flash_kernel_default (const char* kernel_path) {
     static char* headers[] = {  "Flash kernel image",
                                 NULL
@@ -1903,7 +1917,7 @@ void flash_kernel_default (const char* kernel_path) {
         return;
     }
 }
-  //start flash modem menu
+//start flash modem menu
 void flash_modem_menu(const char* modem_path)
 {
     if (ensure_path_mounted(modem_path) != 0) {
@@ -1956,7 +1970,7 @@ void flash_modem_menu(const char* modem_path)
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
 
-  //start show partition backup/restore menu
+//start show partition backup/restore menu
 void show_efs_menu() {
     static char* headers[] = {  "Special Backup & Restore",
                                 "",
@@ -2117,7 +2131,7 @@ void show_efs_menu() {
         }
     }
 }
-  //browse and select Aroma File Manager from custom locations on sdcards
+//browse and select Aroma File Manager from custom locations on sdcards
 void choose_aromafm_menu(const char* aromafm_path)
 {
     if (ensure_path_mounted(aromafm_path) != 0) {
@@ -2139,7 +2153,7 @@ void choose_aromafm_menu(const char* aromafm_path)
         install_zip(aroma_file);
     }
 }
-  //Show custom aroma menu: manually browse sdcards for Aroma file manager
+//Show custom aroma menu: manually browse sdcards for Aroma file manager
 void custom_aroma_menu() {
     static char* headers[] = {  "Browse for aromafm.zip",
                                 "",
@@ -2176,7 +2190,7 @@ void custom_aroma_menu() {
         }
     }
 }
-  //launch aromafm.zip from default locations
+//launch aromafm.zip from default locations
 static int default_aromafm (const char* aromafm_path) {
         if (ensure_path_mounted(aromafm_path) != 0) {
             //no sdcard at moint point
@@ -2190,7 +2204,7 @@ static int default_aromafm (const char* aromafm_path) {
         }
         return 0;
 }
-  //start show PhilZ Settings Menu
+//start show PhilZ Settings Menu
 void show_philz_settings()
 {
     static char* headers[] = {  "PhilZ Settings",
@@ -2304,8 +2318,10 @@ void show_philz_settings()
         }
     }
 }
-  //end show PhilZ Menu
-//end PhilZ Menu settings and functions
+//end show PhilZ Menu
+/***************************************************/
+/*      End PhilZ Menu settings and functions      */
+/***************************************************/
 
 void write_fstab_root(char *path, FILE *file)
 {
