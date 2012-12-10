@@ -1011,7 +1011,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
     };
 
     static char* list[] = { "Restore boot",
-                            "Restore system",
+                            "Restore system & preload",
                             "Restore data",
                             "Restore cache",
                             "Restore sd-ext",
@@ -1034,7 +1034,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                 nandroid_restore(file, 1, 0, 0, 0, 0, 0);
             break;
         case 1:
-            if (confirm_selection(confirm_restore, "Yes - Restore system"))
+            if (confirm_selection(confirm_restore, "Yes - Restore system & preload"))
                 nandroid_restore(file, 0, 1, 0, 0, 0, 0);
             break;
         case 2:
