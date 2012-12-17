@@ -1027,7 +1027,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
     };
 
     static char* list[] = { "Restore boot",
-                            "Restore system & preload",
+                            "Restore system",
                             "Restore data",
                             "Restore cache",
                             "Restore sd-ext",
@@ -1050,7 +1050,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                 nandroid_restore(file, 1, 0, 0, 0, 0, 0);
             break;
         case 1:
-            if (confirm_selection(confirm_restore, "Yes - Restore system & preload"))
+            if (confirm_selection(confirm_restore, "Yes - Restore system"))
                 nandroid_restore(file, 0, 1, 0, 0, 0, 0);
             break;
         case 2:
@@ -1889,6 +1889,7 @@ void show_custom_ors_menu() {
     }
 }
 // ** end open recovery script support ** //
+
 //start special backup and restore handlers
 #define KERNEL_RESTORE_SCRIPT "kernel-restore.sh"
 #define KERNEL_BACKUP_SCRIPT "kernel-backup.sh"
@@ -2078,6 +2079,7 @@ void show_efs_menu() {
                     "Flash a Kernel Image",
                     "Flash a Modem Image",
                     "Restore EFS Image",
+                    "Misc Nandroid Settings",
                     NULL
     };
 
@@ -2102,6 +2104,11 @@ void show_efs_menu() {
                 break;
             case 4:
                 special_restore_handler(EFS_RESTORE_SCRIPT, EFS_BACKUP_PATH, 0, 1, 0);
+                break;
+            case 5:
+#ifdef PHILZ_TOUCH_RECOVERY
+                misc_nandroid_menu();
+#endif
                 break;
         }
     }

@@ -378,11 +378,14 @@ int nandroid_backup(const char* backup_path)
 
     if (0 != (ret = nandroid_backup_partition(backup_path, "/system")))
         return ret;
-
-    if (0 != (ret = nandroid_backup_partition(backup_path, "/preload")))
-        //return ret;
-        ui_print("Skipping backup of /preload...\n");
-
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
+            //return ret;
+            ui_print("Skipping backup of /preload...\n");
+        }
+    }
+#endif
     if (0 != (ret = nandroid_backup_partition(backup_path, "/data")))
         return ret;
 
@@ -416,14 +419,18 @@ int nandroid_backup(const char* backup_path)
         else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext")))
             return ret;
     }
-
-    ui_print("Generating md5 sum...\n");
-    sprintf(tmp, "nandroid-md5.sh %s", backup_path);
-    if (0 != (ret = __system(tmp))) {
-        ui_print("Error while generating md5 sum!\n");
-        return ret;
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+#endif
+    {
+        ui_print("Generating md5 sum...\n");
+        sprintf(tmp, "nandroid-md5.sh %s", backup_path);
+        if (0 != (ret = __system(tmp))) {
+            ui_print("Error while generating md5 sum!\n");
+            return ret;
+        }
     }
-    
+
     sprintf(tmp, "chmod -R 777 %s ; chmod -R u+r,u+w,g+r,g+w,o+r,o+w /sdcard/clockworkmod ; chmod u+x,g+x,o+x /sdcard/clockworkmod/backup ; chmod u+x,g+x,o+x /sdcard/clockworkmod/blobs", backup_path);
     __system(tmp);
     sync();
@@ -675,11 +682,16 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     
     char tmp[PATH_MAX];
 
-    ui_print("Checking MD5 sums...\n");
-    sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
-    if (0 != __system(tmp))
-        return print_and_error("MD5 mismatch!\n");
-    
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+#endif
+    {
+        ui_print("Checking MD5 sums...\n");
+        sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
+        if (0 != __system(tmp))
+            return print_and_error("MD5 mismatch!\n");
+    }
+
     int ret;
 
     if (restore_boot && NULL != volume_for_path("/boot") && 0 != (ret = nandroid_restore_partition(backup_path, "/boot")))
@@ -716,11 +728,14 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
-
-    if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload")))
-        //return ret;
-        ui_print("Skipping restore of /preload...\n");
-
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
+        if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
+            //return ret;
+            ui_print("Skipping restore of /preload...\n");
+        }
+    }
+#endif
     if (restore_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
         return ret;
         
