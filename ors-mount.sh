@@ -1,5 +1,12 @@
 #!/sbin/sh
 
+#######################################
+#  Do not remove this credits header  #
+# sk8erwitskil : first release        #
+# PhilZ-cwm6   : multi device support #
+# PhilZ-cwm6   : Jellybean support    #
+#######################################
+
 #in cwm, sdcard can be internal sd or external sd on phones with /emmc and no /external_sd defined in recovery.fstab
 INT_SD="/sdcard";
 EXT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /external_sd`;

@@ -1,5 +1,11 @@
 #!/sbin/sh
 
+#######################################
+#  Do not remove this credits header  #
+# sk8erwitskil : first release        #
+# PhilZ-cwm6   : multi device support #
+#######################################
+
 BOOT_PATH=`cat /etc/recovery.fstab | grep -v "#" | grep /boot | awk '{print $3}'`;
 
 echo "">>"$2"/clockworkmod/.kernel_bak/log.txt;
