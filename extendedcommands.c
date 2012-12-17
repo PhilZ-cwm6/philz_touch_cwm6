@@ -1889,134 +1889,197 @@ void show_custom_ors_menu() {
     }
 }
 // ** end open recovery script support ** //
-//start show flash kernel menu (flash/restore from default location)
-void flash_kernel_default (const char* kernel_path) {
-    static char* headers[] = {  "Flash kernel image",
-                                NULL
-    };
+//start special backup and restore handlers
+#define KERNEL_RESTORE_SCRIPT "kernel-restore.sh"
+#define KERNEL_BACKUP_SCRIPT "kernel-backup.sh"
+#define KERNEL_BACKUP_PATH "clockworkmod/.kernel_bak"
 
-    if (ensure_path_mounted(kernel_path) != 0) {
-        LOGE ("Can't mount %s\n", kernel_path);
-        return;
+#define EFS_RESTORE_SCRIPT "efs-restore.sh"
+#define EFS_BACKUP_SCRIPT "efs-backup.sh"
+#define EFS_BACKUP_PATH "clockworkmod/.efsbackup"
+
+#define MODEM_RESTORE_SCRIPT "modem-flash.sh"
+#define MODEM_BACKUP_PATH "clockworkmod/.modem_bak"
+
+static void special_backup_handler(const char* script_cmd, const char* backup_path, int boot_bak, int efs_bak) {
+    static char **headers;
+    char **list;
+    static char* headers_boot[] = {"Backup Boot Partition", "", NULL};
+    char* list_boot[] = {"Backup Kernel to External SD",
+                      "Backup Kernel to Internal SD",
+                      NULL};
+    static char* headers_efs[] = {"Backup EFS Partition", "", NULL};
+    char* list_efs[] = {"Backup EFS to External SD",
+                      "Backup EFS to Internal SD",
+                      NULL};
+    if (boot_bak) {
+        headers = headers_boot;
+        list = list_boot;
+    } else if (efs_bak) {
+        headers = headers_efs;
+        list = list_efs;
+    } else return; //in case it was called with wrong syntax
+
+    char *int_sd = NULL;
+    char *ext_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        int_sd = "/emmc";
+        ext_sd = "/sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        ext_sd = "/external_sd";
+        int_sd = "/sdcard";
     }
 
-    char tmp[PATH_MAX];
-    sprintf(tmp, "%s/clockworkmod/.kernel_bak/", kernel_path);
-    //without this check, we get 2 errors in log: "directory not found":
-    if (access(tmp, F_OK) != -1) {
-        //folder exists, but could be empty!
-        char* kernel_file = choose_file_menu(tmp, ".img", headers);
-        if (kernel_file == NULL) {
-            //either no valid files found or we selected no files by pressing back menu
-            if (no_files_found == 1) {
-                //0 valid files to select
-                ui_print("No *.img files in %s\n", tmp);
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    switch (chosen_item)
+    {
+        case 0:
+            {
+                if (ensure_path_mounted(ext_sd) == 0) {
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "%s %s", script_cmd, ext_sd);
+                    __system(tmp);
+                    //log
+                    char logfile[PATH_MAX];
+                    sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
+                    ui_print_custom_logtail(logfile, 3);
+                } else {
+                    ui_print("Couldn't mount %s\n", ext_sd);
+                }
+                break;
             }
-            return;
-        }
-        static char* confirm_install = "Confirm flash kernel?";
-        static char confirm[PATH_MAX];
-        sprintf(confirm, "Yes - Flash %s", basename(kernel_file));
-        if (confirm_selection(confirm_install, confirm)) {
-            char tmp[PATH_MAX];
-            sprintf(tmp, "kernel-restore.sh %s %s", kernel_file, kernel_path);
-            __system(tmp);
-            //prints log
-            char logname[PATH_MAX];
-            sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", kernel_path);
-            ui_print_custom_logtail(logname, 3);
-        }
-    } else {
-        ui_print("%s not found.\n", tmp);
-        return;
+        case 1:
+            {
+                if (ensure_path_mounted(int_sd) == 0) {
+                    char tmp[PATH_MAX];
+                    sprintf(tmp, "%s %s", script_cmd, int_sd);
+                    __system(tmp);
+                    //log
+                    char logfile[PATH_MAX];
+                    sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
+                    ui_print_custom_logtail(logfile, 3);
+                } else {
+                    ui_print("Couldn't mount %s\n", int_sd);
+                }
+                break;
+            }
     }
 }
-//start flash modem menu
-void flash_modem_menu(const char* modem_path)
-{
-    if (ensure_path_mounted(modem_path) != 0) {
-        LOGE ("Can't mount %s\n", modem_path);
-        browse_for_file = 1;
-        return;
-    }
+
+static void special_restore_handler(const char* script_cmd, const char* backup_path, int boot_bak, int efs_bak, int modem_bak) {
+    static char **headers;
+    static char* headers_boot[] = {"Select a kernel image", "", NULL};
+    static char* headers_efs[] = {"Restore EFS Image", "", NULL};
+    static char* headers_modem[] = {"Select a modem image", "", NULL};
+
+    if (boot_bak) {
+        headers = headers_boot;
+    } else if (efs_bak) {
+        headers = headers_efs;
+    } else if (modem_bak) {
+        headers = headers_modem;
+    } else return; //in case it was called with wrong syntax    
     
-    char modem_dir[PATH_MAX];
-    sprintf(modem_dir, "%s/clockworkmod/.modem_bak/", modem_path);
-    if (access(modem_dir, F_OK) == -1) {
-        //custom folder does not exist
-        browse_for_file = 1;
-        return;
+    char *int_sd = NULL;
+    char *ext_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        int_sd = "/emmc";
+        ext_sd = "/sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        ext_sd = "/external_sd";
+        int_sd = "/sdcard";
     }
-
-    static char* headers[] = {  "Flash modem image",
-                                "",
-                                NULL
-    };
-
-    char* modem_file = choose_file_menu(modem_dir, ".bin", headers);
-    if (no_files_found == 1) {
-        //0 valid files to select, let's continue browsing next locations
-        ui_print("No *.bin files in %s\n", modem_dir);
-        browse_for_file = 1;
-    } else {
-        browse_for_file = 0;
-        //we found modem image in clockworkmod/.modem_bak folder: do not proceed other locations even if no file is chosen
-    }
-    if (modem_file == NULL) {
-        //either no valid files found or we selected no files by pressing back menu
-        return;
-    }
-    static char* confirm_install  = "Confirm flash modem?";
-    static char confirm[PATH_MAX];
-    sprintf(confirm, "Yes - Flash %s", basename(modem_file));
-    if (confirm_selection(confirm_install, confirm)) {
+    //first, we try flashing from external sd
+    if (ensure_path_mounted(ext_sd) == 0) {
         char tmp[PATH_MAX];
-        sprintf(tmp, "modem-flash.sh %s %s", modem_file, modem_path);
-        __system(tmp);
-        //prints log
-        char logname[PATH_MAX];
-        sprintf(logname, "%s/clockworkmod/.modem_bak/log.txt", modem_path);
-        ui_print_custom_logtail(logname, 3);
+        sprintf(tmp, "%s/%s/", ext_sd, backup_path);
+        //without this check, we get 2 errors in log: "directory not found":
+        if (access(tmp, F_OK) != -1) {
+            //folder exists, but could be empty!
+            char* image_file = choose_file_menu(tmp, ".img", headers);
+            if (image_file == NULL) {
+                //either no valid files found or we selected no files by pressing back menu
+                if (no_files_found) {
+                    //0 valid files to select
+                    ui_print("No *.img files in %s\n", tmp);
+                }
+            } else {
+                static char* confirm_install = "Confirm flash image?";
+                static char confirm[PATH_MAX];
+                sprintf(confirm, "Yes - Flash %s", basename(image_file));
+                if (confirm_selection(confirm_install, confirm)) {
+                    char cmd[PATH_MAX];
+                    sprintf(cmd, "%s %s %s", script_cmd, image_file, ext_sd);
+                    __system(cmd);
+                    //log
+                    char logfile[PATH_MAX];
+                    sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
+                    ui_print_custom_logtail(logfile, 3);
+                    return;
+                }
+            }
+        } else {
+            ui_print("%s not found.\n", tmp);
+        }
+    } else {
+            ui_print("Couldn't mount %s, trying internal sd (%s)\n", ext_sd, int_sd);
+    }
+
+    //nothing selected or found in external sd, let's try internal sd
+    if (ensure_path_mounted(int_sd) == 0) {
+        char tmp[PATH_MAX];
+        sprintf(tmp, "%s/%s/", int_sd, backup_path);
+        //without this check, we get 2 errors in log: "directory not found":
+        if (access(tmp, F_OK) != -1) {
+            //folder exists, but could be empty!
+            char* image_file = choose_file_menu(tmp, ".img", headers);
+            if (image_file == NULL) {
+                //either no valid files found or we selected no files by pressing back menu
+                if (no_files_found) {
+                    //0 valid files to select
+                    ui_print("No *.img files in %s\n", tmp);
+                }
+            } else {
+                static char* confirm_install = "Confirm flash image?";
+                static char confirm[PATH_MAX];
+                sprintf(confirm, "Yes - Flash %s", basename(image_file));
+                if (confirm_selection(confirm_install, confirm)) {
+                    char cmd[PATH_MAX];
+                    sprintf(cmd, "%s %s %s", script_cmd, image_file, int_sd);
+                    __system(cmd);
+                    //log
+                    char logfile[PATH_MAX];
+                    sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
+                    ui_print_custom_logtail(logfile, 3);
+                }
+            }
+        } else {
+            ui_print("%s not found.\n", tmp);
+        }
+    } else {
+        ui_print("Couldn't mount internal sd (%s)\n", int_sd);
     }
 }
+//end special backup and restore handlers
 
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
 
-//start show partition backup/restore menu
+//start show special backup/restore menu
 void show_efs_menu() {
     static char* headers[] = {  "Special Backup & Restore",
                                 "",
                                 NULL
     };
 
-    static char* list[] = { "Backup Kernel to sdcard",
-                     "Flash Kernel from sdcard",
-                     "Backup EFS to sdcard",
-                     "Restore EFS from sdcard",
-                     NULL,
-                     NULL,
-                     NULL,
-                     NULL,
-                     "Flash Modem",
-                     NULL
+    static char* list[] = { "Backup Kernel",
+                    "Backup EFS",
+                    "Flash a Kernel Image",
+                    "Flash a Modem Image",
+                    "Restore EFS Image",
+                    NULL
     };
-
-    char *other_sd = NULL;
-    if (volume_for_path("/emmc") != NULL) {
-        other_sd = "/emmc";
-        list[4] = "Backup Kernel to Internal sdcard";
-        list[5] = "Flash Kernel from Internal sdcard";
-        list[6] = "Backup EFS to Internal sdcard";
-        list[7] = "Restore EFS from Internal sdcard";
-    } else if (volume_for_path("/external_sd") != NULL) {
-        other_sd = "/external_sd";
-        list[4] = "Backup Kernel to External sdcard";
-        list[5] = "Flash Kernel from External sdcard";
-        list[6] = "Backup EFS to External sdcard";
-        list[7] = "Restore EFS from External sdcard";
-    }
 
     for (;;) {
         //header function so that "Toggle menu" doesn't reset to main menu on action selected
@@ -2026,121 +2089,19 @@ void show_efs_menu() {
         switch (chosen_item)
         {
             case 0:
-                if (ensure_path_mounted("/sdcard") != 0) {
-                    ui_print("Can't mount /sdcard\n");
-                    break;
-                }
-                __system("kernel-backup.sh /sdcard");
-                ui_print_custom_logtail("/sdcard/clockworkmod/.kernel_bak/log.txt", 3);
+                special_backup_handler(KERNEL_BACKUP_SCRIPT, KERNEL_BACKUP_PATH, 1, 0);
                 break;
             case 1:
-                flash_kernel_default("/sdcard");
+                special_backup_handler(EFS_BACKUP_SCRIPT, EFS_BACKUP_PATH, 0, 1);
                 break;
             case 2:
-                if (ensure_path_mounted("/sdcard") != 0) {
-                    ui_print("Can't mount /sdcard\n");
-                    break;
-                }
-                ensure_path_unmounted("/efs");
-                __system("efs-backup.sh /sdcard");
-                ui_print_custom_logtail("/sdcard/clockworkmod/.efsbackup/log.txt", 3);
+                special_restore_handler(KERNEL_RESTORE_SCRIPT, KERNEL_BACKUP_PATH, 1, 0, 0);
                 break;
             case 3:
-                if (ensure_path_mounted("/sdcard") != 0) {
-                    ui_print("Can't mount /sdcard\n");
-                    break;
-                }
-                ensure_path_unmounted("/efs");
-                if (access("/sdcard/clockworkmod/.efsbackup/efs.img", F_OK ) != -1) {
-                    if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                        __system("efs-restore.sh /sdcard");
-                        ui_print_custom_logtail("/sdcard/clockworkmod/.efsbackup/log.txt", 3);
-                    }
-                } else {
-                    ui_print("No efs.img backup found in sdcard.\n");
-                }
+                special_restore_handler(MODEM_RESTORE_SCRIPT, MODEM_BACKUP_PATH, 0, 0, 1);
                 break;
             case 4:
-                {
-                    if (ensure_path_mounted(other_sd) != 0) {
-                        ui_print("Can't mount %s\n", other_sd);
-                        break;
-                    }
-                    char tmp[PATH_MAX];
-                    sprintf(tmp, "kernel-backup.sh %s", other_sd);
-                    __system(tmp);
-                    //prints log
-                    char logname[PATH_MAX];
-                    sprintf(logname, "%s/clockworkmod/.kernel_bak/log.txt", other_sd);
-                    ui_print_custom_logtail(logname, 3);
-                }
-                break;
-            case 5:
-                flash_kernel_default(other_sd);
-                break;
-            case 6:
-                {
-                    if (ensure_path_mounted(other_sd) != 0) {
-                        ui_print("Can't mount %s\n", other_sd);
-                        break;
-                    }
-                    ensure_path_unmounted("/efs");
-                    char tmp[PATH_MAX];
-                    sprintf(tmp, "efs-backup.sh %s", other_sd);
-                    __system(tmp);
-                    //prints log
-                    char logname[PATH_MAX];
-                    sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
-                    ui_print_custom_logtail(logname, 3);
-                }
-                break;
-            case 7:
-                {
-                    if (ensure_path_mounted(other_sd) != 0) {
-                        ui_print("Can't mount %s\n", other_sd);
-                        break;
-                    }
-                    ensure_path_unmounted("/efs");
-                    char filename[PATH_MAX];
-                    sprintf(filename, "%s/clockworkmod/.efsbackup/efs.img", other_sd);
-                    if (access(filename, F_OK ) != -1) {
-                        if (confirm_selection("Confirm?", "Yes - Restore EFS")) {
-                            char tmp[PATH_MAX];
-                            sprintf(tmp, "efs-restore.sh %s", other_sd);
-                            __system(tmp);
-                            //prints log
-                            char logname[PATH_MAX];
-                            sprintf(logname, "%s/clockworkmod/.efsbackup/log.txt", other_sd);
-                            ui_print_custom_logtail(logname, 3);
-                        }
-                    } else {
-                        ui_print("No efs.img backup found in %s\n", other_sd);
-                    }
-                }
-                break;
-            case 8:
-                {
-                    flash_modem_menu("/sdcard");
-                    if (browse_for_file == 0) {
-                        //we found modem files in /sdcard default location
-                        break;
-                    }
-
-                    char *other_sd = NULL;
-                    if (volume_for_path("/emmc") != NULL) {
-                        other_sd = "/emmc";
-                    } else if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    }
-                    if (other_sd != NULL) {
-                        flash_modem_menu(other_sd);
-                        //we search for modem files in second sd under default location
-                        if (browse_for_file == 0) {
-                            break;
-                        }
-                    }
-                    ui_print("Nothing to flash.\n Put *.bin file under clockworkmod/.modem_bak\n");
-                }
+                special_restore_handler(EFS_RESTORE_SCRIPT, EFS_BACKUP_PATH, 0, 1, 0);
                 break;
         }
     }
