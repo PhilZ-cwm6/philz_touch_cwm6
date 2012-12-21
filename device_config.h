@@ -23,11 +23,6 @@
 #ifdef TARGET_DEVICE_I9300
 // ums
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/platform/msm_hsusb/gadget/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/platform/s3c-usbgadget/gadget/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun_ex/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file"
-//#define BOARD_UMS_LUNFILE    "/sys/class/android_usb/android0/f_mass_storage/lun0/file"
 #endif
 
 
@@ -51,11 +46,6 @@
 #ifdef TARGET_DEVICE_N7100
 // ums
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/platform/msm_hsusb/gadget/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/platform/s3c-usbgadget/gadget/lun0/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun_ex/file"
-//#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun/file"
-//#define BOARD_UMS_LUNFILE    "/sys/class/android_usb/android0/f_mass_storage/lun0/file"
 #endif
 
 

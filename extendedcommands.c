@@ -1972,13 +1972,17 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
     static char* headers_boot[] = {"Select a kernel image", "", NULL};
     static char* headers_efs[] = {"Restore EFS Image", "", NULL};
     static char* headers_modem[] = {"Select a modem image", "", NULL};
+    static char **image_extension;
 
     if (boot_bak) {
         headers = headers_boot;
+        image_extension = ".img";
     } else if (efs_bak) {
         headers = headers_efs;
+        image_extension = ".img";
     } else if (modem_bak) {
         headers = headers_modem;
+        image_extension = ".bin";
     } else return; //in case it was called with wrong syntax    
     
     char *int_sd = NULL;
@@ -1997,12 +2001,12 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
         //without this check, we get 2 errors in log: "directory not found":
         if (access(tmp, F_OK) != -1) {
             //folder exists, but could be empty!
-            char* image_file = choose_file_menu(tmp, ".img", headers);
+            char* image_file = choose_file_menu(tmp, image_extension, headers);
             if (image_file == NULL) {
                 //either no valid files found or we selected no files by pressing back menu
                 if (no_files_found) {
                     //0 valid files to select
-                    ui_print("No *.img files in %s\n", tmp);
+                    ui_print("No *%s files in %s\n", image_extension, tmp);
                 }
             } else {
                 static char* confirm_install = "Confirm flash image?";
@@ -2033,12 +2037,12 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
         //without this check, we get 2 errors in log: "directory not found":
         if (access(tmp, F_OK) != -1) {
             //folder exists, but could be empty!
-            char* image_file = choose_file_menu(tmp, ".img", headers);
+            char* image_file = choose_file_menu(tmp, image_extension, headers);
             if (image_file == NULL) {
                 //either no valid files found or we selected no files by pressing back menu
                 if (no_files_found) {
                     //0 valid files to select
-                    ui_print("No *.img files in %s\n", tmp);
+                    ui_print("No *%s files in %s\n", image_extension, tmp);
                 }
             } else {
                 static char* confirm_install = "Confirm flash image?";
