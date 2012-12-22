@@ -1921,14 +1921,13 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
         list = list_efs;
     } else return; //in case it was called with wrong syntax
 
-    char *int_sd = NULL;
+    char *int_sd = "/sdcard";
     char *ext_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         int_sd = "/emmc";
         ext_sd = "/sdcard";
     } else if (volume_for_path("/external_sd") != NULL) {
         ext_sd = "/external_sd";
-        int_sd = "/sdcard";
     }
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
@@ -1972,7 +1971,7 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
     static char* headers_boot[] = {"Select a kernel image", "", NULL};
     static char* headers_efs[] = {"Restore EFS Image", "", NULL};
     static char* headers_modem[] = {"Select a modem image", "", NULL};
-    static char **image_extension;
+    static char *image_extension = NULL;
 
     if (boot_bak) {
         headers = headers_boot;
@@ -1985,14 +1984,13 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
         image_extension = ".bin";
     } else return; //in case it was called with wrong syntax    
     
-    char *int_sd = NULL;
+    char *int_sd = "/sdcard";
     char *ext_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         int_sd = "/emmc";
         ext_sd = "/sdcard";
     } else if (volume_for_path("/external_sd") != NULL) {
         ext_sd = "/external_sd";
-        int_sd = "/sdcard";
     }
     //first, we try flashing from external sd
     if (ensure_path_mounted(ext_sd) == 0) {
