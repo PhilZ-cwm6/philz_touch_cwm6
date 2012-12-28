@@ -45,57 +45,69 @@ endif
 
 ifdef PHILZ_TOUCH_RECOVERY
 RECOVERY_VERSION := $(RECOVERY_NAME) 3
-PHILZ_BUILD := 3.94
-CWM_BASE_VERSION := 6.0.2.3
+PHILZ_BUILD := 3.95
+CWM_BASE_VERSION := 6.0.2.7
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 #compile date:
 #LOCAL_CFLAGS += -DBUILD_DATE="\"`date`\""
 else
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.2.3
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.2.7
 endif
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 
-#device specific config
-#Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com>
-#adapted from kbc-developers
+##############################################################
+#device specific config                                      #
+#Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com> #
+#adapted from kbc-developers                                 #
+##############################################################
 #Galaxy S3 International
 ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_DEVICE := i9300
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
+endif
 
 #Galaxy S2 International
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
 TARGET_DEVICE := i9100
-#BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
+endif
 
 #Galaxy Note
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_DEVICE := n7000
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
+endif
 
 #Galaxy Note 2
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
 TARGET_DEVICE := n7100
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
+endif
 
 #Galaxy Tab 2 P5100
 else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_DEVICE := p5100
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
+endif
 
 #Undefined Device
 else
@@ -103,7 +115,14 @@ TARGET_DEVICE := $(TARGET_PRODUCT)
 endif
 
 LOCAL_CFLAGS += -DTARGET_DEVICE="$(TARGET_DEVICE)"
-#end device specific config
+
+#############################
+#end device specific config #
+#############################
+
+ifdef PHILZ_TOUCH_RECOVERY
+BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
+endif
 
 ifdef BOARD_TOUCH_RECOVERY
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
@@ -111,12 +130,8 @@ ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
 endif
 endif
 
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
-else
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
   BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
-endif
 endif
 
 BOARD_RECOVERY_CHAR_WIDTH := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 1)
@@ -145,14 +160,10 @@ LOCAL_STATIC_LIBRARIES += libext4_utils libz
 
 LOCAL_MODULE_TAGS := eng
 
-ifdef PHILZ_TOUCH_RECOVERY
-LOCAL_SRC_FILES += default_philz_keys.c
-else
 ifeq ($(BOARD_CUSTOM_RECOVERY_KEYMAPPING),)
   LOCAL_SRC_FILES += default_recovery_keys.c
 else
   LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_KEYMAPPING)
-endif
 endif
 
 LOCAL_STATIC_LIBRARIES += libext4_utils libz
