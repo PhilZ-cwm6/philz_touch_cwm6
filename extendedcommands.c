@@ -1939,6 +1939,7 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
                     char tmp[PATH_MAX];
                     sprintf(tmp, "%s %s", script_cmd, ext_sd);
                     __system(tmp);
+                    sync();
                     //log
                     char logfile[PATH_MAX];
                     sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
@@ -1954,6 +1955,7 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
                     char tmp[PATH_MAX];
                     sprintf(tmp, "%s %s", script_cmd, int_sd);
                     __system(tmp);
+                    sync();
                     //log
                     char logfile[PATH_MAX];
                     sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
@@ -2014,6 +2016,7 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
                     char cmd[PATH_MAX];
                     sprintf(cmd, "%s %s %s", script_cmd, image_file, ext_sd);
                     __system(cmd);
+                    sync();
                     //log
                     char logfile[PATH_MAX];
                     sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
@@ -2050,6 +2053,7 @@ static void special_restore_handler(const char* script_cmd, const char* backup_p
                     char cmd[PATH_MAX];
                     sprintf(cmd, "%s %s %s", script_cmd, image_file, int_sd);
                     __system(cmd);
+                    sync();
                     //log
                     char logfile[PATH_MAX];
                     sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
@@ -2081,6 +2085,7 @@ void show_efs_menu() {
                     "Flash a Kernel Image",
                     "Flash a Modem Image",
                     "Restore EFS Image",
+                    "Clone ROM to update.zip",
                     "Misc Nandroid Settings",
                     NULL
     };
@@ -2108,6 +2113,11 @@ void show_efs_menu() {
                 special_restore_handler(EFS_RESTORE_SCRIPT, EFS_BACKUP_PATH, 0, 1, 0);
                 break;
             case 5:
+#ifdef PHILZ_TOUCH_RECOVERY
+                custom_rom_menu();
+#endif
+                break;
+            case 6:
 #ifdef PHILZ_TOUCH_RECOVERY
                 misc_nandroid_menu();
 #endif
