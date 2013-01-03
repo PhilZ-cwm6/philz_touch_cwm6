@@ -380,6 +380,7 @@ int nandroid_backup(const char* backup_path)
 
     if (0 != (ret = nandroid_backup_partition(backup_path, "/system")))
         return ret;
+
 #ifdef PHILZ_TOUCH_RECOVERY
     if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
@@ -388,6 +389,7 @@ int nandroid_backup(const char* backup_path)
         }
     }
 #endif
+
     if (0 != (ret = nandroid_backup_partition(backup_path, "/data")))
         return ret;
 
@@ -419,6 +421,7 @@ int nandroid_backup(const char* backup_path)
         else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext")))
             return ret;
     }
+
 #ifdef PHILZ_TOUCH_RECOVERY
     if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
 #endif
@@ -728,6 +731,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
+
 #ifdef PHILZ_TOUCH_RECOVERY
     if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0)) {
         if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
@@ -736,6 +740,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         }
     }
 #endif
+
     if (restore_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
         return ret;
         
