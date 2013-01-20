@@ -1482,7 +1482,7 @@ void show_advanced_menu()
 }
 
 /***************************************************/
-/*     start PhilZ Menu settings and functions     */
+/*     Start PhilZ Menu settings and functions     */
 /***************************************************/
 static int browse_for_file = 1;
            // 0 == stop browsing default file locations
@@ -1901,36 +1901,229 @@ void show_custom_ors_menu() {
 }
 // ** end open recovery script support ** //
 
-//start special backup and restore handlers
-#define KERNEL_RESTORE_SCRIPT "kernel-restore.sh"
-#define KERNEL_BACKUP_SCRIPT "kernel-backup.sh"
-#define KERNEL_BACKUP_PATH "clockworkmod/.kernel_bak"
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
+#endif
 
-#define EFS_RESTORE_SCRIPT "efs-restore.sh"
-#define EFS_BACKUP_SCRIPT "efs-backup.sh"
-#define EFS_BACKUP_PATH "clockworkmod/.efsbackup"
+// start special backup and restore handlers
+void reset_backup_source(int toggle_status) {
+    backup_boot = backup_recovery = backup_system = backup_preload = toggle_status;
+    backup_data = backup_cache = backup_sdext = backup_wimax = toggle_status;
+    //modem is disabled from nandroid backups, but can be part of custom backup jobs
+    backup_modem = 0;
+}
 
-#define MODEM_RESTORE_SCRIPT "modem-flash.sh"
-#define MODEM_BACKUP_PATH "clockworkmod/.modem_bak"
+int valid_backup_job() {
+    return (backup_boot + backup_recovery + backup_system + backup_preload + backup_data + backup_cache + backup_sdext + backup_modem + backup_wimax);
+}
 
-static void special_backup_handler(const char* script_cmd, const char* backup_path, int boot_bak, int efs_bak) {
-    static char **headers;
-    char **list;
-    static char* headers_boot[] = {"Backup Boot Partition", "", NULL};
-    char* list_boot[] = {"Backup Kernel to External SD",
-                      "Backup Kernel to Internal SD",
-                      NULL};
-    static char* headers_efs[] = {"Backup EFS Partition", "", NULL};
-    char* list_efs[] = {"Backup EFS to External SD",
-                      "Backup EFS to Internal SD",
-                      NULL};
-    if (boot_bak) {
-        headers = headers_boot;
-        list = list_boot;
-    } else if (efs_bak) {
-        headers = headers_efs;
-        list = list_efs;
-    } else return; //in case it was called with wrong syntax
+void get_custom_backup_path(const char* sd_path, char *backup_path) {
+    if (backup_efs) {
+        sprintf(backup_path, "%s/%s", sd_path, EFS_BACKUP_PATH);
+        return;
+    }
+
+#ifdef PHILZ_TOUCH_RECOVERY
+    time_t t = time(NULL) + t_zone;
+#else
+    time_t t = time(NULL);
+#endif
+    char rom_name[PROPERTY_VALUE_MAX] = "noname";
+#ifdef PHILZ_TOUCH_RECOVERY
+    get_rom_name(rom_name);
+#endif
+
+    struct tm *timeptr = localtime(&t);
+    if (timeptr == NULL) {
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+        sprintf(backup_path, "%s/clockworkmod/custom_backup/%d_%s", sd_path, tp.tv_sec, rom_name);
+    } else {
+        char tmp[PATH_MAX];
+        strftime(tmp, sizeof(tmp), "clockworkmod/custom_backup/%F.%H.%M.%S", timeptr);
+        // this sprintf results in:
+        // clockworkmod/custom_backup/%F.%H.%M.%S (time values are populated too)
+        sprintf(backup_path, "%s/%s_%s", sd_path, tmp, rom_name);
+    }
+}
+
+//header_part: "Backup Boot Partition" or "Backup EFS Partition"...
+//caller is show_custom_backup_menu{
+// then call custom_backup_handler(int efs_bak)
+void custom_backup_handler() {
+    static char* headers[] = {"Select custom backup target", "", NULL};
+    char* list[] = {"Backup to External sdcard",
+                "Backup to Internal sdcard",
+                NULL};
+
+    ui_print("This will backup");
+    if (backup_boot)
+        ui_print(" - boot");
+    if (backup_recovery)
+        ui_print(" - recovery");
+    if (backup_system)
+        ui_print(" - system");
+    if (backup_preload)
+        ui_print(" - preload");
+    if (backup_data)
+        ui_print(" - data");
+    if (backup_cache)
+        ui_print(" - cache");
+    if (backup_sdext)
+        ui_print(" - sd-ext");
+    if (backup_modem)
+        ui_print(" - modem");
+    if (backup_wimax)
+        ui_print(" - WiMAX");
+    if (backup_efs)
+        ui_print(" EFS Partition");
+    ui_print("!\n");
+
+    char *int_sd = "/sdcard";
+    char *ext_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        int_sd = "/emmc";
+        ext_sd = "/sdcard";
+    } else if (volume_for_path("/external_sd") != NULL) {
+        ext_sd = "/external_sd";
+    }
+
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    switch (chosen_item)
+    {
+        case 0:
+            {
+                if (ensure_path_mounted(ext_sd) == 0) {
+                    char backup_path[PATH_MAX] = "";
+                    get_custom_backup_path(ext_sd, backup_path);
+                    nandroid_force_backup_format("tar");
+                    nandroid_backup(backup_path);
+                    nandroid_force_backup_format("");
+                } else {
+                    ui_print("Couldn't mount %s\n", ext_sd);
+                }
+                break;
+            }
+        case 1:
+            {
+                if (ensure_path_mounted(int_sd) == 0) {
+                    char backup_path[PATH_MAX] = "";
+                    get_custom_backup_path(int_sd, backup_path);
+                    nandroid_force_backup_format("tar");
+                    nandroid_backup(backup_path);
+                    nandroid_force_backup_format("");
+                } else {
+                    ui_print("Couldn't mount %s\n", int_sd);
+                }
+                break;
+            }
+    }
+}
+
+// there is a trailing / in passed backup_path: needed for choose_file_menu()
+void custom_restore_handler(const char* backup_path) {
+    if (ensure_path_mounted(backup_path) != 0) {
+        LOGE("Can't mount %s\n", backup_path);
+        return;
+    }
+
+    static char* headers[] = {  "Choose a backup to restore",
+                                NULL
+    };
+
+    struct stat file_img;
+    char* file = NULL;
+    static char* confirm_install = "Restore from this backup?";
+    static char tmp[PATH_MAX];
+    char *backup_source;
+
+    if (backup_efs == RESTORE_EFS_IMG) {
+        file = choose_file_menu(backup_path, ".img", headers);
+        if (file == NULL) {
+            //either no valid files found or we selected no files by pressing back menu
+            if (no_files_found)
+                ui_print("Nothing to restore in %s !\n", backup_path);
+            return;
+        }
+
+        //restore efs raw image
+        backup_source = basename(file);
+        ui_print("%s will be flashed to /efs!\n", backup_source);
+        sprintf(tmp, "Yes - Restore %s", backup_source);
+        if (confirm_selection(confirm_install, tmp)) {
+            custom_restore_raw_handler(file, "/efs");
+        }
+    } else if (backup_efs == RESTORE_EFS_TAR) {
+        file = choose_file_menu(backup_path, NULL, headers);
+        if (file == NULL) {
+            //either no valid files found or we selected no files by pressing back menu
+            if (no_files_found)
+                ui_print("No efs_tar backup found in %s!\n", backup_path);
+            return;
+        }
+
+        //ensure there is no efs.img file in same folder (as nandroid_restore_partition_extended will force it to be restored)
+        backup_source = file;
+        sprintf(tmp, "%s/efs.img", backup_source);
+        if (0 == stat(tmp, &file_img)) {
+            ui_print("efs.img file detected in %s!\n", backup_source);
+            ui_print("Either select efs.img to restore it,\n");
+            ui_print("or remove it to restore nandroid source.\n");
+            return;
+        }
+
+        //restore efs from nandroid tar format
+        ui_print("%s will be restored to /efs!\n", backup_source);
+        sprintf(tmp, "Yes - Restore %s", basename(backup_source));
+        if (confirm_selection(confirm_install, tmp)) {
+            nandroid_restore(backup_source, 0, 0, 0, 0, 0, 0);
+        }
+    } else {
+        //process backup job
+        file = choose_file_menu(backup_path, NULL, headers);
+        if (file == NULL) {
+            //either no valid files found or we selected no files by pressing back menu
+            if (no_files_found)
+                ui_print("Nothing to restore in %s !\n", backup_path);
+            return;
+        }
+        backup_source = dirname(file);
+        ui_print("%s will be restored to selected partitions!\n", backup_source);
+        sprintf(tmp, "Yes - Restore %s", basename(backup_source));
+        if (confirm_selection(confirm_install, tmp)) {
+            nandroid_restore(backup_source, backup_boot, backup_system, backup_data, backup_cache, backup_sdext, backup_wimax);
+        }
+    }
+}
+
+void browse_backup_folders(const char* backup_path) {
+    static char* headers[] = {"Browse backup folders...", "", NULL};
+    char* list[] = {"Restore from External sdcard",
+                "Restore from Internal sdcard",
+                NULL};
+
+    ui_print("Restore list:");
+    if (backup_boot)
+        ui_print(" - boot");
+    if (backup_recovery)
+        ui_print(" - recovery");
+    if (backup_system)
+        ui_print(" - system");
+    if (backup_preload)
+        ui_print(" - preload");
+    if (backup_data)
+        ui_print(" - data");
+    if (backup_cache)
+        ui_print(" - cache");
+    if (backup_sdext)
+        ui_print(" - sd-ext");
+    if (backup_modem)
+        ui_print(" - modem");
+    if (backup_wimax)
+        ui_print(" - WiMAX");
+    if (backup_efs)
+        ui_print(" EFS Partition");
+    ui_print("!\n");
 
     char *int_sd = "/sdcard";
     char *ext_sd = NULL;
@@ -1948,13 +2141,8 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
             {
                 if (ensure_path_mounted(ext_sd) == 0) {
                     char tmp[PATH_MAX];
-                    sprintf(tmp, "%s %s", script_cmd, ext_sd);
-                    __system(tmp);
-                    sync();
-                    //log
-                    char logfile[PATH_MAX];
-                    sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
-                    ui_print_custom_logtail(logfile, 3);
+                    sprintf(tmp, "%s/%s/", ext_sd, backup_path);
+                    custom_restore_handler(tmp);
                 } else {
                     ui_print("Couldn't mount %s\n", ext_sd);
                 }
@@ -1964,13 +2152,8 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
             {
                 if (ensure_path_mounted(int_sd) == 0) {
                     char tmp[PATH_MAX];
-                    sprintf(tmp, "%s %s", script_cmd, int_sd);
-                    __system(tmp);
-                    sync();
-                    //log
-                    char logfile[PATH_MAX];
-                    sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
-                    ui_print_custom_logtail(logfile, 3);
+                    sprintf(tmp, "%s/%s/", int_sd, backup_path);
+                    custom_restore_handler(tmp);
                 } else {
                     ui_print("Couldn't mount %s\n", int_sd);
                 }
@@ -1978,124 +2161,260 @@ static void special_backup_handler(const char* script_cmd, const char* backup_pa
             }
     }
 }
-
-static void special_restore_handler(const char* script_cmd, const char* backup_path, int boot_bak, int efs_bak, int modem_bak) {
-    static char **headers;
-    static char* headers_boot[] = {"Select a kernel image", "", NULL};
-    static char* headers_efs[] = {"Restore EFS Image", "", NULL};
-    static char* headers_modem[] = {"Select a modem image", "", NULL};
-    static char *image_extension = NULL;
-
-    if (boot_bak) {
-        headers = headers_boot;
-        image_extension = ".img";
-    } else if (efs_bak) {
-        headers = headers_efs;
-        image_extension = ".img";
-    } else if (modem_bak) {
-        headers = headers_modem;
-        image_extension = ".bin";
-    } else return; //in case it was called with wrong syntax    
-    
-    char *int_sd = "/sdcard";
-    char *ext_sd = NULL;
-    if (volume_for_path("/emmc") != NULL) {
-        int_sd = "/emmc";
-        ext_sd = "/sdcard";
-    } else if (volume_for_path("/external_sd") != NULL) {
-        ext_sd = "/external_sd";
-    }
-    //first, we try flashing from external sd
-    if (ensure_path_mounted(ext_sd) == 0) {
-        char tmp[PATH_MAX];
-        sprintf(tmp, "%s/%s/", ext_sd, backup_path);
-        //without this check, we get 2 errors in log: "directory not found":
-        if (access(tmp, F_OK) != -1) {
-            //folder exists, but could be empty!
-            char* image_file = choose_file_menu(tmp, image_extension, headers);
-            if (image_file == NULL) {
-                //either no valid files found or we selected no files by pressing back menu
-                if (no_files_found) {
-                    //0 valid files to select
-                    ui_print("No *%s files in %s\n", image_extension, tmp);
-                }
-            } else {
-                static char* confirm_install = "Confirm flash image?";
-                static char confirm[PATH_MAX];
-                sprintf(confirm, "Yes - Flash %s", basename(image_file));
-                if (confirm_selection(confirm_install, confirm)) {
-                    char cmd[PATH_MAX];
-                    sprintf(cmd, "%s %s %s", script_cmd, image_file, ext_sd);
-                    __system(cmd);
-                    sync();
-                    //log
-                    char logfile[PATH_MAX];
-                    sprintf(logfile, "%s/%s/log.txt", ext_sd, backup_path);
-                    ui_print_custom_logtail(logfile, 3);
-                    return;
-                }
-            }
-        } else {
-            ui_print("%s not found.\n", tmp);
-        }
-    } else {
-            ui_print("Couldn't mount %s, trying internal sd (%s)\n", ext_sd, int_sd);
-    }
-
-    //nothing selected or found in external sd, let's try internal sd
-    if (ensure_path_mounted(int_sd) == 0) {
-        char tmp[PATH_MAX];
-        sprintf(tmp, "%s/%s/", int_sd, backup_path);
-        //without this check, we get 2 errors in log: "directory not found":
-        if (access(tmp, F_OK) != -1) {
-            //folder exists, but could be empty!
-            char* image_file = choose_file_menu(tmp, image_extension, headers);
-            if (image_file == NULL) {
-                //either no valid files found or we selected no files by pressing back menu
-                if (no_files_found) {
-                    //0 valid files to select
-                    ui_print("No *%s files in %s\n", image_extension, tmp);
-                }
-            } else {
-                static char* confirm_install = "Confirm flash image?";
-                static char confirm[PATH_MAX];
-                sprintf(confirm, "Yes - Flash %s", basename(image_file));
-                if (confirm_selection(confirm_install, confirm)) {
-                    char cmd[PATH_MAX];
-                    sprintf(cmd, "%s %s %s", script_cmd, image_file, int_sd);
-                    __system(cmd);
-                    sync();
-                    //log
-                    char logfile[PATH_MAX];
-                    sprintf(logfile, "%s/%s/log.txt", int_sd, backup_path);
-                    ui_print_custom_logtail(logfile, 3);
-                }
-            }
-        } else {
-            ui_print("%s not found.\n", tmp);
-        }
-    } else {
-        ui_print("Couldn't mount internal sd (%s)\n", int_sd);
-    }
-}
 //end special backup and restore handlers
 
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
-#endif
+void custom_restore_menu(const char* backup_path) {
+    static char* headers[] = {  "Custom restore job",
+                                NULL
+    };
+    char item_boot[40];
+    char item_recovery[40];
+    char item_system[40];
+    char item_preload[40];
+    char item_data[40];
+    char item_cache[40];
+    char item_sdext[40];
+    char item_modem[40];
+    char item_efs[40];
+    char item_wimax[40];    
+    char* list[] = { item_boot,
+                item_recovery,
+                item_system,
+                item_preload,
+                item_data,
+                item_cache,
+                item_sdext,
+                item_modem,
+                item_efs,
+                ">> Start Custom Restore Job <<",
+                item_wimax,
+                NULL
+    };
 
-//start show special backup/restore menu
-void show_efs_menu() {
-    static char* headers[] = {  "Special Backup & Restore",
+    char tmp[PATH_MAX];
+    if (0 != get_partition_device("wimax", tmp)) {
+        // disable wimax restore option
+        list[10] = NULL;
+    }
+
+    static int custom_items;
+    if (strcmp("clockworkmod/custom_backup", backup_path) == 0)
+        custom_items = 1;
+    else
+        custom_items = 0;
+
+    reset_backup_source(0);
+    backup_efs = 0;
+    for (;;) {
+        // do not forget 40 chars limit!
+        if (backup_boot) list[0] =                              "Restore boot          -  Yes";
+            else list[0] =                                      "Restore boot          -  No";
+        if (backup_recovery) list[1] =                          "Restore recovery      -  Yes";
+            else list[1] =                                      "Restore recovery      -  No";
+        if (backup_system) list[2] =                            "Restore system        -  Yes";
+            else list[2] =                                      "Restore system        -  No";
+        if (backup_preload) list[3] =                           "Restore preload       -  Yes";
+            else list[3] =                                      "Restore preload       -  No";
+        if (backup_data) list[4] =                              "Restore data          -  Yes";
+            else list[4] =                                      "Restore data          -  No";
+        if (backup_cache) list[5] =                             "Restore cache         -  Yes";
+            else list[5] =                                      "Restore cache         -  No";
+        if (backup_sdext) list[6] =                             "Restore sd-ext        -  Yes";
+            else list[6] =                                      "Restore sd-ext        -  No";
+        if (backup_modem == RAW_IMG_FILE) list[7] =             "Restore modem [.img]  -  Yes";
+            else if (backup_modem == RAW_BIN_FILE) list[7] =    "Restore modem [.bin]  -  Yes";
+            else list[7] =                                      "Restore modem         -  No";
+        if (backup_efs == RESTORE_EFS_IMG) list[8] =            "Restore efs [.img]    -  Yes";
+            else if (backup_efs == RESTORE_EFS_TAR) list[8] =   "Restore efs [.tar]    -  Yes";
+            else list[8] =                                      "Restore efs           -  No";
+        if (NULL != list[10]) {
+            if (backup_wimax) list[10] =                        "Restore WiMax         -  Yes";
+            else list[10] =                                     "Restore WiMax         -  No";
+        }
+        //disabled items if not from custom backup
+        if (!custom_items) {
+            list[7] =                                           "modem (ONLY IN CUSTOM BACKUP)";
+            list[8] =                                           "efs   (ONLY IN CUSTOM BACKUP)";
+        }
+
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                backup_boot ^= 1;
+                break;
+            case 1:
+                backup_recovery ^= 1;
+                break;
+            case 2:
+                backup_system ^= 1;
+                break;
+            case 3:
+                backup_preload ^= 1;
+                break;
+            case 4:
+                backup_data ^= 1;
+                break;
+            case 5:
+                backup_cache ^= 1;
+                break;
+            case 6:
+                backup_sdext ^= 1;
+                break;
+            case 7:
+                if (custom_items) {
+                    backup_modem++;
+                    if (backup_modem > 2)
+                        backup_modem = 0;
+                }
+                break;
+            case 8:
+                if (custom_items) {
+                    backup_efs++;
+                    if (backup_efs > 2)
+                        backup_efs = 0;
+                }
+                break;
+            case 9:
+                if (backup_efs && !valid_backup_job())
+                    browse_backup_folders(EFS_BACKUP_PATH);
+                else if (valid_backup_job() && !backup_efs)
+                    browse_backup_folders(backup_path);
+                else if (valid_backup_job() && backup_efs)
+                    ui_print("efs must be restored alone!\n");
+                else
+                    ui_print("Select at least one partition to restore!\n");
+                break;
+            case 10:
+                backup_wimax ^= 1;
+                break;
+        }
+    }
+    reset_backup_source(1);
+    backup_efs = 0;
+}
+
+
+void custom_backup_menu(void) {
+    static char* headers[] = {  "Custom backup job",
+                                NULL
+    };
+    char item_boot[40];
+    char item_recovery[40];
+    char item_system[40];
+    char item_preload[40];
+    char item_data[40];
+    char item_cache[40];
+    char item_sdext[40];
+    char item_modem[40];
+    char item_efs[40];
+    char item_wimax[40];    
+    char* list[] = { item_boot,
+                item_recovery,
+                item_system,
+                item_preload,
+                item_data,
+                item_cache,
+                item_sdext,
+                item_modem,
+                item_efs,
+                ">> Start Custom Backup Job <<",
+                item_wimax,
+                NULL
+    };
+
+    char tmp[PATH_MAX];
+    if (0 != get_partition_device("wimax", tmp)) {
+        // disable wimax restore option
+        list[10] = NULL;
+    }
+
+    reset_backup_source(0);
+    backup_efs = 0;
+    for (;;) {
+        // do not forget 40 chars limit!
+        if (backup_boot) list[0] =          "Backup boot           -  Yes";
+            else list[0] =                  "Backup boot           -  No";
+        if (backup_recovery) list[1] =      "Backup recovery       -  Yes";
+            else list[1] =                  "Backup recovery       -  No";
+        if (backup_system) list[2] =        "Backup system         -  Yes";
+            else list[2] =                  "Backup system         -  No";
+        if (backup_preload) list[3] =       "Backup preload        -  Yes";
+            else list[3] =                  "Backup preload        -  No";
+        if (backup_data) list[4] =          "Backup data           -  Yes";
+            else list[4] =                  "Backup data           -  No";
+        if (backup_cache) list[5] =         "Backup cache          -  Yes";
+            else list[5] =                  "Backup cache          -  No";
+        if (backup_sdext) list[6] =         "Backup sd-ext         -  Yes";
+            else list[6] =                  "Backup sd-ext         -  No";
+        if (backup_modem) list[7] =         "Backup modem [.img]   -  Yes";
+            else list[7] =                  "Backup modem          -  No";
+        if (backup_efs) list[8] =           "Backup efs [img&tar]  -  Yes";
+            else list[8] =                  "Backup efs            -  No";
+        if (NULL != list[10]) {
+            if (backup_wimax) list[10] =    "Backup WiMax          -  Yes";
+            else list[10] =                 "Backup WiMax          -  No";
+        }
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                backup_boot ^= 1;
+                break;
+            case 1:
+                backup_recovery ^= 1;
+                break;
+            case 2:
+                backup_system ^= 1;
+                break;
+            case 3:
+                backup_preload ^= 1;
+                break;
+            case 4:
+                backup_data ^= 1;
+                break;
+            case 5:
+                backup_cache ^= 1;
+                break;
+            case 6:
+                backup_sdext ^= 1;
+                break;
+            case 7:
+                backup_modem ^= 1;
+                break;
+            case 8:
+                backup_efs ^= 1;
+                break;
+            case 9:
+                if (!backup_efs && !valid_backup_job())
+                    ui_print("Select at least one partition to backup!\n");
+                else if (valid_backup_job() && backup_efs)
+                    ui_print("efs cannot be part of a backup job!\n");
+                else
+                    custom_backup_handler();
+                break;
+            case 10:
+                backup_wimax ^= 1;
+                break;
+        }
+    }
+    reset_backup_source(1);
+    backup_efs = 0;
+}
+
+void custom_backup_restore_menu(void) {
+    static char* headers[] = {  "Custom Backup & Restore",
                                 "",
                                 NULL
     };
 
-    static char* list[] = { "Backup Kernel",
-                    "Backup EFS",
-                    "Flash a Kernel Image",
-                    "Flash a Modem Image",
-                    "Restore EFS Image",
+    static char* list[] = { "Custom Backup Job",
+                    "Restore from Custom Backups",
+                    "Restore from Nandroid Backups",
                     "Clone ROM to update.zip",
                     "Misc Nandroid Settings",
                     NULL
@@ -2108,27 +2427,22 @@ void show_efs_menu() {
             break;
         switch (chosen_item)
         {
+
             case 0:
-                special_backup_handler(KERNEL_BACKUP_SCRIPT, KERNEL_BACKUP_PATH, 1, 0);
+                custom_backup_menu();
                 break;
             case 1:
-                special_backup_handler(EFS_BACKUP_SCRIPT, EFS_BACKUP_PATH, 0, 1);
+                custom_restore_menu("clockworkmod/custom_backup");
                 break;
             case 2:
-                special_restore_handler(KERNEL_RESTORE_SCRIPT, KERNEL_BACKUP_PATH, 1, 0, 0);
+                custom_restore_menu("clockworkmod/backup");
                 break;
             case 3:
-                special_restore_handler(MODEM_RESTORE_SCRIPT, MODEM_BACKUP_PATH, 0, 0, 1);
-                break;
-            case 4:
-                special_restore_handler(EFS_RESTORE_SCRIPT, EFS_BACKUP_PATH, 0, 1, 0);
-                break;
-            case 5:
 #ifdef PHILZ_TOUCH_RECOVERY
                 custom_rom_menu();
 #endif
                 break;
-            case 6:
+            case 4:
 #ifdef PHILZ_TOUCH_RECOVERY
                 misc_nandroid_menu();
 #endif
@@ -2136,6 +2450,7 @@ void show_efs_menu() {
         }
     }
 }
+
 //browse and select Aroma File Manager from custom locations on sdcards
 void choose_aromafm_menu(const char* aromafm_path)
 {
@@ -2217,7 +2532,7 @@ void show_philz_settings()
     };
 
     static char* list[] = { "Open Recovery Script",
-                            "Special Backup and Restore",
+                            "Custom Backup and Restore",
                             "Aroma File Manager",
                             "GUI Preferences",
                             "Clean Before Flash New ROM",
@@ -2262,7 +2577,7 @@ void show_philz_settings()
                 }
                 break;
             case 1:
-                show_efs_menu();
+                custom_backup_restore_menu();
                 break;
             case 2:
                 //we mount sdcards so that they can be accessed when in aroma file manager gui

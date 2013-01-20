@@ -57,6 +57,9 @@ int run_and_remove_extendedcommand();
 
 int verify_root_and_recovery();
 
+//print custom logtail (detailed logging report in raw-backup.sh...)
+void ui_print_custom_logtail(const char* filename, int nb_lines);
+
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
 void extend_nandroid_menu(char** items, int item_count, int max_items);
 void handle_nandroid_menu(int item_count, int selected);

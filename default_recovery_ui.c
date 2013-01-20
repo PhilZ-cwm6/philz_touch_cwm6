@@ -45,7 +45,7 @@ int device_recovery_start() {
     fast_ui_init();
     apply_touch_sensitivity(0);
     apply_touch_to_validate(0);
-    apply_time_zone(0);
+    apply_time_zone(0, 0);
     check_vibration_enabled();
     check_boardEnableKeyRepeat();
 #endif
