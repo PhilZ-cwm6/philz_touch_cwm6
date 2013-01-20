@@ -66,7 +66,7 @@ static void ensure_directory(const char* dir) {
 }
 
 static int print_and_error(const char* message) {
-    ui_print("%s", message);
+    ui_print("%s\n", message);
     return 1;
 }
 
@@ -318,7 +318,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
         sprintf(tmp, "%s/%s.img", backup_path, name);
         ui_print("Backing up %s image...\n", name);
         if (0 != (ret = backup_raw_partition(vol->fs_type, vol->device, tmp))) {
-            ui_print("Error while backing up %s image!", name);
+            ui_print("Error while backing up %s image!\n", name);
             return ret;
         }
         ui_print("Backup of %s image completed.\n", name);
@@ -660,13 +660,13 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
         const char* name = basename(root);
         ui_print("Erasing %s before restore...\n", name);
         if (0 != (ret = format_volume(root))) {
-            ui_print("Error while erasing %s image!", name);
+            ui_print("Error while erasing %s image!\n", name);
             return ret;
         }
         sprintf(tmp, "%s%s.img", backup_path, root);
         ui_print("Restoring %s image...\n", name);
         if (0 != (ret = restore_raw_partition(vol->fs_type, vol->device, tmp))) {
-            ui_print("Error while flashing %s image!", name);
+            ui_print("Error while flashing %s image!\n", name);
             return ret;
         }
         return 0;
