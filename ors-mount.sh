@@ -5,14 +5,20 @@
 # sk8erwitskil : first release        #
 # PhilZ-cwm6   : multi device support #
 # PhilZ-cwm6   : Jellybean support    #
+# PhilZ-cwm6   : No extsdcard support #
 #######################################
 
 #in cwm, sdcard can be internal sd or external sd on phones with /emmc and no /external_sd defined in recovery.fstab
-INT_SD="/sdcard";
+INT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /emmc`;
 EXT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /external_sd`;
+
+if [ "$INT_SD" = "" ];
+     then
+        INT_SD="/sdcard"
+fi;
 if [ "$EXT_SD" = "" ];
-     then INT_SD="/emmc"
-          EXT_SD="/sdcard"
+     then
+        EXT_SD="/sdcard"
 fi;
 
 #fix path to zip files specified by goomanager so that recovery knows where to find the files

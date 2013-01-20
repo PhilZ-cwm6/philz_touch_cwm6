@@ -2234,7 +2234,6 @@ void show_philz_settings()
         {
             case 0:
                 {
-                    __system("ors-mount.sh");
                     //search in default ors path
                     choose_default_ors_menu("/sdcard");
                     if (browse_for_file == 0) {
