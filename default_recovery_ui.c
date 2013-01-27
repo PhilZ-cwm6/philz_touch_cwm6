@@ -39,15 +39,7 @@ void device_ui_init(UIParameters* ui_parameters) {
 //add here what we want to run on recovery start, even for temporary recovery
 int device_recovery_start() {
 #ifdef PHILZ_TOUCH_RECOVERY
-    //these must be called before fast_ui_init()
-    apply_menu_height(0);
-    apply_row_offset(0);
-    fast_ui_init();
-    apply_touch_sensitivity(0);
-    apply_touch_to_validate(0);
-    apply_time_zone(0, 0);
-    check_vibration_enabled();
-    check_boardEnableKeyRepeat();
+    refresh_philz_settings();
 #endif
     return 0;
 }

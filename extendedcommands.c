@@ -1027,7 +1027,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
     };
 
     static char* list[] = { "Restore boot",
-                            "Restore system",
+                            "Restore system (+/- preload)",
                             "Restore data",
                             "Restore cache",
                             "Restore sd-ext",
@@ -1050,7 +1050,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                 nandroid_restore(file, 1, 0, 0, 0, 0, 0);
             break;
         case 1:
-            if (confirm_selection(confirm_restore, "Yes - Restore system"))
+            if (confirm_selection(confirm_restore, "Yes - Restore system +/- preload"))
                 nandroid_restore(file, 0, 1, 0, 0, 0, 0);
             break;
         case 2:
@@ -1134,6 +1134,7 @@ void show_nandroid_menu()
                             NULL,
                             NULL,
                             NULL,
+                            "Misc Nandroid Settings",
                             NULL,
                             NULL,
                             NULL
@@ -1155,7 +1156,7 @@ void show_nandroid_menu()
         list[9] = "Delete from External sdcard";
     }
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-    extend_nandroid_menu(list, 10, sizeof(list) / sizeof(char*));
+    extend_nandroid_menu(list, 11, sizeof(list) / sizeof(char*));
 #endif
 
     for (;;) {
@@ -1263,9 +1264,14 @@ void show_nandroid_menu()
                     show_nandroid_delete_menu(other_sd);
                 }
                 break;
+            case 10:
+#ifdef PHILZ_TOUCH_RECOVERY
+                misc_nandroid_menu();
+#endif
+                break;
             default:
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-                handle_nandroid_menu(10, chosen_item);
+                handle_nandroid_menu(11, chosen_item);
 #endif
                 break;
         }
@@ -1937,13 +1943,13 @@ void get_custom_backup_path(const char* sd_path, char *backup_path) {
     if (timeptr == NULL) {
         struct timeval tp;
         gettimeofday(&tp, NULL);
-        sprintf(backup_path, "%s/clockworkmod/custom_backup/%d_%s", sd_path, tp.tv_sec, rom_name);
+        sprintf(backup_path, "%s/%s/%d_%s", sd_path, CUSTOM_BACKUP_PATH, tp.tv_sec, rom_name);
     } else {
         char tmp[PATH_MAX];
-        strftime(tmp, sizeof(tmp), "clockworkmod/custom_backup/%F.%H.%M.%S", timeptr);
+        strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
         // this sprintf results in:
         // clockworkmod/custom_backup/%F.%H.%M.%S (time values are populated too)
-        sprintf(backup_path, "%s/%s_%s", sd_path, tmp, rom_name);
+        sprintf(backup_path, "%s/%s/%s_%s", sd_path, CUSTOM_BACKUP_PATH, tmp, rom_name);
     }
 }
 
@@ -2198,7 +2204,7 @@ void custom_restore_menu(const char* backup_path) {
     }
 
     static int custom_items;
-    if (strcmp("clockworkmod/custom_backup", backup_path) == 0)
+    if (strcmp(CUSTOM_BACKUP_PATH, backup_path) == 0)
         custom_items = 1;
     else
         custom_items = 0;
@@ -2432,7 +2438,7 @@ void custom_backup_restore_menu(void) {
                 custom_backup_menu();
                 break;
             case 1:
-                custom_restore_menu("clockworkmod/custom_backup");
+                custom_restore_menu(CUSTOM_BACKUP_PATH);
                 break;
             case 2:
                 custom_restore_menu("clockworkmod/backup");
@@ -2577,7 +2583,9 @@ void show_philz_settings()
                 }
                 break;
             case 1:
+                is_custom_backup = 1;
                 custom_backup_restore_menu();
+                is_custom_backup = 0;
                 break;
             case 2:
                 //we mount sdcards so that they can be accessed when in aroma file manager gui

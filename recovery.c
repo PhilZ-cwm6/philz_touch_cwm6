@@ -865,6 +865,7 @@ main(int argc, char **argv) {
     LOGI("device_recovery_start()\n");
     device_recovery_start();
 #ifdef PHILZ_TOUCH_RECOVERY
+    ensure_path_unmounted("/system");
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
     ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
 #endif

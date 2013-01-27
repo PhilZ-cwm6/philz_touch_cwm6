@@ -59,7 +59,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
     }
 }
 
-static void ensure_directory(const char* dir) {
+void ensure_directory(const char* dir) {
     char tmp[PATH_MAX];
     sprintf(tmp, "mkdir -p %s ; chmod 777 %s", dir, dir);
     __system(tmp);
@@ -334,9 +334,16 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 /**************************************/
 /* custom backup and restore by PhilZ */
 /**************************************/
+//these general variables are needed to not break backup and restore by external script
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1, backup_preload = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
 int backup_efs = 0, backup_modem = 0;
+int is_custom_backup = 0;
+
+#ifdef PHILZ_TOUCH_RECOVERY
+// process preload + md5 check during stock nandroid operations
+int nandroid_add_preload = 0, enable_md5sum = 1;
+#endif
 
 //custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
 //ret = 0 if success, else ret = 1
@@ -492,10 +499,12 @@ int nandroid_backup(const char* backup_path)
             ui_print("Failed to backup /preload!\n");
             return ret;
         }
-    } else
+    } 
+    else if (!is_custom_backup
 #ifdef PHILZ_TOUCH_RECOVERY
-            if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0))
+                && nandroid_add_preload
 #endif
+            )
     {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
             ui_print("Failed to backup preload! Try to disable it.\n");
@@ -539,7 +548,7 @@ int nandroid_backup(const char* backup_path)
     }
 
 #ifdef PHILZ_TOUCH_RECOVERY
-    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+    if (enable_md5sum)
 #endif
     {
         ui_print("Generating md5 sum...\n");
@@ -577,6 +586,26 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
     }
 
     return __pclose(fp);
+}
+
+static void compute_archive_stats(const char* archive_file)
+{
+    char tmp[PATH_MAX];
+        sprintf(tmp, "cat %s* | tar -t | wc -l > /tmp/archivecount", archive_file);
+            nandroid_files_total = 0;
+        LOGE("Failed computing archive stats for %s\n", archive_file);
+        return;
+    }
+    LOGE("Computing archive stats for %s\n", basename(archive_file));
+    __system(tmp);
+    char count_text[100];
+    FILE* f = fopen("/tmp/archivecount", "r");
+    fread(count_text, 1, sizeof(count_text), f);
+    fclose(f);
+    nandroid_files_count = 0;
+    nandroid_files_total = atoi(count_text);
+    ui_reset_progress();
+    ui_show_progress(1, 0);
 }
 
 static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
@@ -673,7 +702,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     if (0 != (ret = statfs(tmp, &file_info))) {
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
-        printf("couldn't find default\n");
+        printf("couldn't find old .img format\n");
         char *filesystem;
         int i = 0;
         while ((filesystem = filesystems[i]) != NULL) {
@@ -726,6 +755,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     ensure_directory(mount_point);
 
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
     if (backup_filesystem == NULL) {
@@ -806,7 +836,6 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
-    nandroid_files_total = 0;
 
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
@@ -814,7 +843,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     char tmp[PATH_MAX];
 
 #ifdef PHILZ_TOUCH_RECOVERY
-    if (!quick_toggle_chk(DISABLE_NANDROID_MD5_FILE, 0))
+    if (enable_md5sum)
 #endif
     {
         ui_print("Checking MD5 sums...\n");
@@ -881,10 +910,12 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
             ui_print("Failed to restore /preload!\n");
             return ret;
         }
-    } else
+    }
+    else if (!is_custom_backup
 #ifdef PHILZ_TOUCH_RECOVERY
-           if (quick_toggle_chk(ENABLE_PRELOAD_FILE, 0))
+                && nandroid_add_preload
 #endif
+            )
     {
         if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
             ui_print("Failed to restore preload! Try to disable it.\n");
