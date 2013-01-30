@@ -591,11 +591,8 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
 static void compute_archive_stats(const char* archive_file)
 {
     char tmp[PATH_MAX];
-        sprintf(tmp, "cat %s* | tar -t | wc -l > /tmp/archivecount", archive_file);
-            nandroid_files_total = 0;
-        LOGE("Failed computing archive stats for %s\n", archive_file);
-        return;
-    }
+    sprintf(tmp, "cat %s* | tar -t | wc -l > /tmp/archivecount", archive_file);
+
     LOGE("Computing archive stats for %s\n", basename(archive_file));
     __system(tmp);
     char count_text[100];
