@@ -1805,7 +1805,7 @@ int run_ors_script(const char* ors_script) {
 }
 //end of open recovery script file code
 //show menu: select ors from default path
-void choose_default_ors_menu(const char* ors_path)
+static void choose_default_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
         LOGE("Can't mount %s\n", ors_path);
@@ -1847,7 +1847,7 @@ void choose_default_ors_menu(const char* ors_path)
     }
 }
 //show menu: browse for custom Open Recovery Script
-void choose_custom_ors_menu(const char* ors_path)
+static void choose_custom_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
         LOGE("Can't mount %s\n", ors_path);
@@ -1869,7 +1869,7 @@ void choose_custom_ors_menu(const char* ors_path)
     }
 }
 //show menu: select sdcard volume to search for custom ors file
-void show_custom_ors_menu() {
+static void show_custom_ors_menu() {
     static char* headers[] = {  "Search .ors script to run",
                                 "",
                                 NULL
@@ -1912,18 +1912,18 @@ void show_custom_ors_menu() {
 #endif
 
 // start special backup and restore handlers
-void reset_backup_source(int toggle_status) {
+static void reset_backup_source(int toggle_status) {
     backup_boot = backup_recovery = backup_system = backup_preload = toggle_status;
     backup_data = backup_cache = backup_sdext = backup_wimax = toggle_status;
     //modem is disabled from nandroid backups, but can be part of custom backup jobs
     backup_modem = 0;
 }
 
-int valid_backup_job() {
+static int valid_backup_job() {
     return (backup_boot + backup_recovery + backup_system + backup_preload + backup_data + backup_cache + backup_sdext + backup_modem + backup_wimax);
 }
 
-void get_custom_backup_path(const char* sd_path, char *backup_path) {
+static void get_custom_backup_path(const char* sd_path, char *backup_path) {
     if (backup_efs) {
         sprintf(backup_path, "%s/%s", sd_path, EFS_BACKUP_PATH);
         return;
@@ -1956,7 +1956,7 @@ void get_custom_backup_path(const char* sd_path, char *backup_path) {
 //header_part: "Backup Boot Partition" or "Backup EFS Partition"...
 //caller is show_custom_backup_menu{
 // then call custom_backup_handler(int efs_bak)
-void custom_backup_handler() {
+static void custom_backup_handler() {
     static char* headers[] = {"Select custom backup target", "", NULL};
     char* list[] = {"Backup to External sdcard",
                 "Backup to Internal sdcard",
@@ -2027,7 +2027,7 @@ void custom_backup_handler() {
 }
 
 // there is a trailing / in passed backup_path: needed for choose_file_menu()
-void custom_restore_handler(const char* backup_path) {
+static void custom_restore_handler(const char* backup_path) {
     if (ensure_path_mounted(backup_path) != 0) {
         LOGE("Can't mount %s\n", backup_path);
         return;
@@ -2102,7 +2102,7 @@ void custom_restore_handler(const char* backup_path) {
     }
 }
 
-void browse_backup_folders(const char* backup_path) {
+static void browse_backup_folders(const char* backup_path) {
     static char* headers[] = {"Browse backup folders...", "", NULL};
     char* list[] = {"Restore from External sdcard",
                 "Restore from Internal sdcard",
@@ -2169,7 +2169,7 @@ void browse_backup_folders(const char* backup_path) {
 }
 //end special backup and restore handlers
 
-void custom_restore_menu(const char* backup_path) {
+static void custom_restore_menu(const char* backup_path) {
     static char* headers[] = {  "Custom restore job",
                                 NULL
     };
@@ -2303,7 +2303,7 @@ void custom_restore_menu(const char* backup_path) {
 }
 
 
-void custom_backup_menu(void) {
+static void custom_backup_menu() {
     static char* headers[] = {  "Custom backup job",
                                 NULL
     };
@@ -2412,7 +2412,7 @@ void custom_backup_menu(void) {
     backup_efs = 0;
 }
 
-void custom_backup_restore_menu(void) {
+static void custom_backup_restore_menu() {
     static char* headers[] = {  "Custom Backup & Restore",
                                 "",
                                 NULL
@@ -2458,7 +2458,7 @@ void custom_backup_restore_menu(void) {
 }
 
 //browse and select Aroma File Manager from custom locations on sdcards
-void choose_aromafm_menu(const char* aromafm_path)
+static void choose_aromafm_menu(const char* aromafm_path)
 {
     if (ensure_path_mounted(aromafm_path) != 0) {
         LOGE("Can't mount %s\n", aromafm_path);
@@ -2480,7 +2480,7 @@ void choose_aromafm_menu(const char* aromafm_path)
     }
 }
 //Show custom aroma menu: manually browse sdcards for Aroma file manager
-void custom_aroma_menu() {
+static void custom_aroma_menu() {
     static char* headers[] = {  "Browse for aromafm.zip",
                                 "",
                                 NULL

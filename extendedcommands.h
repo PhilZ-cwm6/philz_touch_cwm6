@@ -59,6 +59,7 @@ int verify_root_and_recovery();
 
 //print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
+void show_philz_settings();
 
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
 void extend_nandroid_menu(char** items, int item_count, int max_items);
