@@ -494,12 +494,12 @@ int nandroid_backup(const char* backup_path)
         return ret;
 
 
-    if (backup_preload) {
+    if (is_custom_backup && backup_preload) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
             ui_print("Failed to backup /preload!\n");
             return ret;
         }
-    } 
+    }
     else if (!is_custom_backup
 #ifdef PHILZ_TOUCH_RECOVERY
                 && nandroid_add_preload
@@ -902,7 +902,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
 
-    if (backup_preload) {
+    if (is_custom_backup && backup_preload) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
             ui_print("Failed to restore /preload!\n");
             return ret;
