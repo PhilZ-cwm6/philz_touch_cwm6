@@ -868,6 +868,7 @@ main(int argc, char **argv) {
     ensure_path_unmounted("/system");
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
     ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
+    LOGI("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
 #endif
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {

@@ -30,8 +30,6 @@
 #ifdef TARGET_DEVICE_I9100
 // ums
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-// dedicated log menu to have more room to read logs
-#define SHOW_LOG_MENU "true"
 #endif
 
 

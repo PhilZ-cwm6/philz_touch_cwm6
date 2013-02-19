@@ -79,7 +79,7 @@ get_filtered_menu_selection(char** headers, char** items, int menu_only, int ini
 void write_string_to_file(const char* filename, const char* string) {
     ensure_path_mounted(filename);
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p $(dirname %s)", filename);
+    sprintf(tmp, "mkdir -p $(dirname %s); chmod 0755 $(dirname %s)", filename, filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
     fprintf(file, "%s", string);
@@ -112,10 +112,11 @@ int install_zip(const char* packagefilepath)
 }
 
 #define ITEM_CHOOSE_ZIP       0
-#define ITEM_APPLY_SDCARD     1
-#define ITEM_APPLY_SIDELOAD   2
-#define ITEM_SIG_CHECK        3
-#define ITEM_CHOOSE_ZIP_INT   4
+#define ITEM_CHOOSE_ZIP_INT   1
+#define ITEM_MULTI_FLASH      2
+#define ITEM_APPLY_SDCARD     3
+#define ITEM_APPLY_SIDELOAD   4
+#define ITEM_SIG_CHECK        5
 
 void show_install_update_menu()
 {
@@ -123,24 +124,25 @@ void show_install_update_menu()
                                 "",
                                 NULL
     };
-    
+
     char* install_menu_items[] = {  "Choose zip from sdcard",
+                                    NULL,
+                                    "Multi-zip Installer",
                                     "Apply /sdcard/update.zip",
                                     "Install zip from sideload",
                                     "Toggle Signature Verification",
-                                    NULL,
                                     NULL };
 
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc/";
-        install_menu_items[4] = "Choose zip from Internal sdcard";
+        install_menu_items[1] = "Choose zip from Internal sdcard";
     }
-    else if (volume_for_path("/external_sd") != NULL) {
+    else {
         other_sd = "/external_sd/";
-        install_menu_items[4] = "Choose zip from External sdcard";
+        install_menu_items[1] = "Choose zip from External sdcard";
     }
-    
+
     for (;;)
     {
         int chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
@@ -164,8 +166,14 @@ void show_install_update_menu()
                 }
                 break;
             case ITEM_CHOOSE_ZIP_INT:
-                if (other_sd != NULL)
+                //if (other_sd != NULL)
+                if (volume_for_path(other_sd) != NULL)
                     show_choose_zip_menu(other_sd);
+                break;
+            case ITEM_MULTI_FLASH:
+#ifdef PHILZ_TOUCH_RECOVERY
+                show_multi_flash_menu();
+#endif
                 break;
             default:
                 return;
@@ -502,10 +510,15 @@ int control_usb_storage_set_lun(Volume* vol, bool enable, const char *lun_file) 
     }
 }
 
+#define STRINGIFY(s) #s
+
 int control_usb_storage_for_lun(Volume* vol, bool enable) {
     static const char* lun_files[] = {
 #ifdef BOARD_UMS_LUNFILE
         BOARD_UMS_LUNFILE,
+#endif
+#ifdef TARGET_USE_CUSTOM_LUN_FILE_PATH
+        STRINGIFY(TARGET_USE_CUSTOM_LUN_FILE_PATH),
 #endif
         "/sys/devices/platform/usb_mass_storage/lun%d/file",
         "/sys/class/android_usb/android0/f_mass_storage/lun/file",
@@ -1347,34 +1360,6 @@ int can_partition(const char* volume) {
     return 1;
 }
 
-#ifdef SHOW_LOG_MENU
-//we create a new show log menu easier to read for small res phones
-void show_log_menu()
-{
-    static char* headers[] = {  "Show Log",
-                                NULL
-    };
-
-    static char* list[] = { "Show Last 36 Lines",
-                             NULL
-    };
-
-    for (;;) {
-        //header function so that "Toggle menu" doesn't reset to main menu on action selected
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
-        if (chosen_item == GO_BACK) {
-            break;
-        }
-        switch (chosen_item)
-        {
-            case 0:
-                ui_printlogtail(36);
-                break;
-        }
-    }
-}
-#endif
-
 void show_advanced_menu()
 {
     static char* headers[] = {  "Advanced Menu",
@@ -1449,8 +1434,8 @@ void show_advanced_menu()
                 break;
             }
             case 5:
-#ifdef SHOW_LOG_MENU
-                show_log_menu(); //we use dedicated showlog menu
+#ifdef PHILZ_TOUCH_RECOVERY
+                show_log_menu();
 #else
                 ui_printlogtail(12);
 #endif
@@ -1490,8 +1475,11 @@ void show_advanced_menu()
 /***************************************************/
 /*     Start PhilZ Menu settings and functions     */
 /***************************************************/
+
+// 0 == stop browsing default file locations
 static int browse_for_file = 1;
-           // 0 == stop browsing default file locations
+int twrp_backup_mode = 0;
+
 //start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
     char * backup_log;
@@ -1511,10 +1499,42 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         fclose(f);
     }
 }
+
+//delete a file
+void delete_a_file(const char* filename) {
+    ensure_path_mounted(filename);
+    char tmp[PATH_MAX];
+    sprintf(tmp, "rm -f %s", filename);
+    __system(tmp);
+}
+
+//check if file exists
+int file_found(const char* filename) {
+    struct stat s;
+    ensure_path_mounted(filename);
+    if (0 == stat(filename, &s))
+        return 1;
+
+    return 0;
+}
+
+// check directory exists
+int directory_found(const char* dir) {
+    struct stat s;
+    ensure_path_mounted(dir);
+    stat(dir, &s);
+    if (S_ISDIR(s.st_mode))
+        return 1;
+
+    return 0;
+}
+
 // ** start open recovery script support ** //
 // ** adapted code from sk8erwitskil ** //
-#define SCRIPT_COMMAND_SIZE 512
+
 //check ors script at boot (called from recovery.c)
+#define SCRIPT_COMMAND_SIZE 512
+
 int check_for_script_file(const char* ors_boot_script)
 {
     ensure_path_mounted("/sdcard");
@@ -1545,6 +1565,7 @@ int check_for_script_file(const char* ors_boot_script)
     }
     return ret_val;
 }
+
 //run ors script code
 //this can start on boot or manually for custom ors
 int run_ors_script(const char* ors_script) {
@@ -1804,6 +1825,7 @@ int run_ors_script(const char* ors_script) {
     return ret_val;
 }
 //end of open recovery script file code
+
 //show menu: select ors from default path
 static void choose_default_ors_menu(const char* ors_path)
 {
@@ -1846,6 +1868,7 @@ static void choose_default_ors_menu(const char* ors_path)
         run_ors_script(ors_file);
     }
 }
+
 //show menu: browse for custom Open Recovery Script
 static void choose_custom_ors_menu(const char* ors_path)
 {
@@ -1868,6 +1891,7 @@ static void choose_custom_ors_menu(const char* ors_path)
         run_ors_script(ors_file);
     }
 }
+
 //show menu: select sdcard volume to search for custom ors file
 static void show_custom_ors_menu() {
     static char* headers[] = {  "Search .ors script to run",
@@ -1919,50 +1943,8 @@ static void reset_backup_source(int toggle_status) {
     backup_modem = 0;
 }
 
-static int valid_backup_job() {
-    return (backup_boot + backup_recovery + backup_system + backup_preload + backup_data + backup_cache + backup_sdext + backup_modem + backup_wimax);
-}
-
-static void get_custom_backup_path(const char* sd_path, char *backup_path) {
-    if (backup_efs) {
-        sprintf(backup_path, "%s/%s", sd_path, EFS_BACKUP_PATH);
-        return;
-    }
-
-#ifdef PHILZ_TOUCH_RECOVERY
-    time_t t = time(NULL) + t_zone;
-#else
-    time_t t = time(NULL);
-#endif
-    char rom_name[PROPERTY_VALUE_MAX] = "noname";
-#ifdef PHILZ_TOUCH_RECOVERY
-    get_rom_name(rom_name);
-#endif
-
-    struct tm *timeptr = localtime(&t);
-    if (timeptr == NULL) {
-        struct timeval tp;
-        gettimeofday(&tp, NULL);
-        sprintf(backup_path, "%s/%s/%d_%s", sd_path, CUSTOM_BACKUP_PATH, tp.tv_sec, rom_name);
-    } else {
-        char tmp[PATH_MAX];
-        strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
-        // this sprintf results in:
-        // clockworkmod/custom_backup/%F.%H.%M.%S (time values are populated too)
-        sprintf(backup_path, "%s/%s/%s_%s", sd_path, CUSTOM_BACKUP_PATH, tmp, rom_name);
-    }
-}
-
-//header_part: "Backup Boot Partition" or "Backup EFS Partition"...
-//caller is show_custom_backup_menu{
-// then call custom_backup_handler(int efs_bak)
-static void custom_backup_handler() {
-    static char* headers[] = {"Select custom backup target", "", NULL};
-    char* list[] = {"Backup to External sdcard",
-                "Backup to Internal sdcard",
-                NULL};
-
-    ui_print("This will backup");
+void ui_print_backup_list() {
+    ui_print("This will process");
     if (backup_boot)
         ui_print(" - boot");
     if (backup_recovery)
@@ -1982,8 +1964,46 @@ static void custom_backup_handler() {
     if (backup_wimax)
         ui_print(" - WiMAX");
     if (backup_efs)
-        ui_print(" EFS Partition");
+        ui_print(" - EFS Partition");
     ui_print("!\n");
+}
+
+static void get_custom_backup_path(const char* sd_path, char *backup_path) {
+    char rom_name[PROPERTY_VALUE_MAX] = "noname";
+#ifdef PHILZ_TOUCH_RECOVERY
+    get_rom_name(rom_name);
+    time_t t = time(NULL) + t_zone;
+#else
+    time_t t = time(NULL);
+#endif
+
+    struct tm *timeptr = localtime(&t);
+    if (timeptr == NULL) {
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+        if (backup_efs)
+            sprintf(backup_path, "%s/%s/%d", sd_path, EFS_BACKUP_PATH, tp.tv_sec);
+        else
+            sprintf(backup_path, "%s/%s/%d_%s", sd_path, CUSTOM_BACKUP_PATH, tp.tv_sec, rom_name);
+    } else {
+        char tmp[PATH_MAX];
+        strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
+        // this sprintf results in:
+        // clockworkmod/custom_backup/%F.%H.%M.%S (time values are populated too)
+        if (backup_efs)
+            sprintf(backup_path, "%s/%s/%s", sd_path, EFS_BACKUP_PATH, tmp);
+        else
+            sprintf(backup_path, "%s/%s/%s_%s", sd_path, CUSTOM_BACKUP_PATH, tmp, rom_name);
+    }
+}
+
+static void custom_backup_handler() {
+    static char* headers[] = {"Select custom backup target", "", NULL};
+    char* list[] = {"Backup to External sdcard",
+                "Backup to Internal sdcard",
+                NULL};
+
+    ui_print_backup_list();
 
     char *int_sd = "/sdcard";
     char *ext_sd = NULL;
@@ -2056,34 +2076,46 @@ static void custom_restore_handler(const char* backup_path) {
         backup_source = basename(file);
         ui_print("%s will be flashed to /efs!\n", backup_source);
         sprintf(tmp, "Yes - Restore %s", backup_source);
-        if (confirm_selection(confirm_install, tmp)) {
+        if (confirm_selection(confirm_install, tmp))
             custom_restore_raw_handler(file, "/efs");
-        }
     } else if (backup_efs == RESTORE_EFS_TAR) {
         file = choose_file_menu(backup_path, NULL, headers);
         if (file == NULL) {
             //either no valid files found or we selected no files by pressing back menu
             if (no_files_found)
-                ui_print("No efs_tar backup found in %s!\n", backup_path);
+                ui_print("Nothing to restore in %s !\n", backup_path);
             return;
         }
 
         //ensure there is no efs.img file in same folder (as nandroid_restore_partition_extended will force it to be restored)
-        backup_source = file;
-        sprintf(tmp, "%s/efs.img", backup_source);
+        sprintf(tmp, "%s/efs.img", file);
         if (0 == stat(tmp, &file_img)) {
-            ui_print("efs.img file detected in %s!\n", backup_source);
+            ui_print("efs.img file detected in %s!\n", file);
             ui_print("Either select efs.img to restore it,\n");
             ui_print("or remove it to restore nandroid source.\n");
             return;
         }
 
         //restore efs from nandroid tar format
-        ui_print("%s will be restored to /efs!\n", backup_source);
-        sprintf(tmp, "Yes - Restore %s", basename(backup_source));
-        if (confirm_selection(confirm_install, tmp)) {
-            nandroid_restore(backup_source, 0, 0, 0, 0, 0, 0);
+        ui_print("%s will be restored to /efs!\n", file);
+        sprintf(tmp, "Yes - Restore %s", basename(file));
+        if (confirm_selection(confirm_install, tmp))
+            nandroid_restore(file, 0, 0, 0, 0, 0, 0);
+    } else if (backup_modem == RAW_BIN_FILE) {
+        file = choose_file_menu(backup_path, ".bin", headers);
+        if (file == NULL) {
+            //either no valid files found or we selected no files by pressing back menu
+            if (no_files_found)
+                ui_print("Nothing to restore in %s !\n", backup_path);
+            return;
         }
+
+        //restore modem.bin raw image
+        backup_source = basename(file);
+        ui_print("%s will be flashed to /modem!\n", backup_source);
+        sprintf(tmp, "Yes - Restore %s", backup_source);
+        if (confirm_selection(confirm_install, tmp))
+            custom_restore_raw_handler(file, "/modem");
     } else {
         //process backup job
         file = choose_file_menu(backup_path, NULL, headers);
@@ -2093,43 +2125,27 @@ static void custom_restore_handler(const char* backup_path) {
                 ui_print("Nothing to restore in %s !\n", backup_path);
             return;
         }
-        backup_source = dirname(file);
-        ui_print("%s will be restored to selected partitions!\n", backup_source);
-        sprintf(tmp, "Yes - Restore %s", basename(backup_source));
+        ui_print("%s will be restored to selected partitions!\n", file);
+        sprintf(tmp, "Yes - Restore %s", basename(file));
         if (confirm_selection(confirm_install, tmp)) {
-            nandroid_restore(backup_source, backup_boot, backup_system, backup_data, backup_cache, backup_sdext, backup_wimax);
+            nandroid_restore(file, backup_boot, backup_system, backup_data, backup_cache, backup_sdext, backup_wimax);
         }
     }
 }
 
-static void browse_backup_folders(const char* backup_path) {
+void browse_backup_folders(const char* backup_path)
+{
     static char* headers[] = {"Browse backup folders...", "", NULL};
-    char* list[] = {"Restore from External sdcard",
-                "Restore from Internal sdcard",
-                NULL};
 
-    ui_print("Restore list:");
-    if (backup_boot)
-        ui_print(" - boot");
-    if (backup_recovery)
-        ui_print(" - recovery");
-    if (backup_system)
-        ui_print(" - system");
-    if (backup_preload)
-        ui_print(" - preload");
-    if (backup_data)
-        ui_print(" - data");
-    if (backup_cache)
-        ui_print(" - cache");
-    if (backup_sdext)
-        ui_print(" - sd-ext");
-    if (backup_modem)
-        ui_print(" - modem");
-    if (backup_wimax)
-        ui_print(" - WiMAX");
-    if (backup_efs)
-        ui_print(" EFS Partition");
-    ui_print("!\n");
+    char* list[] = {"Restore from External sdcard",
+                    "Restore from Internal sdcard",
+                    NULL,
+                    NULL};
+
+    if (directory_found("/sdcard/0/clockworkmod") && is_data_media())
+        list[2] = "Restore from Android 4.2 Path";
+
+    ui_print_backup_list();
 
     char *int_sd = "/sdcard";
     char *ext_sd = NULL;
@@ -2145,31 +2161,75 @@ static void browse_backup_folders(const char* backup_path) {
     {
         case 0:
             {
-                if (ensure_path_mounted(ext_sd) == 0) {
-                    char tmp[PATH_MAX];
-                    sprintf(tmp, "%s/%s/", ext_sd, backup_path);
+                char tmp[PATH_MAX];
+                sprintf(tmp, "%s/%s/", ext_sd, backup_path);
+                //if (twrp_backup_mode)
+                    //twrp_restore_handler(tmp);
+                //else
                     custom_restore_handler(tmp);
-                } else {
-                    ui_print("Couldn't mount %s\n", ext_sd);
-                }
-                break;
             }
+            break;
         case 1:
             {
-                if (ensure_path_mounted(int_sd) == 0) {
-                    char tmp[PATH_MAX];
-                    sprintf(tmp, "%s/%s/", int_sd, backup_path);
+                char tmp[PATH_MAX];
+                sprintf(tmp, "%s/%s/", int_sd, backup_path);
+                //if (twrp_backup_mode)
+                    //twrp_restore_handler(tmp);
+                //else
                     custom_restore_handler(tmp);
-                } else {
-                    ui_print("Couldn't mount %s\n", int_sd);
-                }
-                break;
             }
+            break;
+        case 2:
+            {
+                char tmp[PATH_MAX];
+                sprintf(tmp, "/sdcard/0/%s/", backup_path);
+                //if (twrp_backup_mode)
+                    //twrp_restore_handler(tmp);
+                //else
+                    custom_restore_handler(tmp);
+            }
+            break;
     }
 }
-//end special backup and restore handlers
+static void validate_backup_job(const char* backup_path) {
+    int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data + backup_cache + backup_sdext + backup_wimax;
+    if (0 == (backup_efs + sum + backup_modem)) {
+        ui_print("Select at least one partition to restore!\n");
+        return;
+    }
+    if (backup_path != NULL)
+    {
+        // it is a restore job
+        if (backup_modem == RAW_BIN_FILE) {
+            if (0 != (sum + backup_efs))
+                ui_print("modem.bin format must be restored alone!\n");
+            else
+                browse_backup_folders(MODEM_BIN_PATH);
+        }
+        else if (twrp_backup_mode)
+            browse_backup_folders(backup_path);
+        else if (backup_efs && (sum + backup_modem) != 0)
+            ui_print("efs must be restored alone!\n");
+        else if (backup_efs && (sum + backup_modem) == 0)
+            browse_backup_folders(EFS_BACKUP_PATH);
+        else
+            browse_backup_folders(backup_path);
+    }
+    else
+    {
+        // it is a backup job to validate
+#ifdef PHILZ_TOUCH_RECOVERY
+        if (twrp_backup_mode)
+            twrp_backup_handler();
+#endif
+        else if (backup_efs && (sum + backup_modem) != 0)
+            ui_print("efs must be backed up alone!\n");
+        else
+            custom_backup_handler();
+    }
+}
 
-static void custom_restore_menu(const char* backup_path) {
+void custom_restore_menu(const char* backup_path) {
     static char* headers[] = {  "Custom restore job",
                                 NULL
     };
@@ -2213,34 +2273,38 @@ static void custom_restore_menu(const char* backup_path) {
     backup_efs = 0;
     for (;;) {
         // do not forget 40 chars limit!
-        if (backup_boot) list[0] =                              "Restore boot          -  Yes";
-            else list[0] =                                      "Restore boot          -  No";
-        if (backup_recovery) list[1] =                          "Restore recovery      -  Yes";
-            else list[1] =                                      "Restore recovery      -  No";
-        if (backup_system) list[2] =                            "Restore system        -  Yes";
-            else list[2] =                                      "Restore system        -  No";
-        if (backup_preload) list[3] =                           "Restore preload       -  Yes";
-            else list[3] =                                      "Restore preload       -  No";
-        if (backup_data) list[4] =                              "Restore data          -  Yes";
-            else list[4] =                                      "Restore data          -  No";
-        if (backup_cache) list[5] =                             "Restore cache         -  Yes";
-            else list[5] =                                      "Restore cache         -  No";
-        if (backup_sdext) list[6] =                             "Restore sd-ext        -  Yes";
-            else list[6] =                                      "Restore sd-ext        -  No";
-        if (backup_modem == RAW_IMG_FILE) list[7] =             "Restore modem [.img]  -  Yes";
-            else if (backup_modem == RAW_BIN_FILE) list[7] =    "Restore modem [.bin]  -  Yes";
-            else list[7] =                                      "Restore modem         -  No";
-        if (backup_efs == RESTORE_EFS_IMG) list[8] =            "Restore efs [.img]    -  Yes";
-            else if (backup_efs == RESTORE_EFS_TAR) list[8] =   "Restore efs [.tar]    -  Yes";
-            else list[8] =                                      "Restore efs           -  No";
-        if (NULL != list[10]) {
-            if (backup_wimax) list[10] =                        "Restore WiMax         -  Yes";
-            else list[10] =                                     "Restore WiMax         -  No";
+        if (backup_boot) list[0] =                          "Restore boot          -  Yes";
+        else list[0] =                                      "Restore boot          -  No";
+        if (backup_recovery) list[1] =                      "Restore recovery      -  Yes";
+        else list[1] =                                      "Restore recovery      -  No";
+        if (backup_system) list[2] =                        "Restore system        -  Yes";
+        else list[2] =                                      "Restore system        -  No";
+        if (backup_preload) list[3] =                       "Restore preload       -  Yes";
+        else list[3] =                                      "Restore preload       -  No";
+        if (backup_data) list[4] =                          "Restore data          -  Yes";
+        else list[4] =                                      "Restore data          -  No";
+        if (backup_cache) list[5] =                         "Restore cache         -  Yes";
+        else list[5] =                                      "Restore cache         -  No";
+        if (backup_sdext) list[6] =                         "Restore sd-ext        -  Yes";
+        else list[6] =                                      "Restore sd-ext        -  No";
+        if (backup_modem == RAW_IMG_FILE) list[7] =         "Restore modem [.img]  -  Yes";
+        else if (backup_modem == RAW_BIN_FILE) list[7] =    "Restore modem [.bin]  -  Yes";
+        else list[7] =                                      "Restore modem         -  No";
+        if (backup_efs == RESTORE_EFS_IMG) list[8] =        "Restore efs [.img]    -  Yes";
+        else if (backup_efs == RESTORE_EFS_TAR) list[8] =   "Restore efs [.tar]    -  Yes";
+        else list[8] =                                      "Restore efs           -  No";
+
+        if (NULL != list[10])
+        {
+            if (backup_wimax) list[10] =                    "Restore WiMax         -  Yes";
+            else list[10] =                                 "Restore WiMax         -  No";
         }
-        //disabled items if not from custom backup
-        if (!custom_items) {
-            list[7] =                                           "modem (ONLY IN CUSTOM BACKUP)";
-            list[8] =                                           "efs   (ONLY IN CUSTOM BACKUP)";
+
+        // These are currently not supported by original CWM from Koush
+        // Disable if not from custom backup or TWRP backup
+        if (!custom_items && !twrp_backup_mode) {
+            list[7] =                                       "modem (ONLY IN CUSTOM BACKUP)";
+            list[8] =                                       "efs   (ONLY IN CUSTOM BACKUP)";
         }
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -2270,31 +2334,29 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_sdext ^= 1;
                 break;
             case 7:
-                if (custom_items) {
+                if (custom_items || twrp_backup_mode) {
                     backup_modem++;
                     if (backup_modem > 2)
+                        backup_modem = 0;
+                    if (twrp_backup_mode && backup_modem == RAW_BIN_FILE)
                         backup_modem = 0;
                 }
                 break;
             case 8:
-                if (custom_items) {
+                if (custom_items || twrp_backup_mode) {
                     backup_efs++;
                     if (backup_efs > 2)
+                        backup_efs = 0;
+                    if (twrp_backup_mode && backup_efs == RESTORE_EFS_IMG)
                         backup_efs = 0;
                 }
                 break;
             case 9:
-                if (backup_efs && !valid_backup_job())
-                    browse_backup_folders(EFS_BACKUP_PATH);
-                else if (valid_backup_job() && !backup_efs)
-                    browse_backup_folders(backup_path);
-                else if (valid_backup_job() && backup_efs)
-                    ui_print("efs must be restored alone!\n");
-                else
-                    ui_print("Select at least one partition to restore!\n");
+                validate_backup_job(backup_path);
                 break;
             case 10:
-                backup_wimax ^= 1;
+                if (twrp_backup_mode) backup_wimax = 0;
+                else backup_wimax ^= 1;
                 break;
         }
     }
@@ -2303,7 +2365,7 @@ static void custom_restore_menu(const char* backup_path) {
 }
 
 
-static void custom_backup_menu() {
+void custom_backup_menu() {
     static char* headers[] = {  "Custom backup job",
                                 NULL
     };
@@ -2342,27 +2404,33 @@ static void custom_backup_menu() {
     for (;;) {
         // do not forget 40 chars limit!
         if (backup_boot) list[0] =          "Backup boot           -  Yes";
-            else list[0] =                  "Backup boot           -  No";
+        else list[0] =                      "Backup boot           -  No";
         if (backup_recovery) list[1] =      "Backup recovery       -  Yes";
-            else list[1] =                  "Backup recovery       -  No";
+        else list[1] =                      "Backup recovery       -  No";
         if (backup_system) list[2] =        "Backup system         -  Yes";
-            else list[2] =                  "Backup system         -  No";
+        else list[2] =                      "Backup system         -  No";
         if (backup_preload) list[3] =       "Backup preload        -  Yes";
-            else list[3] =                  "Backup preload        -  No";
+        else list[3] =                      "Backup preload        -  No";
         if (backup_data) list[4] =          "Backup data           -  Yes";
-            else list[4] =                  "Backup data           -  No";
+        else list[4] =                      "Backup data           -  No";
         if (backup_cache) list[5] =         "Backup cache          -  Yes";
-            else list[5] =                  "Backup cache          -  No";
+        else list[5] =                      "Backup cache          -  No";
         if (backup_sdext) list[6] =         "Backup sd-ext         -  Yes";
-            else list[6] =                  "Backup sd-ext         -  No";
+        else list[6] =                      "Backup sd-ext         -  No";
         if (backup_modem) list[7] =         "Backup modem [.img]   -  Yes";
-            else list[7] =                  "Backup modem          -  No";
-        if (backup_efs) list[8] =           "Backup efs [img&tar]  -  Yes";
-            else list[8] =                  "Backup efs            -  No";
-        if (NULL != list[10]) {
+        else list[7] =                      "Backup modem          -  No";
+        if (backup_efs && twrp_backup_mode)
+            list[8] =                       "Backup efs            -  Yes";
+        else if (backup_efs && !twrp_backup_mode)
+            list[8] =                       "Backup efs [img&tar]  -  Yes";
+        else list[8] =                      "Backup efs            -  No";
+
+        if (NULL != list[10])
+        {
             if (backup_wimax) list[10] =    "Backup WiMax          -  Yes";
             else list[10] =                 "Backup WiMax          -  No";
         }
+
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
@@ -2378,7 +2446,8 @@ static void custom_backup_menu() {
                 backup_system ^= 1;
                 break;
             case 3:
-                backup_preload ^= 1;
+                if (twrp_backup_mode) backup_preload = 0;
+                else backup_preload ^= 1;
                 break;
             case 4:
                 backup_data ^= 1;
@@ -2396,15 +2465,11 @@ static void custom_backup_menu() {
                 backup_efs ^= 1;
                 break;
             case 9:
-                if (!backup_efs && !valid_backup_job())
-                    ui_print("Select at least one partition to backup!\n");
-                else if (valid_backup_job() && backup_efs)
-                    ui_print("efs cannot be part of a backup job!\n");
-                else
-                    custom_backup_handler();
+                validate_backup_job(NULL);
                 break;
             case 10:
-                backup_wimax ^= 1;
+                if (twrp_backup_mode) backup_wimax = 0;
+                else backup_wimax ^= 1;
                 break;
         }
     }
@@ -2422,6 +2487,8 @@ static void custom_backup_restore_menu() {
                     "Restore from Custom Backups",
                     "Restore from Nandroid Backups",
                     "Clone ROM to update.zip",
+                    "Clean Before Flash New ROM",
+                    "TWRP Backup & Restore Options",
                     "Misc Nandroid Settings",
                     NULL
     };
@@ -2449,6 +2516,22 @@ static void custom_backup_restore_menu() {
 #endif
                 break;
             case 4:
+                //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, /sdcard/.android_secure
+                if (confirm_selection("Confirm wipe data & system?", "Yes, I will install a new ROM!")) {
+                    wipe_data(0);
+                    ui_print("-- Wiping system...\n");
+                    erase_volume("/system");
+                    ui_print("-- Wiping preload...\n");
+                    erase_volume("/preload");
+                    ui_print("Now flash a new ROM!\n");
+                }
+                break;
+            case 5:
+#ifdef PHILZ_TOUCH_RECOVERY
+                twrp_backup_restore_menu();
+#endif
+                break;
+            case 6:
 #ifdef PHILZ_TOUCH_RECOVERY
                 misc_nandroid_menu();
 #endif
@@ -2456,6 +2539,7 @@ static void custom_backup_restore_menu() {
         }
     }
 }
+// end special backup and restore menu and handlers
 
 //browse and select Aroma File Manager from custom locations on sdcards
 static void choose_aromafm_menu(const char* aromafm_path)
@@ -2517,7 +2601,7 @@ static void custom_aroma_menu() {
     }
 }
 //launch aromafm.zip from default locations
-static int default_aromafm (const char* aromafm_path) {
+static int default_aromafm(const char* aromafm_path) {
         if (ensure_path_mounted(aromafm_path) != 0) {
             //no sdcard at moint point
             return 0;
@@ -2541,7 +2625,8 @@ void show_philz_settings()
                             "Custom Backup and Restore",
                             "Aroma File Manager",
                             "GUI Preferences",
-                            "Clean Before Flash New ROM",
+                            "Save and Restore Settings",
+                            "Reset All Recovery Settings",
                             "About",
                              NULL
     };
@@ -2623,19 +2708,20 @@ void show_philz_settings()
 #endif
                 break;
             case 4:
-                {
-                    //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, /sdcard/.android_secure
-                    if (confirm_selection("Confirm wipe data & system?", "Yes, I will install a new ROM!")) {
-                        wipe_data(0);
-                        ui_print("-- Wiping system...\n");
-                        erase_volume("/system");
-                        ui_print("-- Wiping preload...\n");
-                        erase_volume("/preload");
-                        ui_print("Now flash a new ROM!\n");
-                    }
-                }
+#ifdef PHILZ_TOUCH_RECOVERY
+                import_export_settings();
+#endif
                 break;
             case 5:
+#ifdef PHILZ_TOUCH_RECOVERY
+                if (confirm_selection("Reset all recovery settings?", "Yes - Reset to Defaults")) {
+                    delete_a_file(PHILZ_SETTINGS_FILE);
+                    refresh_philz_settings();
+                    ui_print("All settings reset to default!\n");
+                }
+#endif
+                break;
+            case 6:
                 ui_print(EXPAND(RECOVERY_VERSION)"\n");
                 ui_print("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
                 ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");

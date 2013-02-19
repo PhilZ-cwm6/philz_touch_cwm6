@@ -413,6 +413,7 @@ static int input_callback(int fd, short revents, void *data)
     int ret;
     int fake_key = 0;
 #ifdef PHILZ_TOUCH_RECOVERY
+    int virtual_keys_h = 0;
     gr_surface surface = gVirtualKeys;
 #endif
 
@@ -522,11 +523,12 @@ void ui_init(void)
     touch_init();
 #endif
 
-#ifdef PHILZ_TOUCH_RECOVERY
-    gr_surface surface = gVirtualKeys;
-#endif
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
+#ifdef PHILZ_TOUCH_RECOVERY
+    gr_surface surface = gVirtualKeys;
+    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT);
+#endif
     max_menu_rows = text_rows - MIN_LOG_ROWS;
 
 #ifdef BOARD_TOUCH_RECOVERY
@@ -535,9 +537,6 @@ void ui_init(void)
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
-#ifdef PHILZ_TOUCH_RECOVERY
-    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
-#endif
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH;

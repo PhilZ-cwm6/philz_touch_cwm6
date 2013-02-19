@@ -12,13 +12,18 @@ unsigned nandroid_get_default_backup_format();
 #define NANDROID_BACKUP_FORMAT_TAR 0
 #define NANDROID_BACKUP_FORMAT_DUP 1
 
-//Custom nandroid backup by PhilZ
+
+/******************************************/
+/* Custom nandroid + TWRP backup by PhilZ */
+/******************************************/
 #define EFS_BACKUP_PATH "clockworkmod/custom_backup/.efs_backup"
+#define MODEM_BIN_PATH "clockworkmod/custom_backup/.modem_bin"
 #define CUSTOM_BACKUP_PATH "clockworkmod/custom_backup"
 #define RAW_IMG_FILE 1
 #define RAW_BIN_FILE 2
 #define RESTORE_EFS_TAR 1
 #define RESTORE_EFS_IMG 2
+
 int custom_backup_raw_handler(const char* backup_path, const char* root);
 int custom_restore_raw_handler(const char* backup_path, const char* root);
 extern int is_custom_backup;

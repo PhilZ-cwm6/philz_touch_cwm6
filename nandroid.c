@@ -61,7 +61,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
 
 void ensure_directory(const char* dir) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s ; chmod 777 %s", dir, dir);
+    sprintf(tmp, "mkdir -p %s ; chmod 775 %s", dir, dir);
     __system(tmp);
 }
 
@@ -260,7 +260,6 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
     return default_backup_handler;
 }
 
-
 int nandroid_backup_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
     int ret = 0;
     char name[PATH_MAX];
@@ -269,11 +268,12 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     struct stat file_info;
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
 
-    ui_print("Backing up %s...\n", name);
+    ui_print("\n>> Backing up %s...\n", mount_point);
     if (0 != (ret = ensure_path_mounted(mount_point) != 0)) {
         ui_print("Can't mount %s!\n", mount_point);
         return ret;
     }
+
     compute_directory_stats(mount_point);
     char tmp[PATH_MAX];
     scan_mounted_volumes();
@@ -307,6 +307,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     // make sure the volume exists before attempting anything...
     if (vol == NULL || vol->fs_type == NULL)
     {
+        ui_print("\n>> Backing up %s...\n", root);
         ui_print("Volume not found! Skipping backup of %s...\n", root);
         return 0;
     }
@@ -316,7 +317,9 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     int ret;
     if (strcmp(vol->fs_type, "mtd") == 0 ||
             strcmp(vol->fs_type, "bml") == 0 ||
-            strcmp(vol->fs_type, "emmc") == 0) {
+            strcmp(vol->fs_type, "emmc") == 0)
+    {
+        ui_print("\n>> Backing up %s...\n", root);
         const char* name = basename(root);
         sprintf(tmp, "%s/%s.img", backup_path, name);
         ui_print("Backing up %s image...\n", name);
@@ -331,9 +334,11 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     return nandroid_backup_partition_extended(backup_path, root, 1);
 }
 
+
 /**************************************/
 /* custom backup and restore by PhilZ */
 /**************************************/
+
 //these general variables are needed to not break backup and restore by external script
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1, backup_preload = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
@@ -350,12 +355,12 @@ int nandroid_add_preload = 0, enable_md5sum = 1;
 int custom_backup_raw_handler(const char* backup_path, const char* root) {
     Volume *vol = volume_for_path(root);
     // make sure the volume exists...
+    ui_print("\n>> Backing up %s...\nUsing raw mode...\n", root);
     if (vol == NULL || vol->fs_type == NULL) {
         ui_print("Volume not found! Skipping raw backup of %s...\n", root);
         return 0;
     }
 
-    ui_print("Backing up %s in raw image...\n", root);
     int ret = 0;
     char tmp[PATH_MAX];
     sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->device, root);
@@ -373,6 +378,7 @@ int custom_backup_raw_handler(const char* backup_path, const char* root) {
 
 //custom raw restore handler
 int custom_restore_raw_handler(const char* backup_path, const char* root) {
+    ui_print("\n>> Restoring %s...\n", root);
     Volume *vol = volume_for_path(root);
     // make sure the volume exists...
     if (vol == NULL || vol->fs_type == NULL) {
@@ -408,14 +414,14 @@ int custom_restore_raw_handler(const char* backup_path, const char* root) {
     ui_print("Restoring %s to %s\n", image_file, root);
     int ret = 0;
     char tmp[PATH_MAX];
-    sprintf(tmp, "raw-backup.sh -r %s %s %s", backup_path, vol->device, root);
+    sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_path, vol->device, root);
     if (0 != (ret = __system(tmp))) {
         ui_print("Failed raw restore of %s to %s\n", image_file, root);
     }
     //log
-    char logfile[PATH_MAX];
-    sprintf(logfile, "%s/log.txt", dirname(backup_path));
-    ui_print_custom_logtail(logfile, 3);
+    char *logfile = dirname(backup_path);
+    sprintf(tmp, "%s/log.txt", logfile);
+    ui_print_custom_logtail(tmp, 3);
     //this can be called outside nandroid_restore()
     sync();
     return ret;
@@ -463,7 +469,7 @@ int nandroid_backup(const char* backup_path)
     if (backup_wimax && vol != NULL && 0 == stat(vol->device, &s))
     {
         char serialno[PROPERTY_VALUE_MAX];
-        ui_print("Backing up WiMAX...\n");
+        ui_print("\n>> Backing up WiMAX...\n");
         serialno[0] = 0;
         property_get("ro.serialno", serialno, "");
         sprintf(tmp, "%s/wimax.%s.img", backup_path, serialno);
@@ -475,13 +481,13 @@ int nandroid_backup(const char* backup_path)
     //2 copies of efs are made: tarball and raw backup
     if (backup_efs) {
         //first backup in raw format, returns 0 on success (or if skipped), else 1
-        if (0 != custom_backup_raw_handler(backup_path, "/efs")) {
+        strcpy(tmp, backup_path);
+        if (0 != custom_backup_raw_handler(dirname(tmp), "/efs")) {
             ui_print("EFS raw image backup failed! Trying tar backup...\n");
         }
         //second backup in tar format
-        sprintf(tmp, "%s/efs_tar", backup_path);
-        ensure_directory(tmp);
-        if (0 != (ret = nandroid_backup_partition(tmp, "/efs")))
+        ui_print("creating 2nd copy in tar...\n");
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/efs")))
             return ret;
     }
     
@@ -492,7 +498,6 @@ int nandroid_backup(const char* backup_path)
 
     if (backup_system && 0 != (ret = nandroid_backup_partition(backup_path, "/system")))
         return ret;
-
 
     if (is_custom_backup && backup_preload) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
@@ -588,13 +593,17 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
     return __pclose(fp);
 }
 
-static void compute_archive_stats(const char* archive_file)
+void compute_archive_stats(const char* archive_file)
 {
     char tmp[PATH_MAX];
     sprintf(tmp, "cat %s* | tar -t | wc -l > /tmp/archivecount", archive_file);
 
     LOGE("Computing archive stats for %s\n", basename(archive_file));
-    __system(tmp);
+    if (0 != __system(tmp)) {
+        nandroid_files_total = 0;
+        LOGE("Failed computing archive stats for %s\n", archive_file);
+        return;
+    }
     char count_text[100];
     FILE* f = fopen("/tmp/archivecount", "r");
     fread(count_text, 1, sizeof(count_text), f);
@@ -693,10 +702,11 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     if (vol != NULL)
         device = vol->device;
 
+    ui_print("\n>> Restoring %s...\n", mount_point);
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/%s.img", backup_path, name);
     struct stat file_info;
-    if (0 != (ret = statfs(tmp, &file_info))) {
+    if (twrp_backup_mode || 0 != (ret = statfs(tmp, &file_info))) {
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
         printf("couldn't find old .img format\n");
@@ -752,7 +762,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     ensure_directory(mount_point);
 
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
-    compute_archive_stats(tmp);
+    if (!twrp_backup_mode) compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
     if (backup_filesystem == NULL) {
@@ -793,6 +803,7 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
     Volume *vol = volume_for_path(root);
     // make sure the volume exists...
     if (vol == NULL || vol->fs_type == NULL) {
+        ui_print("\n>> Restoring %s...\n", root);
         ui_print("Volume not found! Skipping restore of %s...\n", root);
         return 0;
     }
@@ -801,15 +812,17 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
     char tmp[PATH_MAX];
     if (strcmp(vol->fs_type, "mtd") == 0 ||
             strcmp(vol->fs_type, "bml") == 0 ||
-            strcmp(vol->fs_type, "emmc") == 0) {
+            strcmp(vol->fs_type, "emmc") == 0)
+    {
+        ui_print("\n>> Restoring %s...\nUsing raw mode...\n", root);
         int ret;
         const char* name = basename(root);
-        
+
         //fix partition could be formatted when no image to restore (exp: if md5 check disabled and empty backup folder)
         struct stat file_check;
         sprintf(tmp, "%s%s.img", backup_path, root);
         if (0 != stat(tmp, &file_check)) {
-            ui_print("%s.img not found. Skipping restore of %s\n", name, root);
+            ui_print("%s not found. Skipping restore of %s\n", basename(tmp), root);
             return 0;
         }
         
@@ -854,13 +867,16 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_boot && NULL != volume_for_path("/boot") && 0 != (ret = nandroid_restore_partition(backup_path, "/boot")))
         return ret;
 
-    if (backup_recovery && 0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
-        return ret;
+    if (is_custom_backup || twrp_backup_mode) {
+        if (backup_recovery && 0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
+            return ret;
+    }
 
     struct stat s;
     Volume *vol = volume_for_path("/wimax");
     if (restore_wimax && vol != NULL && 0 == stat(vol->device, &s))
     {
+        ui_print("\n>> Restoring WiMAX...\n");
         char serialno[PROPERTY_VALUE_MAX];
         
         serialno[0] = 0;
@@ -894,10 +910,6 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         
     if (backup_modem == RAW_IMG_FILE && 0 != (ret = nandroid_restore_partition(backup_path, "/modem")))
         return ret;
-    else if (backup_modem == RAW_BIN_FILE) {
-        sprintf(tmp, "%s/modem.bin", backup_path);
-        custom_restore_raw_handler(tmp, "/modem");
-    }
 
     if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
