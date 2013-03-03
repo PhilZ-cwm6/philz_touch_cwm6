@@ -48,7 +48,7 @@
 #include "extendedcommands.h"
 #include "flashutils/flashutils.h"
 #include "dedupe/dedupe.h"
-#include "recovery.h" //for ors functions
+
 int no_wipe_confirm = 0; // 0 == script is not ors_boot_script, confirm on wipe
 
 struct selabel_handle *sehandle = NULL;
@@ -504,6 +504,11 @@ get_menu_selection(char** headers, char** items, int menu_only,
                 case GO_BACK:
                     chosen_item = GO_BACK;
                     break;
+#ifdef PHILZ_TOUCH_RECOVERY
+                case GESTURE_ACTIONS:
+                    handle_gesture_actions(headers, items, initial_selection);
+                    break;
+#endif
             }
         } else if (!menu_only) {
             chosen_item = action;
@@ -686,7 +691,10 @@ wipe_data(int confirm) {
     }
     erase_volume("/sd-ext");
     erase_volume("/sdcard/.android_secure");
-    ui_print("Data wipe complete.\n");
+    if (volume_for_path("/external_sd") != NULL)
+        erase_volume("/external_sd/.android_secure");
+    else if (volume_for_path("/emmc") != NULL)
+        erase_volume("/emmc/.android_secure");
 }
 
 int ui_menu_level = 1;
@@ -720,7 +728,10 @@ prompt_and_wait() {
                 return;
 
             case ITEM_WIPE_DATA:
-                wipe_data(ui_text_visible());
+                if(ui_text_visible())
+                    wipe_data_menu();
+                else
+                    wipe_data(ui_text_visible());
                 if (!ui_text_visible()) return;
                 break;
 
@@ -764,6 +775,16 @@ prompt_and_wait() {
 static void
 print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
+}
+
+void reboot_main_system() {
+#ifdef PHILZ_TOUCH_RECOVERY
+    verify_settings_file();
+#endif
+    verify_root_and_recovery();
+    finish_recovery(NULL);
+    ui_print("Rebooting...\n");
+    android_reboot(ANDROID_RB_RESTART, 0, 0);
 }
 
 int
@@ -829,8 +850,11 @@ main(int argc, char **argv) {
     device_ui_init(&ui_parameters);
     ui_init();
 #ifndef PHILZ_TOUCH_RECOVERY
-    //fast_ui_init() launched by below device_recovery_start() will wipe any ui_print before it
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
+#else
+    ui_print(EXPAND(RECOVERY_VERSION)"\n");
+    ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
+    LOGI("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
 #endif
     load_volume_table();
     process_volumes();
@@ -864,12 +888,6 @@ main(int argc, char **argv) {
 
     LOGI("device_recovery_start()\n");
     device_recovery_start();
-#ifdef PHILZ_TOUCH_RECOVERY
-    ensure_path_unmounted("/system");
-    ui_print(EXPAND(RECOVERY_VERSION)"\n");
-    ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
-    LOGI("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
-#endif
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {
         printf(" \"%s\"", argv[arg]);
@@ -896,7 +914,6 @@ main(int argc, char **argv) {
     printf("\n");
 
     int status = INSTALL_SUCCESS;
-
     if (update_package != NULL) {
         status = install_package(update_package);
         if (status != INSTALL_SUCCESS) ui_print("Installation aborted.\n");
@@ -918,8 +935,9 @@ main(int argc, char **argv) {
         script_assert_enabled = 0;
         is_user_initiated_recovery = 1;
         ui_set_show_text(1);
+#ifndef PHILZ_TOUCH_RECOVERY
         ui_set_background(BACKGROUND_ICON_CLOCKWORK);
-        
+#endif
         if (extendedcommand_file_exists()) {
             LOGI("Running extendedcommand...\n");
             int ret;
@@ -959,6 +977,9 @@ main(int argc, char **argv) {
         prompt_and_wait();
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    verify_settings_file();
+#endif
     verify_root_and_recovery();
 
     // If there is a radio image pending, reboot now to install it.

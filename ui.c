@@ -261,14 +261,13 @@ static void draw_screen_locked(void)
     draw_background_locked(gCurrentIcon);
     draw_progress_locked();
 
+#ifdef PHILZ_TOUCH_RECOVERY
+        draw_touch_menu();
+#else
     if (show_text) {
         // don't "disable" the background anymore with this...
         // gr_color(0, 0, 0, 160);
         // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
-
-#ifdef PHILZ_TOUCH_RECOVERY
-        draw_touch_menu();
-#else
         int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
         int j = 0;
@@ -325,10 +324,7 @@ static void draw_screen_locked(void)
         for (r = 0; r < (available_rows < MAX_ROWS ? available_rows : MAX_ROWS); r++) {
             draw_text_line(start_row + r, text[(cur_row + r) % MAX_ROWS]);
         }
-#endif
     }
-#ifdef PHILZ_TOUCH_RECOVERY
-    draw_virtualkeys_locked(); //added to draw the virtual keys
 #endif
 }
 
@@ -452,10 +448,11 @@ static int input_callback(int fd, short revents, void *data)
                 rel_sum = 0;
             }
         }
+    }
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_gestures.c"
 #endif
-    } else {
+    else {
         rel_sum = 0;
     }
 

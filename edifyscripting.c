@@ -157,6 +157,13 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
             free(path);
             return StringValue(strdup(""));
         }
+        if (volume_for_path("/external_sd") != NULL && 0 != format_volume("/external_sd/.android_secure")) {
+            free(path);
+            return StringValue(strdup(""));
+        } else if (volume_for_path("/emmc") != NULL && 0 != format_volume("/emmc/.android_secure")) {
+            free(path);
+            return StringValue(strdup(""));
+        }
     }
 
 done:

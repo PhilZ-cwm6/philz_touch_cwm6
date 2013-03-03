@@ -13,12 +13,23 @@ unsigned nandroid_get_default_backup_format();
 #define NANDROID_BACKUP_FORMAT_DUP 1
 
 
-/******************************************/
-/* Custom nandroid + TWRP backup by PhilZ */
-/******************************************/
+/**********************************/
+/* Custom nandroid + TWRP backup  */
+/*      Written by PhilZ @xda     */
+/*    For PhilZ Touch Recovery    */
+/*    Keep this credits header    */
+/**********************************/
+
 #define EFS_BACKUP_PATH "clockworkmod/custom_backup/.efs_backup"
 #define MODEM_BIN_PATH "clockworkmod/custom_backup/.modem_bin"
 #define CUSTOM_BACKUP_PATH "clockworkmod/custom_backup"
+#define TWRP_BACKUP_PATH "TWRP/BACKUPS"
+extern int twrp_backup_mode;
+int gen_twrp_md5sum(const char* backup_path);
+int check_twrp_md5sum(const char* backup_path);
+int twrp_backup(const char* backup_path);
+int twrp_restore(const char* backup_path);
+
 #define RAW_IMG_FILE 1
 #define RAW_BIN_FILE 2
 #define RESTORE_EFS_TAR 1
@@ -38,7 +49,21 @@ extern int backup_wimax;
 extern int backup_efs;
 extern int backup_modem;
 
-//add for use outside nandroid.c (settings file...)
-void ensure_directory(const char* dir);
+//toggle nandroid compression
+#define TAR_GZ_LOW 3
+#define TAR_GZ_MEDIUM 6
+#define TAR_GZ_HIGH 9
+#define TAR_FORMAT 0
+extern int compression_value;
+
+//option to reboot after user initiated nandroid operations
+extern int reboot_after_nandroid;
+
+// support .android_secure on external storage
+// if == 0 then use default /sdcard, else use /emmc or /external_sd
+extern int android_secure_ext;
+int get_android_secure_path();
+
+//----------------------------- End Custom nandroid + TWRP backup by PhilZ
 
 #endif
