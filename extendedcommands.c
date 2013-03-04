@@ -3058,8 +3058,6 @@ static void twrp_backup_restore_menu() {
     static char* list[] = { "Backup in TWRP Format",
                     "Restore from TWRP Format",
                     "Delete TWRP Backup Image",
-                    "Export a CWM backup to TWRP",
-                    "Import a TWRP backup to CWM",
                     NULL
     };
 
@@ -3085,12 +3083,6 @@ static void twrp_backup_restore_menu() {
                     sprintf(tmp, "%s/%s/", TWRP_BACKUP_PATH, device_id);
                     delete_custom_backups(tmp);
                 }
-                break;
-            case 3:
-
-                break;
-            case 4:
-
                 break;
         }
     }
