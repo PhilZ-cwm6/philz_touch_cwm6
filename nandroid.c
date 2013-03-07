@@ -104,8 +104,11 @@ static void compute_directory_stats(const char* directory)
     fclose(f);
     nandroid_files_count = 0;
     nandroid_files_total = atoi(count_text);
-    ui_reset_progress();
-    ui_show_progress(1, 0);
+
+    if (!twrp_backup_mode) {
+        ui_reset_progress();
+        ui_show_progress(1, 0);
+    }
 }
 
 typedef void (*file_event_callback)(const char* filename);
@@ -481,14 +484,30 @@ unsigned long long Makelist_Current_Size;
 static void compute_twrp_backup_stats(int index)
 {
     char tmp[PATH_MAX];
-    sprintf(tmp, "wc -l /tmp/list/filelist%03i | awk '{print $1}' > /tmp/dircount", index);
-    __system(tmp);
-    char count_text[100];
-    FILE* f = fopen("/tmp/dircount", "r");
-    fread(count_text, 1, sizeof(count_text), f);
-    fclose(f);
+    char line[PATH_MAX];
+    struct stat info;
+    int total = 0;
+    sprintf(tmp, "/tmp/list/filelist%03i", index);
+    FILE *fp = fopen(tmp, "rb");
+    if (fp != NULL) {
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            line[strlen(line)-1] = '\0';
+            stat(line, &info);
+            if (S_ISDIR(info.st_mode)) {
+                compute_directory_stats(line);
+                total += nandroid_files_total;
+            } else
+                total += 1;
+        }
+        nandroid_files_total = total;
+        fclose(fp);
+    } else {
+        LOGE("Cannot compute backup stats for %s\n", tmp);
+        LOGE("No progress will be shown during backup\n");
+        nandroid_files_total = 0;
+    }
+
     nandroid_files_count = 0;
-    nandroid_files_total = atoi(count_text);
     ui_reset_progress();
     ui_show_progress(1, 0);
 }
@@ -582,12 +601,11 @@ int Make_File_List(const char* backup_path)
 		LOGE("Error generating file list\n");
 		return -1;
 	}
-	ui_print("Done, generated %i files.\n", (Makelist_File_Count + 1));
+	ui_print("Done, generated %i file(s).\n", (Makelist_File_Count + 1));
 	return (Makelist_File_Count + 1);
 }
 
-int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, int callback)
-{
+int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     Volume *v = volume_for_path(backup_path);
     if (v == NULL) {
         ui_print("Unable to find volume.\n");
@@ -606,6 +624,11 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     if (backup_count < 1) {
         LOGE("Error generating file list!\n");
         return -1;
+    }
+    struct stat st;
+    if (0 != stat("/tmp/list/filelist000", &st)) {
+        ui_print("Nothing to backup. Skipping %s\n", basename(backup_path));
+        return 0;
     }
 
     unsigned long long total_bsize = 0, file_size;
@@ -825,6 +848,7 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
         int index = 0;
         sprintf(tmp, "%s%03i", main_filename, index);
         while(file_found(tmp)) {
+            compute_archive_stats(tmp);
             ui_print("  * Restoring archive %d\n", index + 1);
             sprintf(cmd, "cd /; tar %s '%s'; exit $?", tar_args, tmp);
             if (0 != (ret = twrp_tar_extract_wrapper(cmd, callback)))
@@ -834,6 +858,7 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
         }
     } else {
         //single volume archive
+        compute_archive_stats(backup_file_image);
         sprintf(cmd, "cd %s; tar %s '%s'; exit $?", backup_path, tar_args, backup_file_image);
         ui_print("Restoring archive %s\n", basename(backup_file_image));
         ret = twrp_tar_extract_wrapper(cmd, callback);

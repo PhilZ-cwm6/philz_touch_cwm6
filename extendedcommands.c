@@ -1616,7 +1616,7 @@ void wipe_data_menu() {
     };
 
     char* list[] = { "Wipe Data/Factory Reset",
-                    "Wipe Data/Cache/System/Preloaod",
+                    "Wipe Data-Cache-System-Preload",
                     NULL
     };
 
