@@ -777,12 +777,46 @@ print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
 
+static void
+setup_adbd() {
+    struct stat f;
+    static char *key_src = "/data/misc/adb/adb_keys";
+    static char *key_dest = "/adb_keys";
+
+    // Mount /data and copy adb_keys to root if it exists
+    ensure_path_mounted("/data");
+    if (stat(key_src, &f) == 0) {
+        FILE *file_src = fopen(key_src, "r");
+        if (file_src == NULL) {
+            LOGE("Can't open %s\n", key_src);
+        } else {
+            FILE *file_dest = fopen(key_dest, "w");
+            if (file_dest == NULL) {
+                LOGE("Can't open %s\n", key_dest);
+            } else {
+                char buf[4096];
+                while (fgets(buf, sizeof(buf), file_src)) fputs(buf, file_dest);
+                check_and_fclose(file_dest, key_dest);
+
+                // Enable secure adbd
+                property_set("ro.adb.secure", "1");
+            }
+            check_and_fclose(file_src, key_src);
+        }
+    }
+    ensure_path_unmounted("/data");
+
+    // Trigger (re)start of adb daemon
+    property_set("service.adb.root", "1");
+}
+
+// call a clean reboot to main system
 void reboot_main_system() {
 #ifdef PHILZ_TOUCH_RECOVERY
     verify_settings_file();
 #endif
     verify_root_and_recovery();
-    finish_recovery(NULL);
+    finish_recovery(NULL); // sync() in here
     ui_print("Rebooting...\n");
     android_reboot(ANDROID_RB_RESTART, 0, 0);
 }
@@ -968,6 +1002,8 @@ main(int argc, char **argv) {
         no_wipe_confirm = 0;
         //script done, next ones cannot be bootscripts until we restart recovery
     }
+
+    setup_adbd();
 
     if (status != INSTALL_SUCCESS && !is_user_initiated_recovery) {
         ui_set_show_text(1);
