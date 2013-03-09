@@ -883,10 +883,8 @@ main(int argc, char **argv) {
 
     device_ui_init(&ui_parameters);
     ui_init();
-#ifndef PHILZ_TOUCH_RECOVERY
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
-#else
-    ui_print(EXPAND(RECOVERY_VERSION)"\n");
+#ifdef PHILZ_TOUCH_RECOVERY
     ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
     LOGI("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
 #endif
@@ -922,6 +920,7 @@ main(int argc, char **argv) {
 
     LOGI("device_recovery_start()\n");
     device_recovery_start();
+
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {
         printf(" \"%s\"", argv[arg]);
@@ -948,6 +947,7 @@ main(int argc, char **argv) {
     printf("\n");
 
     int status = INSTALL_SUCCESS;
+
     if (update_package != NULL) {
         status = install_package(update_package);
         if (status != INSTALL_SUCCESS) ui_print("Installation aborted.\n");
