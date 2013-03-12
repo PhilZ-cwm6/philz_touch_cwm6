@@ -987,8 +987,7 @@ main(int argc, char **argv) {
         }
         if (0 == check_for_script_file("/cache/recovery/openrecoveryscript")) {
             LOGI("Running openrecoveryscript....\n");
-            no_wipe_confirm = 1;
-                //this is a script started at boot, do not confirm wipe operations
+            no_wipe_confirm = 1; //this is a script started at boot, do not confirm wipe operations
             int ret;
             if (0 == (ret = run_ors_script("/tmp/openrecoveryscript"))) {
                 status = INSTALL_SUCCESS;
@@ -996,11 +995,10 @@ main(int argc, char **argv) {
             } else {
                 handle_failure(ret);
             }
+            no_wipe_confirm = 0; //script done, next ones cannot be bootscripts until we restart recovery
         } else {
             LOGI("Skipping execution of OpenRecoveryScript, file not found...\n");
         }
-        no_wipe_confirm = 0;
-        //script done, next ones cannot be bootscripts until we restart recovery
     }
 
     setup_adbd();

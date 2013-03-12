@@ -64,8 +64,9 @@ static int parse_options(char* options, Volume* volume) {
         if (strncmp(option, "length=", 7) == 0) {
             volume->length = strtoll(option+7, NULL, 10);
         } else if (strncmp(option, "fstype2=", 8) == 0) {
-            volume->fs_type2 = volume->fs_type;
-            volume->fs_type = strdup(option + 8);
+            //volume->fs_type2 = volume->fs_type; // fs_type2 option in recovery.fstab becomes fs_type in remaining code
+            //volume->fs_type = strdup(option + 8); // and fs_type in code is now the fs_type2 entry in recovery.fstab
+            volume->fs_type2 = strdup(option + 8);
         } else if (strncmp(option, "fs_options=", 11) == 0) {
             volume->fs_options = strdup(option + 11);
         } else if (strncmp(option, "fs_options2=", 12) == 0) {
@@ -188,7 +189,7 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
     if (fs_options == NULL) {
         ret = mount(device, mount_point, fs_type,
                        MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
-        //LOGE("ret =%d - device=%s - mount_point=%s - fstype=%s\n", ret, device, mount_point, fs_type);
+        // LOGE("ret =%d - device=%s - mount_point=%s - fstype=%s\n", ret, device, mount_point, fs_type); // debug
     }
     else {
         char mount_cmd[PATH_MAX];
@@ -204,7 +205,7 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
         sprintf(mount_cmd, "mount -t exfat %s %s %s", fs_options != NULL ? fs_options : "", device, mount_point);
         ret = __system(mount_cmd);
         if (ret == 0) {
-            //LOGE("success: mount exfat %s %s %s\n", fs_options, device, mount_point);
+            // LOGE("success: mount exfat %s %s %s\n", fs_options, device, mount_point); // debug
             return 0;
         }
         LOGI("failed to mount ext4/vfat/exfat %s %s %s\n", device, mount_point, fs_options);
@@ -301,7 +302,7 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
                strcmp(v->fs_type, "ext3") == 0 ||
                strcmp(v->fs_type, "rfs") == 0 ||
                strcmp(v->fs_type, "vfat") == 0) {
-        //LOGE("main pass: %s %s %s %s\n", v->device, mount_point, v->fs_type, v->fs_type2);
+        // LOGE("main pass: %s %s %s %s\n", v->device, mount_point, v->fs_type, v->fs_type2); // debug
         if ((result = try_mount(v->device, mount_point, v->fs_type, v->fs_options)) == 0)
             return 0;
         if ((result = try_mount(v->device2, mount_point, v->fs_type, v->fs_options)) == 0)

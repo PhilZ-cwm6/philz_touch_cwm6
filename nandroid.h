@@ -55,12 +55,13 @@ extern int backup_modem;
 #define TAR_GZ_HIGH 9
 #define TAR_FORMAT 0
 extern int compression_value;
+extern int enable_md5sum;
+extern int nandroid_add_preload;
 
 //option to reboot after user initiated nandroid operations
 extern int reboot_after_nandroid;
 
 // support .android_secure on external storage
-// if == 0 then use default /sdcard, else use /emmc or /external_sd
 extern int android_secure_ext;
 int get_android_secure_path();
 

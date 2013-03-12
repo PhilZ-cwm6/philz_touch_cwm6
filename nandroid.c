@@ -377,6 +377,7 @@ int is_custom_backup = 0;
 int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
 
+int nandroid_add_preload = 0, enable_md5sum = 1;
 
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
@@ -770,10 +771,7 @@ int twrp_backup(const char* backup_path)
         }
     }
 
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (enable_md5sum)
-#endif
-    {
+    if (enable_md5sum) {
         if (0 != (ret = gen_twrp_md5sum(backup_path)))
             return ret;
     }
@@ -875,10 +873,7 @@ int twrp_restore(const char* backup_path)
         return print_and_error("Can't mount backup path\n");
 
     char tmp[PATH_MAX];
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (enable_md5sum)
-#endif
-    {
+    if (enable_md5sum) {
         if (0 != check_twrp_md5sum(backup_path))
             return print_and_error("MD5 mismatch!\n");
     }
@@ -1020,12 +1015,7 @@ int nandroid_backup(const char* backup_path)
             return ret;
         }
     }
-    else if (!is_custom_backup
-#ifdef PHILZ_TOUCH_RECOVERY
-                && nandroid_add_preload
-#endif
-            )
-    {
+    else if (!is_custom_backup && nandroid_add_preload) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
             ui_print("Failed to backup preload! Try to disable it.\n");
             ui_print("Skipping /preload...\n");
@@ -1084,10 +1074,7 @@ int nandroid_backup(const char* backup_path)
         }
     }
 
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (enable_md5sum)
-#endif
-    {
+    if (enable_md5sum) {
         ui_print("Generating md5 sum...\n");
         sprintf(tmp, "nandroid-md5.sh %s", backup_path);
         if (0 != (ret = __system(tmp))) {
@@ -1450,11 +1437,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return print_and_error("Can't mount backup path\n");
     
     char tmp[PATH_MAX];
-
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (enable_md5sum)
-#endif
-    {
+    if (enable_md5sum) {
         ui_print("Checking MD5 sums...\n");
         sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
         if (0 != __system(tmp))
@@ -1520,12 +1503,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
             return ret;
         }
     }
-    else if (!is_custom_backup
-#ifdef PHILZ_TOUCH_RECOVERY
-                && nandroid_add_preload
-#endif
-            )
-    {
+    else if (!is_custom_backup && nandroid_add_preload) {
         if (restore_system && 0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
             ui_print("Failed to restore preload! Try to disable it.\n");
             ui_print("Skipping /preload...\n");
@@ -1543,15 +1521,15 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     // handle .android_secure on external and internal storage
     if (!is_custom_backup)
-        android_secure_ext = get_android_secure_path();
-    if (backup_data && android_secure_ext == 0) {
+        get_android_secure_path();
+    if (restore_data && android_secure_ext == 0) {
         // android_secure_ext == 0: restore to default /sdcard path
         if (is_data_media())
             ui_print("Skipping android_secure restore to /data/media.\n");
         else if (0 != (ret = nandroid_restore_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
             return ret;
     }
-    else if (backup_data && android_secure_ext == 1) {
+    else if (restore_data && android_secure_ext == 1) {
         // android_secure_ext == 1: restore to second storage
         if (volume_for_path("/external_sd") != NULL)
             ret = nandroid_restore_partition_extended(backup_path, "/external_sd/.android_secure", 0);
