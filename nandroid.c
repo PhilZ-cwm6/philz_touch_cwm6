@@ -1033,7 +1033,7 @@ int nandroid_backup(const char* backup_path)
 
     // handle .android_secure on external and internal storage
     if (!is_custom_backup)
-        android_secure_ext = get_android_secure_path();
+        get_android_secure_path();
     if (backup_data && android_secure_ext == 0) {
         // android_secure_ext == 0: assume default /sdcard path
         if (is_data_media())

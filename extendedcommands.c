@@ -1535,10 +1535,10 @@ void delete_a_file(const char* filename) {
     __system(tmp);
 }
 
-//check if file exists
+// check if file or folder exists
 int file_found(const char* filename) {
     struct stat s;
-    ensure_path_mounted(filename); // this will error on ramdisk files (no valid volume), but stat will return valid file if it exists
+    ensure_path_mounted(filename); // this will error on some ramdisk path (no valid volume), but stat will return valid file if it exists
     if (0 == stat(filename, &s))
         return 1;
 
@@ -1636,12 +1636,15 @@ void wipe_data_menu() {
     }
 }
 
-
-// ** Start open recovery script support
-// ** Original code by Dees_Troy dees_troy at yahoo
-// ** Original cwm port by sk8erwitskil
-// ** Enhanced by PhilZ @xda
-// ** Do not remove credits headers
+/*
+ ***********************************************
+* Start open recovery script support            *
+* Original code by Dees_Troy dees_troy at yahoo *
+* Original cwm port by sk8erwitskil             *
+* Enhanced by PhilZ @xda                        *
+* Do not remove credits headers                 *
+ ***********************************************
+*/
 
 // check ors script at boot (called from recovery.c)
 // format the script file to fix path in install zip commands from goomanager
@@ -1673,6 +1676,10 @@ int check_for_script_file(const char* ors_boot_script)
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
 static int ors_backup_command(const char* backup_path, const char* options) {
+    if (file_found(backup_path) {
+        LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
+        return -1;
+    }
     is_custom_backup = 1;
     int old_compression_value = compression_value;
     compression_value = TAR_FORMAT;
