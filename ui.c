@@ -776,8 +776,11 @@ void ui_printlogtail(int nb_lines) {
     ui_log_stdout=1;
 }
 
+#ifndef PHILZ_TOUCH_RECOVERY
+// included in philz_touch_defines.c
 #define MENU_ITEM_HEADER " - "
 #define MENU_ITEM_HEADER_LENGTH strlen(MENU_ITEM_HEADER)
+#endif
 
 int ui_start_menu(char** headers, char** items, int initial_selection) {
     int i;
@@ -811,6 +814,24 @@ int ui_start_menu(char** headers, char** items, int initial_selection) {
         return menu_items - 1;
     }
     return menu_items;
+}
+
+// No need to pass a buffer as argument. But, call with item_menu[MENU_MAX_COLS] (sizeof(item_menu) >= MENU_MAX_COLS)
+void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option) {
+#ifdef PHILZ_TOUCH_RECOVERY
+    // truely right align options and left align menu text for any device
+    ui_format_touch_menu(item_menu, menu_text, menu_option);
+#else
+    int len = strlen(menu_text) + strlen(menu_option) + strlen(" - ");
+    if (len > MENU_MAX_COLS) {
+        // no time to format it better: reduce args length!
+        strcpy(item_menu, "");
+        return;
+    }
+    strcpy(item_menu, menu_option);
+    strcat(item_menu, " - ");
+    strcat(item_menu, menu_text);
+#endif
 }
 
 int ui_menu_select(int sel) {

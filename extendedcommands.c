@@ -81,9 +81,20 @@ void write_string_to_file(const char* filename, const char* string) {
     sprintf(tmp, "mkdir -p $(dirname %s); chmod 0755 $(dirname %s)", filename, filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        LOGE("Cannot write to %s\n", filename);
+        return;
+    }
     fprintf(file, "%s", string);
     fclose(file);
 }
+
+/* discarded cm-10.1 commit, useless garbage
+void write_recovery_version() {
+    write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION));
+    write_string_to_file("/sdcard/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION));
+}
+*/
 
 void
 toggle_signature_check()
@@ -116,6 +127,7 @@ int install_zip(const char* packagefilepath)
 #define ITEM_APPLY_UPDATE     3 // warning: redefined in recovery_ui.h
 #define ITEM_APPLY_SIDELOAD   4
 #define ITEM_SIG_CHECK        5
+#define ITEM_FREE_BROWSE      6
 
 void show_install_update_menu()
 {
@@ -130,6 +142,7 @@ void show_install_update_menu()
                                     "Apply /sdcard/update.zip",
                                     "Install zip from sideload",
                                     "Toggle Signature Verification",
+                                    "Setup Free Browse Mode",
                                     NULL };
 
     char *other_sd = NULL;
@@ -158,6 +171,7 @@ void show_install_update_menu()
             }
             case ITEM_CHOOSE_ZIP:
                 show_choose_zip_menu("/sdcard/");
+                //write_recovery_version();
                 break;
             case ITEM_APPLY_SIDELOAD:
                 if (confirm_selection("Confirm ?", "Yes - Apply Sideload")) {
@@ -165,13 +179,17 @@ void show_install_update_menu()
                 }
                 break;
             case ITEM_CHOOSE_ZIP_INT:
-                //if (other_sd != NULL)
                 if (volume_for_path(other_sd) != NULL)
                     show_choose_zip_menu(other_sd);
                 break;
             case ITEM_MULTI_FLASH:
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_multi_flash_menu();
+#endif
+                break;
+            case ITEM_FREE_BROWSE:
+#ifdef PHILZ_TOUCH_RECOVERY
+                set_custom_zip_path();
 #endif
                 break;
             default:
@@ -209,7 +227,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
 
     dir = opendir(directory);
     if (dir == NULL) {
-        ui_print("Couldn't open directory.\n");
+        ui_print("Couldn't open directory %s\n", directory);
         return NULL;
     }
 
@@ -233,7 +251,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
                     char fullFileName[PATH_MAX];
                     strcpy(fullFileName, directory);
                     strcat(fullFileName, de->d_name);
-                    stat(fullFileName, &info);
+                    lstat(fullFileName, &info);
                     if (S_ISDIR(info.st_mode))
                         continue;
                 } else {
@@ -251,7 +269,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
                 char fullFileName[PATH_MAX];
                 strcpy(fullFileName, directory);
                 strcat(fullFileName, de->d_name);
-                stat(fullFileName, &info);
+                lstat(fullFileName, &info);
                 // make sure it is a directory
                 if (!(S_ISDIR(info.st_mode)))
                     continue;
@@ -281,7 +299,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
     }
 
     if(closedir(dir) < 0) {
-        LOGE("Failed to close directory.");
+        LOGE("Failed to close directory.\n");
     }
 
     if (total==0) {
@@ -396,6 +414,12 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
 
 void show_choose_zip_menu(const char *mount_point)
 {
+#ifdef PHILZ_TOUCH_RECOVERY
+    // browse for zip files up/backward including root system and have a default user set start folder
+    if (show_custom_zip_menu() == 0)
+        return;
+#endif
+
     if (ensure_path_mounted(mount_point) != 0) {
         LOGE ("Can't mount %s\n", mount_point);
         return;
@@ -1230,16 +1254,20 @@ void show_nandroid_menu()
                         sprintf(backup_path, "%s_%s",tmp, rom_name);
                     }
                     nandroid_backup(backup_path);
+                    //write_recovery_version();
                 }
                 break;
             case 2:
                 show_nandroid_restore_menu("/sdcard");
+                //write_recovery_version();
                 break;
             case 3:
                 show_nandroid_delete_menu("/sdcard");
+                //write_recovery_version();
                 break;
             case 4:
                 show_nandroid_advanced_restore_menu("/sdcard");
+                //write_recovery_version();
                 break;
             case 5:
                 run_dedupe_gc(other_sd);
@@ -1503,6 +1531,10 @@ void show_advanced_menu()
 /*      Keep this credits header      */
 /**************************************/
 
+// redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
+// used to format toggle menus to device screen width (only touch build)
+#define MENU_MAX_COLS 64
+
 // 0 == stop browsing default file locations
 static int browse_for_file = 1;
 int twrp_backup_mode = 0;
@@ -1676,7 +1708,7 @@ int check_for_script_file(const char* ors_boot_script)
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
 static int ors_backup_command(const char* backup_path, const char* options) {
-    if (file_found(backup_path) {
+    if (file_found(backup_path)) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
         return -1;
     }
@@ -2572,17 +2604,19 @@ static void custom_restore_menu(const char* backup_path) {
     static char* headers[] = {  "Custom restore job",
                                 NULL
     };
-    char item_boot[40];
-    char item_recovery[40];
-    char item_system[40];
-    char item_preload[40];
-    char item_data[40];
-    char item_andsec[40];
-    char item_cache[40];
-    char item_sdext[40];
-    char item_modem[40];
-    char item_efs[40];
-    char item_reboot[40];
+
+    char item_boot[MENU_MAX_COLS];
+    char item_recovery[MENU_MAX_COLS];
+    char item_system[MENU_MAX_COLS];
+    char item_preload[MENU_MAX_COLS];
+    char item_data[MENU_MAX_COLS];
+    char item_andsec[MENU_MAX_COLS];
+    char item_cache[MENU_MAX_COLS];
+    char item_sdext[MENU_MAX_COLS];
+    char item_modem[MENU_MAX_COLS];
+    char item_efs[MENU_MAX_COLS];
+    char item_reboot[MENU_MAX_COLS];
+    char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
                 item_recovery,
                 item_system,
@@ -2613,57 +2647,58 @@ static void custom_restore_menu(const char* backup_path) {
 
     reset_custom_job_settings(1);
     for (;;) {
-        // do not forget 40 chars limit!
-        if (backup_boot) sprintf(item_boot,               "Restore boot           (x)");
-        else sprintf(item_boot,                           "Restore boot           ( )");
+        if (backup_boot) ui_format_gui_menu(item_boot, "Restore boot", "(x)");
+        else ui_format_gui_menu(item_boot, "Restore boot", "( )");
 
-        if (backup_recovery) sprintf(item_recovery,       "Restore recovery       (x)");
-        else sprintf(item_recovery,                       "Restore recovery       ( )");
+        if (backup_recovery) ui_format_gui_menu(item_recovery, "Restore recovery", "(x)");
+        else ui_format_gui_menu(item_recovery, "Restore recovery", "( )");
 
-        if (backup_system) sprintf(item_system,           "Restore system         (x)");
-        else sprintf(item_system,                         "Restore system         ( )");
+        if (backup_system) ui_format_gui_menu(item_system, "Restore system", "(x)");
+        else ui_format_gui_menu(item_system, "Restore system", "( )");
 
-        if (backup_preload) sprintf(item_preload,         "Restore preload        (x)");
-        else sprintf(item_preload,                        "Restore preload        ( )");
+        if (backup_preload) ui_format_gui_menu(item_preload, "Restore preload", "(x)");
+        else ui_format_gui_menu(item_preload, "Restore preload", "( )");
 
-        if (backup_data) sprintf(item_data,               "Restore data           (x)");
-        else sprintf(item_data,                           "Restore data           ( )");
+        if (backup_data) ui_format_gui_menu(item_data, "Restore data", "(x)");
+        else ui_format_gui_menu(item_data, "Restore data", "( )");
 
         if (!backup_data || android_secure_ext == -1)
-            sprintf(item_andsec,                          "Restore and-sec        ( )");
+            ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
         else if (android_secure_ext == 1)
-            sprintf(item_andsec,                          "Restore and-sec        2nd SD");
-        else sprintf(item_andsec,                         "Restore and-sec        sdcard");
+            ui_format_gui_menu(item_andsec, "Restore and-sec", "2nd SD");
+        else ui_format_gui_menu(item_andsec, "Restore and-sec", "sdcard");
 
-        if (backup_cache) sprintf(item_cache,             "Restore cache          (x)");
-        else sprintf(item_cache,                          "Restore cache          ( )");
+        if (backup_cache) ui_format_gui_menu(item_cache, "Restore cache", "(x)");
+        else ui_format_gui_menu(item_cache, "Restore cache", "( )");
 
-        if (backup_sdext) sprintf(item_sdext,             "Restore sd-ext         (x)");
-        else sprintf(item_sdext,                          "Restore sd-ext         ( )");
+        if (backup_sdext) ui_format_gui_menu(item_sdext, "Restore sd-ext", "(x)");
+        else ui_format_gui_menu(item_sdext, "Restore sd-ext", "( )");
 
         if (backup_modem == RAW_IMG_FILE)
-            sprintf(item_modem,                           "Restore modem [.img]   (x)");
+            ui_format_gui_menu(item_modem, "Restore modem [.img]", "(x)");
         else if (backup_modem == RAW_BIN_FILE)
-            sprintf(item_modem,                           "Restore modem [.bin]   (x)");
-        else sprintf(item_modem,                          "Restore modem          ( )");
+            ui_format_gui_menu(item_modem, "Restore modem [.bin]", "(x)");
+        else ui_format_gui_menu(item_modem, "Restore modem", "( )");
 
         if (backup_efs == RESTORE_EFS_IMG)
-            sprintf(item_efs,                             "Restore efs [.img]     (x)");
+            ui_format_gui_menu(item_efs, "Restore efs [.img]", "(x)");
         else if (backup_efs == RESTORE_EFS_TAR)
-            sprintf(item_efs,                             "Restore efs [.tar]     (x)");
-        else sprintf(item_efs,                            "Restore efs            ( )");
+            ui_format_gui_menu(item_efs, "Restore efs [.tar]", "(x)");
+        else ui_format_gui_menu(item_efs, "Restore efs", "( )");
 
-        if (reboot_after_nandroid) sprintf(item_reboot,   "Reboot once done       (x)");
-        else sprintf(item_reboot,                         "Reboot once done       ( )");
+        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
+        else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
         if (NULL != list[12]) {
-            if (backup_wimax) list[12] =                  "Restore WiMax          (x)";
-            else list[12] =                               "Restore WiMax          ( )";
+            if (backup_wimax)
+                ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
+            else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
+            list[12] = item_wimax;
         }
 
         if (!custom_items && !twrp_backup_mode) {
-            sprintf(item_modem,         "modem: Only in custom job");
-            sprintf(item_efs,           "efs:   Only in custom job");
+            ui_format_gui_menu(item_modem, "Restore modem", "N/A");
+            ui_format_gui_menu(item_efs, "Restore efs", "N/A");
         }
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -2735,17 +2770,19 @@ static void custom_backup_menu() {
     static char* headers[] = {  "Custom backup job",
                                 NULL
     };
-    char item_boot[40];
-    char item_recovery[40];
-    char item_system[40];
-    char item_preload[40];
-    char item_data[40];
-    char item_andsec[40];
-    char item_cache[40];
-    char item_sdext[40];
-    char item_modem[40];
-    char item_efs[40];
-    char item_reboot[40];
+
+    char item_boot[MENU_MAX_COLS];
+    char item_recovery[MENU_MAX_COLS];
+    char item_system[MENU_MAX_COLS];
+    char item_preload[MENU_MAX_COLS];
+    char item_data[MENU_MAX_COLS];
+    char item_andsec[MENU_MAX_COLS];
+    char item_cache[MENU_MAX_COLS];
+    char item_sdext[MENU_MAX_COLS];
+    char item_modem[MENU_MAX_COLS];
+    char item_efs[MENU_MAX_COLS];
+    char item_reboot[MENU_MAX_COLS];
+    char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
                 item_recovery,
                 item_system,
@@ -2770,50 +2807,50 @@ static void custom_backup_menu() {
 
     reset_custom_job_settings(1);
     for (;;) {
-        // do not forget 40 chars limit!
-        if (backup_boot) sprintf(item_boot,         "Backup boot            (x)");
-        else sprintf(item_boot,                     "Backup boot            ( )");
+        if (backup_boot) ui_format_gui_menu(item_boot, "Backup boot", "(x)");
+        else ui_format_gui_menu(item_boot, "Backup boot", "( )");
 
-        if (backup_recovery) sprintf(item_recovery, "Backup recovery        (x)");
-        else sprintf(item_recovery,                 "Backup recovery        ( )");
+        if (backup_recovery) ui_format_gui_menu(item_recovery, "Backup recovery", "(x)");
+        else ui_format_gui_menu(item_recovery, "Backup recovery", "( )");
 
-        if (backup_system) sprintf(item_system,     "Backup system          (x)");
-        else sprintf(item_system,                   "Backup system          ( )");
+        if (backup_system) ui_format_gui_menu(item_system, "Backup system", "(x)");
+        else ui_format_gui_menu(item_system, "Backup system", "( )");
 
-        if (backup_preload) sprintf(item_preload,   "Backup preload         (x)");
-        else sprintf(item_preload,                  "Backup preload         ( )");
+        if (backup_preload) ui_format_gui_menu(item_preload, "Backup preload", "(x)");
+        else ui_format_gui_menu(item_preload, "Backup preload", "( )");
 
-        if (backup_data) sprintf(item_data,         "Backup data            (x)");
-        else sprintf(item_data,                     "Backup data            ( )");
+        if (backup_data) ui_format_gui_menu(item_data, "Backup data", "(x)");
+        else ui_format_gui_menu(item_data, "Backup data", "( )");
 
         if (!backup_data || android_secure_ext == -1)
-            sprintf(item_andsec,                    "Backup and-sec         ( )");
+            ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");
         else if (android_secure_ext == 1)
-            sprintf(item_andsec,                    "Backup and-sec         2nd SD");
-        else sprintf(item_andsec,                   "Backup and-sec         sdcard");
+            ui_format_gui_menu(item_andsec, "Backup and-sec", "2nd SD");
+        else ui_format_gui_menu(item_andsec, "Backup and-sec", "sdcard");
 
-        if (backup_cache) sprintf(item_cache,       "Backup cache           (x)");
-        else sprintf(item_cache,                    "Backup cache           ( )");
+        if (backup_cache) ui_format_gui_menu(item_cache, "Backup cache", "(x)");
+        else ui_format_gui_menu(item_cache, "Backup cache", "( )");
 
-        if (backup_sdext) sprintf(item_sdext,       "Backup sd-ext          (x)");
-        else sprintf(item_sdext,                    "Backup sd-ext          ( )");
+        if (backup_sdext) ui_format_gui_menu(item_sdext, "Backup sd-ext", "(x)");
+        else ui_format_gui_menu(item_sdext, "Backup sd-ext", "( )");
 
-        if (backup_modem) sprintf(item_modem,       "Backup modem [.img]    (x)");
-        else sprintf(item_modem,                    "Backup modem           ( )");
+        if (backup_modem) ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
+        else ui_format_gui_menu(item_modem, "Backup modem", "( )");
 
         if (backup_efs && twrp_backup_mode)
-            sprintf(item_efs,                       "Backup efs             (x)");
+            ui_format_gui_menu(item_efs, "Backup efs", "(x)");
         else if (backup_efs && !twrp_backup_mode)
-            sprintf(item_efs,                       "Backup efs [img&tar]   (x)");
-        else sprintf(item_efs,                      "Backup efs             ( )");
+            ui_format_gui_menu(item_efs, "Backup efs [img&tar]", "(x)");
+        else ui_format_gui_menu(item_efs, "Backup efs", "( )");
 
-        if (reboot_after_nandroid)
-            sprintf(item_reboot,                    "Reboot once done       (x)");
-        else sprintf(item_reboot,                   "Reboot once done       ( )");
+        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
+        else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
         if (NULL != list[12]) {
-            if (backup_wimax) list[12] =            "Backup WiMax           (x)";
-            else list[12] =                         "Backup WiMax           ( )";
+            if (backup_wimax)
+                ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
+            else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
+            list[12] = item_wimax;
         }
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));

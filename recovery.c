@@ -695,6 +695,7 @@ wipe_data(int confirm) {
         erase_volume("/external_sd/.android_secure");
     else if (volume_for_path("/emmc") != NULL)
         erase_volume("/emmc/.android_secure");
+    ui_print("Data wipe complete.\n");
 }
 
 int ui_menu_level = 1;

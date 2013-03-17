@@ -131,6 +131,9 @@ int directory_found(const char* dir);
 void delete_a_file(const char* filename);
 void ensure_directory(const char* dir);
 
+// format toggle menus to screen width
+void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
+
 //----------------------------
 
 #endif
