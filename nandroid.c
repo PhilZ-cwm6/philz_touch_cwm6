@@ -61,7 +61,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
 
 void ensure_directory(const char* dir) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s ; chmod 775 %s", dir, dir);
+    sprintf(tmp, "mkdir -p %s; chmod 775 %s;", dir, dir);
     __system(tmp);
 }
 
@@ -141,6 +141,8 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
         sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
     else
         sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; (tar cv %s $(basename %s) | pigz -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value, backup_file_image);
+    // users expect a nandroid backup to be like a raw image, should give choice to skip data...
+    //sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
 
     FILE *fp = __popen(tmp, "r");
     if (fp == NULL) {
