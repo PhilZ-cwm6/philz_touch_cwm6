@@ -1526,12 +1526,15 @@ void show_advanced_menu()
 }
 
 
-/**************************************/
-/*     Start PhilZ Menu settings      */
-/*    Code written by by PhilZ@xda    */
-/*    Part of PhilZ Touch Recovery    */
-/*      Keep this credits header      */
-/**************************************/
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/* IF YOU MODIFY ANY PART OF THIS SOURCE */
+/*  YOU MUST AGREE TO SHARE THE CHANGES  */
+/*                                       */
+/*       Start PhilZ Menu settings       */
+/*      Code written by by PhilZ@xda     */
+/*      Part of PhilZ Touch Recovery     */
+/*****************************************/
 
 // redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
 // used to format toggle menus to device screen width (only touch build)
@@ -1670,15 +1673,17 @@ void wipe_data_menu() {
     }
 }
 
-/*
- ***********************************************
-* Start open recovery script support            *
-* Original code by Dees_Troy dees_troy at yahoo *
-* Original cwm port by sk8erwitskil             *
-* Enhanced by PhilZ @xda                        *
-* Do not remove credits headers                 *
- ***********************************************
-*/
+
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/* IF YOU MODIFY ANY PART OF THIS SOURCE */
+/*  YOU MUST AGREE TO SHARE THE CHANGES  */
+/*                                       */
+/*  Start open recovery script support   */
+/*  Original code: Dees_Troy  at yahoo   */
+/*  Original cwm port by sk8erwitskil    */
+/*  Enhanced by PhilZ @xda               */
+/*****************************************/
 
 // check ors script at boot (called from recovery.c)
 // format the script file to fix path in install zip commands from goomanager
@@ -2179,7 +2184,6 @@ static void show_custom_ors_menu() {
     }
 
     for (;;) {
-        //header function so that "Toggle menu" doesn't reset to main menu on action selected
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
@@ -2196,16 +2200,21 @@ static void show_custom_ors_menu() {
 }
 //----------end open recovery script support
 
+
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
 
-/***************************************/
-/*  Custom Backup and Restore Support  */
-/*      code written by PhilZ @xda     */
-/*       for PhilZ Touch Recovery      */
-/*  Do not remove this credits header  */
-/***************************************/
+
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/* IF YOU MODIFY ANY PART OF THIS SOURCE */
+/*  YOU MUST AGREE TO SHARE THE CHANGES  */
+/*                                       */
+/*   Custom Backup and Restore Support   */
+/*       code written by PhilZ @xda      */
+/*        for PhilZ Touch Recovery       */
+/*****************************************/
 
 static void choose_delete_folder(const char* path) {
     if (ensure_path_mounted(path) != 0) {
@@ -2910,13 +2919,16 @@ static void custom_backup_menu() {
 //------- end Custom Backup and Restore functions
 
 
-/*******************************************/
-/*  Start TWRP Backup and Restore Support  */
-/*     Original CWM port by PhilZ @xda     */
-/*     Original TWRP code by Dees_Troy     */
-/*          (dees_troy at yahoo)           */
-/*    Do Not Remove This Credits Header    */
-/*******************************************/
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/* IF YOU MODIFY ANY PART OF THIS SOURCE */
+/*  YOU MUST AGREE TO SHARE THE CHANGES  */
+/*                                       */
+/* Part of TWRP Backup & Restore Support */
+/*    Original CWM port by PhilZ @xda    */
+/*    Original TWRP code by Dees_Troy    */
+/*         (dees_troy at yahoo)          */
+/*****************************************/
 
 int check_twrp_md5sum(const char* backup_path) {
     char tmp[PATH_MAX];
@@ -3369,7 +3381,6 @@ void show_philz_settings()
     };
 
     for (;;) {
-        //header function so that "Toggle menu" doesn't reset to main menu on action selected
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
@@ -3432,9 +3443,9 @@ void show_philz_settings()
 #endif
                 break;
             case 6:
-                ui_print(EXPAND(RECOVERY_VERSION)"\n");
-                ui_print("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
-                ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
+                ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
+                ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_NAME) "\n");
+                ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 ui_print("Compiled %s at %s\n", __DATE__, __TIME__);
                 break;

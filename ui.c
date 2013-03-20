@@ -409,7 +409,6 @@ static int input_callback(int fd, short revents, void *data)
     int ret;
     int fake_key = 0;
 #ifdef PHILZ_TOUCH_RECOVERY
-    int virtual_keys_h = 0;
     gr_surface surface = gVirtualKeys;
 #endif
 

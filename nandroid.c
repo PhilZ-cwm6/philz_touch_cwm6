@@ -1,3 +1,14 @@
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/* IF YOU MODIFY ANY PART OF THIS SOURCE */
+/*  YOU MUST AGREE TO SHARE THE CHANGES  */
+/*                                       */
+/*    TWRP backup and restore support    */
+/*                and                    */
+/*    Custom backup and restore support  */
+/*    Are part of PhilZ Touch Recovery   */
+/*****************************************/
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -364,12 +375,13 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 }
 
 
-/***************************************/
-/*  Custom Backup and Restore Support  */
-/*      code written by PhilZ @xda     */
-/*       for PhilZ Touch Recovery      */
-/*  Do not remove this credits header  */
-/***************************************/
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/*                                       */
+/*   Custom Backup and Restore Support   */
+/*       code written by PhilZ @xda      */
+/*        for PhilZ Touch Recovery       */
+/*****************************************/
 
 //these general variables are needed to not break backup and restore by external script
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1, backup_preload = 1;
@@ -472,13 +484,14 @@ int custom_restore_raw_handler(const char* backup_path, const char* root)
 //-------- end custom backup and restore functions
 
 
-/***********************************/
-/* TWRP backup and restore support */
-/* Original CWM port by PhilZ@xda  */
-/* Original TWRP code by Dees_Troy */
-/*       (dees_troy at yahoo)      */
-/*     Keep this credits header    */
-/***********************************/
+/*****************************************/
+/*   DO NOT REMOVE THIS CREDITS HEARDER  */
+/*                                       */
+/*    TWRP backup and restore support    */
+/*    Original CWM port by PhilZ@xda     */
+/*    Original TWRP code by Dees_Troy    */
+/*          (dees_troy at yahoo)         */
+/*****************************************/
 
 #define MAX_ARCHIVE_SIZE 4294967296LLU
 int Makelist_File_Count;

@@ -41,8 +41,8 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
-//#include "adb_install.h"
 //removed to move sideload from main menu to install zip submenu
+//#include "adb_install.h"
 #include "minadbd/adb.h"
 
 #include "extendedcommands.h"
@@ -413,7 +413,7 @@ copy_sideloaded_package(const char* original_path) {
 
 static char**
 prepend_title(char** headers) {
-    char* title[] = { EXPAND(RECOVERY_VERSION),
+    char* title[] = { EXPAND(RECOVERY_MOD_VERSION),
                       NULL };
 
     // count the number of lines in our title, plus the
@@ -884,11 +884,12 @@ main(int argc, char **argv) {
 
     device_ui_init(&ui_parameters);
     ui_init();
-    ui_print(EXPAND(RECOVERY_VERSION)"\n");
-#ifdef PHILZ_TOUCH_RECOVERY
-    ui_print("CWM Base version: "EXPAND(CWM_BASE_VERSION)"\n");
-    LOGI("Build version: "EXPAND(PHILZ_BUILD)" - "EXPAND(TARGET_DEVICE)"\n");
-#endif
+    //ui_print(EXPAND(RECOVERY_VERSION)"\n");
+
+    ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
+    ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
+    LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_NAME) "\n");
+
     load_volume_table();
     process_volumes();
     LOGI("Processing arguments.\n");
@@ -917,6 +918,17 @@ main(int argc, char **argv) {
             LOGE("Invalid command argument\n");
             continue;
         }
+    }
+
+    struct selinux_opt seopts[] = {
+      { SELABEL_OPT_PATH, "/file_contexts" }
+    };
+
+    sehandle = selabel_open(SELABEL_CTX_FILE, seopts, 1);
+
+    if (!sehandle) {
+        fprintf(stderr, "Warning: No file_contexts\n");
+        // ui_print("Warning:  No file_contexts\n");
     }
 
     LOGI("device_recovery_start()\n");

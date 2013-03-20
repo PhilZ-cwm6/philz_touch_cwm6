@@ -23,6 +23,8 @@
 #ifdef TARGET_DEVICE_I9300
 // ums
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
 
 
@@ -30,6 +32,8 @@
 #ifdef TARGET_DEVICE_I9100
 // ums
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
 
 
@@ -37,6 +41,8 @@
 #ifdef TARGET_DEVICE_N7000
 // ums
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
 
 
@@ -44,10 +50,31 @@
 #ifdef TARGET_DEVICE_N7100
 // ums
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
 
 
 // p5100
 #ifdef TARGET_DEVICE_P5100
 // ums
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#endif
+
+// p3100
+#ifdef TARGET_DEVICE_P3100
+// ums
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#endif
+
+// n8000
+#ifdef TARGET_DEVICE_N8000
+// ums
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+// brightness
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
