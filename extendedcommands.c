@@ -89,12 +89,14 @@ void write_string_to_file(const char* filename, const char* string) {
     fclose(file);
 }
 
-/* discarded cm-10.1 commit, useless garbage
 void write_recovery_version() {
-    write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION));
-    write_string_to_file("/sdcard/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION));
+    struct stat st;
+    if (0 == lstat("/sdcard/0/clockworkmod", &st))
+        write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    if (volume_for_path("/emmc") != NULL)
+        write_string_to_file("/emmc/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    else write_string_to_file("/sdcard/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
 }
-*/
 
 void
 toggle_signature_check()

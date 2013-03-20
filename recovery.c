@@ -921,6 +921,7 @@ main(int argc, char **argv) {
 
     LOGI("device_recovery_start()\n");
     device_recovery_start();
+    write_recovery_version();
 
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {
