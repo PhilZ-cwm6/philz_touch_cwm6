@@ -91,7 +91,7 @@ void write_string_to_file(const char* filename, const char* string) {
 
 void write_recovery_version() {
     struct stat st;
-    if (0 == lstat("/sdcard/0/clockworkmod", &st))
+    if (0 == lstat("/sdcard/0", &st))
         write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     if (volume_for_path("/emmc") != NULL)
         write_string_to_file("/emmc/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
@@ -1586,7 +1586,7 @@ int file_found(const char* filename) {
 int directory_found(const char* dir) {
     struct stat s;
     ensure_path_mounted(dir);
-    stat(dir, &s);
+    lstat(dir, &s);
     if (S_ISDIR(s.st_mode))
         return 1;
 
