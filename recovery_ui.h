@@ -113,6 +113,8 @@ extern int ui_handle_key(int key, int visible);
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
 #endif
 
+#include "device_config.h"
+
 // clean reboot to main system
 void reboot_main_system();
 

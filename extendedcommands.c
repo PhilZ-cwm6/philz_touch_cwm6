@@ -41,7 +41,6 @@
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
 #include "adb_install.h" //since we moved sideload function from main menu to install zip submenu
-#include "device_config.h" //for ums lun files if needed, or more to define...
 
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
@@ -78,7 +77,7 @@ get_filtered_menu_selection(char** headers, char** items, int menu_only, int ini
 void write_string_to_file(const char* filename, const char* string) {
     ensure_path_mounted(filename);
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p $(dirname %s); chmod 0755 $(dirname %s)", filename, filename);
+    sprintf(tmp, "mkdir -p $(dirname %s)", filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
@@ -3496,6 +3495,7 @@ void create_fstab()
     write_fstab_root("/system", file);
     write_fstab_root("/sdcard", file);
     write_fstab_root("/sd-ext", file);
+    write_fstab_root("/external_sd", file);
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }

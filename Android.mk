@@ -56,12 +56,17 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 4
-PHILZ_BUILD := 4.90.8
+PHILZ_BUILD := 4.91.2
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
 #LOCAL_CFLAGS += -DBUILD_DATE="\"`date`\""
 
+#debug and calibration logging for touch code
+#RECOVERY_TOUCH_DEBUG := true
+ifeq ($(RECOVERY_TOUCH_DEBUG), true)
+LOCAL_CFLAGS += -DRECOVERY_TOUCH_DEBUG
+endif
 
 ##############################################################
 #device specific config                                      #
