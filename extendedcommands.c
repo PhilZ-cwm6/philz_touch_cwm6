@@ -1648,7 +1648,7 @@ void wipe_data_menu() {
     };
 
     char* list[] = { "Wipe Data/Factory Reset",
-                    "Wipe Data-Cache-System-Preload",
+                    "Clean to Install a New ROM",
                     NULL
     };
 
@@ -1660,12 +1660,14 @@ void wipe_data_menu() {
             break;
         case 1:
             //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, /sdcard/.android_secure
-            if (confirm_selection("Confirm wipe data & system?", "Yes, I will install a new ROM!")) {
+            if (confirm_selection("Wipe data, system +/- preload?", "Yes, I will install a new ROM!")) {
                 wipe_data(0);
                 ui_print("-- Wiping system...\n");
                 erase_volume("/system");
-                ui_print("-- Wiping preload...\n");
-                erase_volume("/preload");
+                if (volume_for_path("/preload") != NULL) {
+                    ui_print("-- Wiping preload...\n");
+                    erase_volume("/preload");
+                }
                 ui_print("Now flash a new ROM!\n");
             }
             break;
@@ -2263,6 +2265,8 @@ static void delete_custom_backups(const char* backup_path)
     {
         case 0:
             {
+                if (ext_sd == NULL)
+                    break;
                 char tmp[PATH_MAX];
                 sprintf(tmp, "%s/%s/", ext_sd, backup_path);
                 choose_delete_folder(tmp);
@@ -2399,6 +2403,8 @@ static void custom_backup_handler() {
     {
         case 0:
             {
+                if (ext_sd == NULL)
+                    break;
                 if (ensure_path_mounted(ext_sd) == 0) {
                     char backup_path[PATH_MAX] = "";
                     get_custom_backup_path(ext_sd, backup_path);
@@ -2408,8 +2414,8 @@ static void custom_backup_handler() {
                 } else {
                     ui_print("Couldn't mount %s\n", ext_sd);
                 }
-                break;
             }
+            break;
         case 1:
             {
                 if (ensure_path_mounted(int_sd) == 0) {
@@ -2421,8 +2427,8 @@ static void custom_backup_handler() {
                 } else {
                     ui_print("Couldn't mount %s\n", int_sd);
                 }
-                break;
             }
+            break;
     }
 }
 
@@ -2437,13 +2443,17 @@ static void custom_restore_handler(const char* backup_path) {
                                 NULL
     };
 
-    struct stat file_img;
+    struct stat s;
     char* file = NULL;
     static char* confirm_install = "Restore from this backup?";
-    static char tmp[PATH_MAX];
+    char tmp[PATH_MAX];
     char *backup_source;
 
     if (backup_efs == RESTORE_EFS_IMG) {
+        if (volume_for_path("/efs") == NULL) {
+            LOGE("No /efs partition to flash\n");
+            return;
+        }
         file = choose_file_menu(backup_path, ".img", headers);
         if (file == NULL) {
             //either no valid files found or we selected no files by pressing back menu
@@ -2459,6 +2469,10 @@ static void custom_restore_handler(const char* backup_path) {
         if (confirm_selection(confirm_install, tmp))
             custom_restore_raw_handler(file, "/efs");
     } else if (backup_efs == RESTORE_EFS_TAR) {
+        if (volume_for_path("/efs") == NULL) {
+            LOGE("No /efs partition to flash\n");
+            return;
+        }
         file = choose_file_menu(backup_path, NULL, headers);
         if (file == NULL) {
             //either no valid files found or we selected no files by pressing back menu
@@ -2469,7 +2483,7 @@ static void custom_restore_handler(const char* backup_path) {
 
         //ensure there is no efs.img file in same folder (as nandroid_restore_partition_extended will force it to be restored)
         sprintf(tmp, "%s/efs.img", file);
-        if (0 == stat(tmp, &file_img)) {
+        if (0 == stat(tmp, &s)) {
             ui_print("efs.img file detected in %s!\n", file);
             ui_print("Either select efs.img to restore it,\n");
             ui_print("or remove it to restore nandroid source.\n");
@@ -2492,10 +2506,20 @@ static void custom_restore_handler(const char* backup_path) {
 
         //restore modem.bin raw image
         backup_source = basename(file);
-        ui_print("%s will be flashed to /modem!\n", backup_source);
-        sprintf(tmp, "Yes - Restore %s", backup_source);
-        if (confirm_selection(confirm_install, tmp))
-            custom_restore_raw_handler(file, "/modem");
+        sprintf(tmp, "/modem");
+        Volume *vol = volume_for_path(tmp);
+        if (vol == NULL || 0 != stat(vol->device, &s)) {
+            sprintf(tmp, "/radio");
+            vol = volume_for_path(tmp);
+        }
+        if (vol != NULL && 0 == stat(vol->device, &s)) {
+            ui_print("%s will be flashed to %s!\n", backup_source, tmp);
+            static char confirm[PATH_MAX];
+            sprintf(confirm, "Yes - Restore %s", backup_source);
+            if (confirm_selection(confirm_install, confirm))
+                custom_restore_raw_handler(file, tmp);
+        } else
+            LOGE("no /modem or /radio partition to flash\n");
     } else {
         //process backup job
         file = choose_file_menu(backup_path, "show_all_files", headers);
@@ -2542,6 +2566,8 @@ static void browse_backup_folders(const char* backup_path)
     {
         case 0:
             {
+                if (ext_sd == NULL)
+                    break;
                 char tmp[PATH_MAX];
                 sprintf(tmp, "%s/%s/", ext_sd, backup_path);
                 if (twrp_backup_mode)
@@ -2666,7 +2692,9 @@ static void custom_restore_menu(const char* backup_path) {
         if (backup_system) ui_format_gui_menu(item_system, "Restore system", "(x)");
         else ui_format_gui_menu(item_system, "Restore system", "( )");
 
-        if (backup_preload) ui_format_gui_menu(item_preload, "Restore preload", "(x)");
+        if (volume_for_path("/preload") == NULL)
+            ui_format_gui_menu(item_preload, "Restore preload", "N/A");
+        else if (backup_preload) ui_format_gui_menu(item_preload, "Restore preload", "(x)");
         else ui_format_gui_menu(item_preload, "Restore preload", "( )");
 
         if (backup_data) ui_format_gui_menu(item_data, "Restore data", "(x)");
@@ -2684,13 +2712,17 @@ static void custom_restore_menu(const char* backup_path) {
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Restore sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Restore sd-ext", "( )");
 
-        if (backup_modem == RAW_IMG_FILE)
+        if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+            ui_format_gui_menu(item_modem, "Restore modem", "N/A");
+        else if (backup_modem == RAW_IMG_FILE)
             ui_format_gui_menu(item_modem, "Restore modem [.img]", "(x)");
         else if (backup_modem == RAW_BIN_FILE)
             ui_format_gui_menu(item_modem, "Restore modem [.bin]", "(x)");
         else ui_format_gui_menu(item_modem, "Restore modem", "( )");
 
-        if (backup_efs == RESTORE_EFS_IMG)
+        if (volume_for_path("/efs") == NULL)
+            ui_format_gui_menu(item_efs, "Restore efs", "N/A");
+        else if (backup_efs == RESTORE_EFS_IMG)
             ui_format_gui_menu(item_efs, "Restore efs [.img]", "(x)");
         else if (backup_efs == RESTORE_EFS_TAR)
             ui_format_gui_menu(item_efs, "Restore efs [.tar]", "(x)");
@@ -2726,7 +2758,8 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_system ^= 1;
                 break;
             case 3:
-                if (twrp_backup_mode) backup_preload = 0;
+                if (twrp_backup_mode || volume_for_path("/preload") == NULL)
+                    backup_preload = 0;
                 else backup_preload ^= 1;
                 break;
             case 4:
@@ -2744,7 +2777,9 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_sdext ^= 1;
                 break;
             case 8:
-                if (custom_items || twrp_backup_mode) {
+                if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+                    backup_modem = 0;
+                else if (custom_items || twrp_backup_mode) {
                     backup_modem++;
                     if (backup_modem > 2)
                         backup_modem = 0;
@@ -2753,7 +2788,9 @@ static void custom_restore_menu(const char* backup_path) {
                 }
                 break;
             case 9:
-                if (custom_items || twrp_backup_mode) {
+                if (volume_for_path("/efs") == NULL)
+                    backup_efs = 0;
+                else if (custom_items || twrp_backup_mode) {
                     backup_efs++;
                     if (backup_efs > 2)
                         backup_efs = 0;
@@ -2810,7 +2847,7 @@ static void custom_backup_menu() {
     };
 
     char tmp[PATH_MAX];
-    if (0 == get_partition_device("wimax", tmp)) {
+    if (volume_for_path("/wimax") != NULL) {
         // show wimax backup option
         list[12] = "show wimax menu";
     }
@@ -2826,7 +2863,9 @@ static void custom_backup_menu() {
         if (backup_system) ui_format_gui_menu(item_system, "Backup system", "(x)");
         else ui_format_gui_menu(item_system, "Backup system", "( )");
 
-        if (backup_preload) ui_format_gui_menu(item_preload, "Backup preload", "(x)");
+        if (volume_for_path("/preload") == NULL)
+            ui_format_gui_menu(item_preload, "Backup preload", "N/A");
+        else if (backup_preload) ui_format_gui_menu(item_preload, "Backup preload", "(x)");
         else ui_format_gui_menu(item_preload, "Backup preload", "( )");
 
         if (backup_data) ui_format_gui_menu(item_data, "Backup data", "(x)");
@@ -2844,10 +2883,14 @@ static void custom_backup_menu() {
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Backup sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Backup sd-ext", "( )");
 
-        if (backup_modem) ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
+        if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+            ui_format_gui_menu(item_modem, "Backup modem", "N/A");
+        else if (backup_modem) ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
         else ui_format_gui_menu(item_modem, "Backup modem", "( )");
 
-        if (backup_efs && twrp_backup_mode)
+        if (volume_for_path("/efs") == NULL)
+            ui_format_gui_menu(item_efs, "Backup efs", "N/A");
+        else if (backup_efs && twrp_backup_mode)
             ui_format_gui_menu(item_efs, "Backup efs", "(x)");
         else if (backup_efs && !twrp_backup_mode)
             ui_format_gui_menu(item_efs, "Backup efs [img&tar]", "(x)");
@@ -2878,7 +2921,8 @@ static void custom_backup_menu() {
                 backup_system ^= 1;
                 break;
             case 3:
-                if (twrp_backup_mode) backup_preload = 0;
+                if (twrp_backup_mode || volume_for_path("/preload") == NULL)
+                    backup_preload = 0;
                 else backup_preload ^= 1;
                 break;
             case 4:
@@ -2896,10 +2940,14 @@ static void custom_backup_menu() {
                 backup_sdext ^= 1;
                 break;
             case 8:
-                backup_modem ^= 1;
+                if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+                    backup_modem = 0;
+                else backup_modem ^= 1;
                 break;
             case 9:
-                backup_efs ^= 1;
+                if (volume_for_path("/efs") == NULL)
+                    backup_efs = 0;
+                else backup_efs ^= 1;
                 break;
             case 10:
                 validate_backup_job(NULL);
@@ -3173,14 +3221,16 @@ void twrp_backup_handler() {
     {
         case 0:
             {
+                if (ext_sd == NULL)
+                    break;
                 if (ensure_path_mounted(ext_sd) == 0) {
                     char backup_path[PATH_MAX];
                     get_twrp_backup_path(ext_sd, backup_path);
                     twrp_backup(backup_path);
                 } else
                     ui_print("Couldn't mount %s\n", ext_sd);
-                break;
             }
+            break;
         case 1:
             {
                 if (ensure_path_mounted(int_sd) == 0) {
@@ -3189,8 +3239,8 @@ void twrp_backup_handler() {
                     twrp_backup(backup_path);
                 } else
                     ui_print("Couldn't mount %s\n", int_sd);
-                break;
             }
+            break;
     }
 }
 

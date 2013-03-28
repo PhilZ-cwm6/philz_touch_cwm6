@@ -65,3 +65,8 @@
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #endif
+
+// Nexus 4
+#ifdef TARGET_DEVICE_MAKO
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif
