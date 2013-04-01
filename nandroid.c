@@ -72,7 +72,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
 
 void ensure_directory(const char* dir) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s; chmod 775 %s;", dir, dir);
+    sprintf(tmp, "mkdir -p %s; chmod 777 %s;", dir, dir);
     __system(tmp);
 }
 

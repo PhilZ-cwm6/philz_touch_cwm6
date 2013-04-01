@@ -56,7 +56,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 4
-PHILZ_BUILD := 4.91.4
+PHILZ_BUILD := 4.91.7
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -76,7 +76,7 @@ endif
 #Galaxy S3 International
 ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_NAME := i930x
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -94,7 +94,7 @@ endif
 #Galaxy Note
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_NAME := n7000
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -103,7 +103,7 @@ endif
 #Galaxy Note 2
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
 TARGET_NAME := n710x-i317M-T889
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -112,7 +112,7 @@ endif
 #Galaxy Tab 2 P5100
 else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_NAME := p5100
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -121,7 +121,7 @@ endif
 #Galaxy Tab 2 P3100
 else ifeq ($(TARGET_PRODUCT), cm_p3100)
 TARGET_NAME := p3100
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -130,7 +130,7 @@ endif
 #Galaxy Note 10.1 N8000
 else ifeq ($(TARGET_PRODUCT), cm_n8000)
 TARGET_NAME := n8000
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N8000
 ifdef PHILZ_TOUCH_RECOVERY
 BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
@@ -312,4 +312,5 @@ include $(commands_recovery_local_path)/updater/Android.mk
 include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/pigz/Android.mk
+include $(commands_recovery_local_path)/fb2png/Android.mk
 commands_recovery_local_path :=

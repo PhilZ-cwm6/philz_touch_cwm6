@@ -1560,7 +1560,8 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
             line++;
         }
         fclose(f);
-    }
+    } else
+        LOGE("Cannot open /tmp/custom_tail.log\n");
 }
 
 //delete a file
