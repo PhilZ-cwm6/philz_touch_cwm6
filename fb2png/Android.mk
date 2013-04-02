@@ -41,9 +41,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libfb2png
 LOCAL_SRC_FILES := \
-	fb2png.c \
-	img_process.c \
-	fb.c
+    fb2png.c \
+    img_process.c \
+    fb.c
 
 LOCAL_C_INCLUDES +=\
     external/libpng\

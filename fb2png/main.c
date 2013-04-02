@@ -18,6 +18,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <stdio.h>
+#include <limits.h>
 #include <stdlib.h>
 #include "fb2png.h"
 
@@ -29,26 +30,28 @@
 
 int main(int argc, char *argv[])
 {
-    char fn[128];
+    char fn[PATH_MAX];
+    int ret;
 
-    if (argc == 2) {
-        //if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
-        if (argv[1][0] == '-') {
-            printf(
-                "Usage: fb2png [path/to/output.png]\n"
-                "    The default output path is /data/local/fbdump.png\n"
-                );
-            exit(0);
-        } else {
-            sprintf(fn, "%s", argv[1]);
+    if (argc == 2 && argv[1][0] != '-') {
+        if (strlen(argv[1]) >= PATH_MAX) {
+            printf("Output path is too long!\n");
+            exit(-1);
         }
-    } else {
+        sprintf(fn, "%s", argv[1]);
+    } else if (argc == 1) {
         sprintf(fn, "%s", DEFAULT_SAVE_PATH);
+    } else {
+        //if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
+        printf(
+            "Usage: fb2png [path/to/output.png]\n"
+            "    The default output path is /data/local/fbdump.png\n"
+            );
+        exit(0);
     }
 
-    fb2png(fn);
+    if (0 == (ret = fb2png(fn)))
+        printf("Saved image to %s\n", fn);
 
-    printf("Saved to %s\n", fn);
-
-    exit(0);
+    exit(ret);
 }
