@@ -44,6 +44,10 @@ int main(int argc, char *argv[])
     } else {
         //if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
         printf(
+            "Android Screenshooter - fb2png\n"
+            "Author: Kyan He <kyan.ql.he@gmail.com>\n"
+            "Modified by  Phil3759 & McKael @xda\n"
+            "Base version 0.0.2 ---> v0.0.5  <2013>\n"
             "Usage: fb2png [path/to/output.png]\n"
             "    The default output path is /data/local/fbdump.png\n"
             );

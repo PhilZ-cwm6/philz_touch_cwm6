@@ -1575,7 +1575,8 @@ void delete_a_file(const char* filename) {
 // check if file or folder exists
 int file_found(const char* filename) {
     struct stat s;
-    ensure_path_mounted(filename); // this will error on some ramdisk path (no valid volume), but stat will return valid file if it exists
+    ensure_path_mounted(filename);
+    // this will error on some ramdisk path (no valid volume), but stat will return valid file if it exists
     if (0 == stat(filename, &s))
         return 1;
 
@@ -1595,51 +1596,51 @@ int directory_found(const char* dir) {
 
 // get file size (by by Dees_Troy - TWRP)
 unsigned long Get_File_Size(const char* Path) {
-	struct stat st;
-	if (stat(Path, &st) != 0)
-		return 0;
-	return st.st_size;
+    struct stat st;
+    if (stat(Path, &st) != 0)
+        return 0;
+    return st.st_size;
 }
 
 // get folder size (by by Dees_Troy - TWRP)
 unsigned long long Get_Folder_Size(const char* Path) {
-	DIR* d;
-	struct dirent* de;
-	struct stat st;
-	char path2[1024], filename[1024];
-	unsigned long long dusize = 0;
+    DIR* d;
+    struct dirent* de;
+    struct stat st;
+    char path2[1024], filename[1024];
+    unsigned long long dusize = 0;
 
-	// Make a copy of path in case the data in the pointer gets overwritten later
-	strcpy(path2, Path);
+    // Make a copy of path in case the data in the pointer gets overwritten later
+    strcpy(path2, Path);
 
-	d = opendir(path2);
-	if (d == NULL)
-	{
-		LOGE("error opening '%s'\n", path2);
-		return 0;
-	}
+    d = opendir(path2);
+    if (d == NULL)
+    {
+        LOGE("error opening '%s'\n", path2);
+        return 0;
+    }
 
-	while ((de = readdir(d)) != NULL)
-	{
-		if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
-		{
-			strcpy(filename, path2);
-			strcat(filename, "/");
-			strcat(filename, de->d_name);
-			dusize += Get_Folder_Size(filename);
-		}
-		else if (de->d_type == DT_REG)
-		{
-			strcpy(filename, path2);
-			strcat(filename, "/");
-			strcat(filename, de->d_name);
-			stat(filename, &st);
-			dusize += (unsigned long long)(st.st_size);
-		}
-	}
-	closedir(d);
+    while ((de = readdir(d)) != NULL)
+    {
+        if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
+        {
+            strcpy(filename, path2);
+            strcat(filename, "/");
+            strcat(filename, de->d_name);
+            dusize += Get_Folder_Size(filename);
+        }
+        else if (de->d_type == DT_REG)
+        {
+            strcpy(filename, path2);
+            strcat(filename, "/");
+            strcat(filename, de->d_name);
+            stat(filename, &st);
+            dusize += (unsigned long long)(st.st_size);
+        }
+    }
+    closedir(d);
 
-	return dusize;
+    return dusize;
 }
 
 // start wipe data and system options and menu
@@ -1734,8 +1735,8 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     android_secure_ext = -1; //disable
 
     ui_print("Setting backup options:\n");
-	char value1[SCRIPT_COMMAND_SIZE];
-	int line_len, i;
+    char value1[SCRIPT_COMMAND_SIZE];
+    int line_len, i;
     strcpy(value1, options);
     line_len = strlen(options);
     for (i=0; i<line_len; i++) {
@@ -3039,20 +3040,20 @@ int gen_twrp_md5sum(const char* backup_path) {
 
 // Device ID functions
 static void sanitize_device_id(char *device_id) {
-	const char* whitelist ="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._";
-	char str[PROPERTY_VALUE_MAX];
-	char* c = str;
+    const char* whitelist ="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._";
+    char str[PROPERTY_VALUE_MAX];
+    char* c = str;
 
-	strcpy(str, device_id);
+    strcpy(str, device_id);
     char tmp[PROPERTY_VALUE_MAX];
-	memset(tmp, 0, sizeof(tmp));
-	while (*c) {
-		if (strchr(whitelist, *c))
-			strncat(tmp, c, 1);
-		c++;
-	}
+    memset(tmp, 0, sizeof(tmp));
+    while (*c) {
+        if (strchr(whitelist, *c))
+            strncat(tmp, c, 1);
+        c++;
+    }
     strcpy(device_id, tmp);
-	return;
+    return;
 }
 
 #define CMDLINE_SERIALNO        "androidboot.serialno="
@@ -3078,17 +3079,17 @@ static void get_device_id(char *device_id) {
     }
 
     // device_id not found, looking elsewhere
-	FILE *fp;
-	char line[2048];
-	char hardware_id[32];
-	char* token;
+    FILE *fp;
+    char line[2048];
+    char hardware_id[32];
+    char* token;
 
     // Assign a blank device_id to start with
     device_id[0] = 0;
 
     // Try the cmdline to see if the serial number was supplied
-	fp = fopen("/proc/cmdline", "rt");
-	if (fp != NULL)
+    fp = fopen("/proc/cmdline", "rt");
+    if (fp != NULL)
     {
         // First step, read the line. For cmdline, it's one long line
         LOGI("Checking cmdline for serialno...\n");
@@ -3108,7 +3109,7 @@ static void get_device_id(char *device_id) {
             {
                 // We found the serial number!
                 strcpy(device_id, token + CMDLINE_SERIALNO_LEN);
-				sanitize_device_id(device_id);
+                sanitize_device_id(device_id);
                 LOGI("Using serialno='%s'\n", device_id);
                 return;
             }
@@ -3116,60 +3117,60 @@ static void get_device_id(char *device_id) {
         }
     }
 
-	// Now we'll try cpuinfo for a serial number (we shouldn't reach here as it gives wired output)
-	fp = fopen("/proc/cpuinfo", "rt");
-	if (fp != NULL)
+    // Now we'll try cpuinfo for a serial number (we shouldn't reach here as it gives wired output)
+    fp = fopen("/proc/cpuinfo", "rt");
+    if (fp != NULL)
     {
         LOGI("Checking cpuinfo...\n");
-		while (fgets(line, sizeof(line), fp) != NULL) { // First step, read the line.
-			if (memcmp(line, CPUINFO_SERIALNO, CPUINFO_SERIALNO_LEN) == 0)  // check the beginning of the line for "Serial"
-			{
-				// We found the serial number!
-				token = line + CPUINFO_SERIALNO_LEN; // skip past "Serial"
-				while ((*token > 0 && *token <= 32 ) || *token == ':') token++; // skip over all spaces and the colon
-				if (*token != 0) {
+        while (fgets(line, sizeof(line), fp) != NULL) { // First step, read the line.
+            if (memcmp(line, CPUINFO_SERIALNO, CPUINFO_SERIALNO_LEN) == 0)  // check the beginning of the line for "Serial"
+            {
+                // We found the serial number!
+                token = line + CPUINFO_SERIALNO_LEN; // skip past "Serial"
+                while ((*token > 0 && *token <= 32 ) || *token == ':') token++; // skip over all spaces and the colon
+                if (*token != 0) {
                     token[30] = 0;
-					if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
+                    if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
                         char tmp[PROPERTY_VALUE_MAX];
-						memset(tmp, 0, sizeof(tmp));
-						strncpy(tmp, token, strlen(token) - 1);
+                        memset(tmp, 0, sizeof(tmp));
+                        strncpy(tmp, token, strlen(token) - 1);
                         strcpy(device_id, tmp);
-					} else {
-						strcpy(device_id, token);
-					}
-					fclose(fp);
-					sanitize_device_id(device_id);
+                    } else {
+                        strcpy(device_id, token);
+                    }
+                    fclose(fp);
+                    sanitize_device_id(device_id);
                     LOGI("=> Using cpuinfo serialno: '%s'\n", device_id);
-					return;
-				}
-			} else if (memcmp(line, CPUINFO_HARDWARE, CPUINFO_HARDWARE_LEN) == 0) {// We're also going to look for the hardware line in cpuinfo and save it for later in case we don't find the device ID
-				// We found the hardware ID
-				token = line + CPUINFO_HARDWARE_LEN; // skip past "Hardware"
-				while ((*token > 0 && *token <= 32 ) || *token == ':')  token++; // skip over all spaces and the colon
-				if (*token != 0) {
+                    return;
+                }
+            } else if (memcmp(line, CPUINFO_HARDWARE, CPUINFO_HARDWARE_LEN) == 0) {// We're also going to look for the hardware line in cpuinfo and save it for later in case we don't find the device ID
+                // We found the hardware ID
+                token = line + CPUINFO_HARDWARE_LEN; // skip past "Hardware"
+                while ((*token > 0 && *token <= 32 ) || *token == ':')  token++; // skip over all spaces and the colon
+                if (*token != 0) {
                     token[30] = 0;
-					if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
+                    if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
                         memset(hardware_id, 0, sizeof(hardware_id));
-						strncpy(hardware_id, token, strlen(token) - 1);
-					} else {
-						strcpy(hardware_id, token);
-					}
-					LOGI("=> hardware id from cpuinfo: '%s'\n", hardware_id);
-				}
-			}
-		}
-		fclose(fp);
+                        strncpy(hardware_id, token, strlen(token) - 1);
+                    } else {
+                        strcpy(hardware_id, token);
+                    }
+                    LOGI("=> hardware id from cpuinfo: '%s'\n", hardware_id);
+                }
+            }
+        }
+        fclose(fp);
     }
 
-	if (hardware_id[0] != 0) {
-		LOGW("\nusing hardware id for device id: '%s'\n", hardware_id);
-		strcpy(device_id, hardware_id);
-		sanitize_device_id(device_id);
-		return;
-	}
+    if (hardware_id[0] != 0) {
+        LOGW("\nusing hardware id for device id: '%s'\n", hardware_id);
+        strcpy(device_id, hardware_id);
+        sanitize_device_id(device_id);
+        return;
+    }
 
     strcpy(device_id, "serialno");
-	LOGE("=> device id not found, using '%s'\n", device_id);
+    LOGE("=> device id not found, using '%s'\n", device_id);
     return;
 }
 // End of Device ID functions

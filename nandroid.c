@@ -529,96 +529,96 @@ static void compute_twrp_backup_stats(int index)
 }
 
 int Add_Item(const char* Item_Name) {
-	char actual_filename[255];
-	FILE *fp;
+    char actual_filename[255];
+    FILE *fp;
 
-	if (Makelist_File_Count > 999) {
-		LOGE("File count is too large!\n");
-		return -1;
-	}
+    if (Makelist_File_Count > 999) {
+        LOGE("File count is too large!\n");
+        return -1;
+    }
 
-	sprintf(actual_filename, "/tmp/list/filelist%03i", Makelist_File_Count);
+    sprintf(actual_filename, "/tmp/list/filelist%03i", Makelist_File_Count);
 
-	fp = fopen(actual_filename, "a");
-	if (fp == NULL) {
-		LOGE("Failed to open '%s'\n", actual_filename);
-		return -1;
-	}
-	if (fprintf(fp, "%s\n", Item_Name) < 0) {
-		LOGE("Failed to write to '%s'\n", actual_filename);
-		return -1;
-	}
-	if (fclose(fp) != 0) {
-		LOGE("Failed to close '%s'\n", actual_filename);
-		return -1;
-	}
-	return 0;
+    fp = fopen(actual_filename, "a");
+    if (fp == NULL) {
+        LOGE("Failed to open '%s'\n", actual_filename);
+        return -1;
+    }
+    if (fprintf(fp, "%s\n", Item_Name) < 0) {
+        LOGE("Failed to write to '%s'\n", actual_filename);
+        return -1;
+    }
+    if (fclose(fp) != 0) {
+        LOGE("Failed to close '%s'\n", actual_filename);
+        return -1;
+    }
+    return 0;
 }
 
 int Generate_File_Lists(const char* Path) {
-	DIR* d;
-	struct dirent* de;
-	struct stat st;
-	char FileName[PATH_MAX];
+    DIR* d;
+    struct dirent* de;
+    struct stat st;
+    char FileName[PATH_MAX];
 
-	if (is_data_media() && strlen(Path) >= 11 && strncmp(Path, "/data/media", 11) == 0)
-		return 0; // Skip /data/media
+    if (is_data_media() && strlen(Path) >= 11 && strncmp(Path, "/data/media", 11) == 0)
+        return 0; // Skip /data/media
 
-	d = opendir(Path);
-	if (d == NULL)
-	{
-		LOGE("error opening '%s'\n", Path);
-		return -1;
-	}
+    d = opendir(Path);
+    if (d == NULL)
+    {
+        LOGE("error opening '%s'\n", Path);
+        return -1;
+    }
 
-	while ((de = readdir(d)) != NULL)
-	{
-		sprintf(FileName, "%s/", Path);
-		strcat(FileName, de->d_name);
-		if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
-		{
-			unsigned long long folder_size = Get_Folder_Size(FileName);
-			if (Makelist_Current_Size + folder_size > MAX_ARCHIVE_SIZE) {
-				if (Generate_File_Lists(FileName) < 0)
-					return -1;
-			} else {
-				strcat(FileName, "/");
-				if (Add_Item(FileName) < 0)
-					return -1;
-				Makelist_Current_Size += folder_size;
-			}
-		}
-		else if (de->d_type == DT_REG || de->d_type == DT_LNK)
-		{
-			stat(FileName, &st);
+    while ((de = readdir(d)) != NULL)
+    {
+        sprintf(FileName, "%s/", Path);
+        strcat(FileName, de->d_name);
+        if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
+        {
+            unsigned long long folder_size = Get_Folder_Size(FileName);
+            if (Makelist_Current_Size + folder_size > MAX_ARCHIVE_SIZE) {
+                if (Generate_File_Lists(FileName) < 0)
+                    return -1;
+            } else {
+                strcat(FileName, "/");
+                if (Add_Item(FileName) < 0)
+                    return -1;
+                Makelist_Current_Size += folder_size;
+            }
+        }
+        else if (de->d_type == DT_REG || de->d_type == DT_LNK)
+        {
+            stat(FileName, &st);
 
-			if (Makelist_Current_Size != 0 && Makelist_Current_Size + st.st_size > MAX_ARCHIVE_SIZE) {
-				Makelist_File_Count++;
-				Makelist_Current_Size = 0;
-			}
-			if (Add_Item(FileName) < 0)
-				return -1;
-			Makelist_Current_Size += st.st_size;
-			if (st.st_size > 2147483648LL)
-				LOGE("There is a file that is larger than 2GB in the file system\n'%s'\nThis file may not restore properly\n", FileName);
-		}
-	}
-	closedir(d);
-	return 0;
+            if (Makelist_Current_Size != 0 && Makelist_Current_Size + st.st_size > MAX_ARCHIVE_SIZE) {
+                Makelist_File_Count++;
+                Makelist_Current_Size = 0;
+            }
+            if (Add_Item(FileName) < 0)
+                return -1;
+            Makelist_Current_Size += st.st_size;
+            if (st.st_size > 2147483648LL)
+                LOGE("There is a file that is larger than 2GB in the file system\n'%s'\nThis file may not restore properly\n", FileName);
+        }
+    }
+    closedir(d);
+    return 0;
 }
 
 int Make_File_List(const char* backup_path)
 {
-	Makelist_File_Count = 0;
-	Makelist_Current_Size = 0;
-	__system("cd /tmp && rm -rf list");
-	__system("cd /tmp && mkdir list");
-	if (Generate_File_Lists(backup_path) < 0) {
-		LOGE("Error generating file list\n");
-		return -1;
-	}
-	ui_print("Done, generated %i file(s).\n", (Makelist_File_Count + 1));
-	return (Makelist_File_Count + 1);
+    Makelist_File_Count = 0;
+    Makelist_Current_Size = 0;
+    __system("cd /tmp && rm -rf list");
+    __system("cd /tmp && mkdir list");
+    if (Generate_File_Lists(backup_path) < 0) {
+        LOGE("Error generating file list\n");
+        return -1;
+    }
+    ui_print("Done, generated %i file(s).\n", (Makelist_File_Count + 1));
+    return (Makelist_File_Count + 1);
 }
 
 int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
@@ -1502,7 +1502,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
             return ret;
     }
 
-    struct stat s;
+    struct statfs s;
     Volume *vol = volume_for_path("/wimax");
     if (restore_wimax && vol != NULL && 0 == stat(vol->device, &s))
     {

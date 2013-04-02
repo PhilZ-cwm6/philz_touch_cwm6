@@ -70,3 +70,4 @@
 #ifdef TARGET_DEVICE_MAKO
 #define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
 #endif
+

@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/vfs.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mounts.h"
@@ -395,6 +396,15 @@ int format_volume(const char* volume) {
     if (ensure_path_unmounted(volume) != 0) {
         LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
         return -1;
+    }
+
+    // silent failure to format non existing sd-ext when defined in recovery.fstab
+    if (strcmp(volume, "/sd-ext") == 0) {
+        struct statfs s;
+        if (0 != stat(v->device, &s)) {
+            LOGI("Skipping format of sd-ext\n");
+            return -1;
+        }
     }
 
     if (strcmp(v->fs_type, "yaffs2") == 0 || strcmp(v->fs_type, "mtd") == 0) {
