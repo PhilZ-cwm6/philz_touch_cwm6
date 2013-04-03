@@ -52,11 +52,7 @@
 
 void nandroid_generate_timestamp_path(const char* backup_path)
 {
-#ifdef PHILZ_TOUCH_RECOVERY
-    time_t t = time(NULL) + t_zone;
-#else
     time_t t = time(NULL);
-#endif
     struct tm *tmp = localtime(&t);
     if (tmp == NULL)
     {

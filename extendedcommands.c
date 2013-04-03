@@ -1237,10 +1237,8 @@ void show_nandroid_menu()
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
                     get_rom_name(rom_name);
-                    time_t t = time(NULL) + t_zone;
-#else
-                    time_t t = time(NULL);
 #endif
+                    time_t t = time(NULL);
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
                     {
@@ -1282,10 +1280,8 @@ void show_nandroid_menu()
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
                     get_rom_name(rom_name);
-                    time_t t = time(NULL) + t_zone;
-#else
-                    time_t t = time(NULL);
 #endif
+                    time_t t = time(NULL);
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
                     {
@@ -1933,11 +1929,7 @@ int run_ors_script(const char* ors_script) {
                     ui_print("Backup folder set to '%s'\n", value2);
                     sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
                 } else {
-#ifdef PHILZ_TOUCH_RECOVERY
-                    time_t t = time(NULL) + t_zone;
-#else
                     time_t t = time(NULL);
-#endif
                     struct tm *tmp = localtime(&t);
                     if (tmp == NULL)
                     {
@@ -2358,11 +2350,8 @@ static void get_custom_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
-    time_t t = time(NULL) + t_zone;
-#else
-    time_t t = time(NULL);
 #endif
-
+    time_t t = time(NULL);
     struct tm *timeptr = localtime(&t);
     if (timeptr == NULL) {
         struct timeval tp;
@@ -3179,10 +3168,8 @@ static void get_twrp_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
-    time_t t = time(NULL) + t_zone;
-#else
-    time_t t = time(NULL);
 #endif
+    time_t t = time(NULL);
 
     char device_id[PROPERTY_VALUE_MAX];
     get_device_id(device_id);
