@@ -880,7 +880,7 @@ main(int argc, char **argv) {
     // If these fail, there's not really anywhere to complain...
     freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
     freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
-    printf("Starting recovery on %s", ctime(&start));
+    printf("Starting recovery on %s (GMT)", ctime(&start));
 
     device_ui_init(&ui_parameters);
     ui_init();
@@ -933,7 +933,6 @@ main(int argc, char **argv) {
 
     LOGI("device_recovery_start()\n");
     device_recovery_start();
-    write_recovery_version();
 
     printf("Command:");
     for (arg = 0; arg < argc; arg++) {
@@ -1016,10 +1015,12 @@ main(int argc, char **argv) {
     }
 
     setup_adbd();
+    write_recovery_version();
 
     if (status != INSTALL_SUCCESS && !is_user_initiated_recovery) {
         ui_set_show_text(1);
         ui_set_background(BACKGROUND_ICON_ERROR);
+        handle_failure(1);
     }
     if (status != INSTALL_SUCCESS || ui_text_visible()) {
         prompt_and_wait();

@@ -47,5 +47,6 @@ int is_data_media();
 void setup_data_media();
 int is_data_media_volume_path(const char* path);
 void handle_data_media_format(int handle);
+int use_migrated_storage();
 
 #endif  // RECOVERY_ROOTS_H_
