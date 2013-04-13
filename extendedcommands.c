@@ -3323,7 +3323,6 @@ void custom_backup_restore_menu() {
     };
 
     for (;;) {
-        //header function so that "Toggle menu" doesn't reset to main menu on action selected
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
