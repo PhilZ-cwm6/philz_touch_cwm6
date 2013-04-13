@@ -1846,15 +1846,10 @@ int run_ors_script(const char* ors_script) {
                 // Install zip
                 ui_print("Installing zip file '%s'\n", value);
                 ensure_path_mounted("/sdcard");
-                char *other_sd = NULL;
-                if (volume_for_path("/external_sd") != NULL) {
-                    other_sd = "/external_sd";
-                } else if (volume_for_path("/emmc") != NULL) {
-                    other_sd = "/emmc";
-                }
-                if (other_sd != NULL){
-                    ensure_path_mounted(other_sd);
-                }
+                if (volume_for_path("/external_sd") != NULL)
+                    ensure_path_mounted("/external_sd");
+                if (volume_for_path("/emmc") != NULL)
+                    ensure_path_mounted("/emmc");
                 ret_val = install_zip(value);
                 if (ret_val != INSTALL_SUCCESS) {
                     LOGE("Error installing zip file '%s'\n", value);
@@ -2084,6 +2079,18 @@ int run_ors_script(const char* ors_script) {
                 } else {
                     LOGE("No value given for cmd\n");
                 }
+            } else if (strcmp(command, "print") == 0) {
+				ui_print("%s\n", value);
+            } else if (strcmp(command, "sideload") == 0) {
+                // Install zip from sideload
+                ui_print("Waiting for sideload...\n");
+                ensure_path_mounted("/sdcard");
+                if (volume_for_path("/external_sd") != NULL)
+                    ensure_path_mounted("/external_sd");
+                if (volume_for_path("/emmc") != NULL)
+                    ensure_path_mounted("/emmc");
+                if (0 != (ret_val = apply_from_adb()))
+                    LOGE("Error installing from sideload\n");
             } else {
                 LOGE("Unrecognized script command: '%s'\n", command);
                 ret_val = 1;
