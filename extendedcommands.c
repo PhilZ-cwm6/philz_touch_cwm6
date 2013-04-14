@@ -179,9 +179,7 @@ void show_install_update_menu()
                 //write_recovery_version();
                 break;
             case ITEM_APPLY_SIDELOAD:
-                if (confirm_selection("Confirm ?", "Yes - Apply Sideload")) {
-                    apply_from_adb();
-                }
+                apply_from_adb();
                 break;
             case ITEM_CHOOSE_ZIP_INT:
                 if (volume_for_path(other_sd) != NULL)
