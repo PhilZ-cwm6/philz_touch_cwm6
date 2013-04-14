@@ -24,6 +24,7 @@
 #ifdef TARGET_DEVICE_I9300
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 
@@ -31,6 +32,7 @@
 #ifdef TARGET_DEVICE_I9100
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 
@@ -38,6 +40,7 @@
 #ifdef TARGET_DEVICE_N7000
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 
@@ -45,6 +48,7 @@
 #ifdef TARGET_DEVICE_N7100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 
@@ -52,18 +56,21 @@
 #ifdef TARGET_DEVICE_P5100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 // p3100
 #ifdef TARGET_DEVICE_P3100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 // n8000
 #ifdef TARGET_DEVICE_N8000
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
+#define BOOTLOADER_CMD_ARG "download"
 #endif
 
 // Nexus 4
@@ -71,3 +78,12 @@
 #define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
 #endif
 
+
+// defaults
+#ifndef BOOTLOADER_CMD_ARG
+#define BOOTLOADER_CMD_ARG "bootloader"
+#endif
+
+#ifndef BRIGHTNESS_SYS_FILE
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif

@@ -1399,7 +1399,7 @@ void show_advanced_menu()
 
     char item_datamedia[35];
     char* list[] = { "Reboot Recovery",
-                        "Reboot Download",
+                        "Reboot Bootloader",
                         "Wipe Dalvik Cache",
                         "Report Error",
                         "Key Test",
@@ -1445,7 +1445,7 @@ void show_advanced_menu()
                 reboot_main_system(ANDROID_RB_RESTART2, 0, "recovery");
                 break;
             case 1:
-                reboot_main_system(ANDROID_RB_RESTART2, 0, "download");
+                reboot_main_system(ANDROID_RB_RESTART2, 0, BOOTLOADER_CMD_ARG);
                 break;
             case 2:
                 if (0 != ensure_path_mounted("/data"))
