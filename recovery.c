@@ -810,14 +810,14 @@ setup_adbd() {
 }
 
 // call a clean reboot to main system
-void reboot_main_system() {
+void reboot_main_system(int cmd, int flags, char *arg) {
 #ifdef PHILZ_TOUCH_RECOVERY
     verify_settings_file();
 #endif
     verify_root_and_recovery();
     finish_recovery(NULL); // sync() in here
     ui_print("Rebooting...\n");
-    android_reboot(ANDROID_RB_RESTART, 0, 0);
+    android_reboot(cmd, flags, arg);
 }
 
 int

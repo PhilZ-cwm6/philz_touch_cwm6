@@ -1444,10 +1444,10 @@ void show_advanced_menu()
         switch (chosen_item)
         {
             case 0:
-                android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
+                reboot_main_system(ANDROID_RB_RESTART2, 0, "recovery");
                 break;
             case 1:
-                android_reboot(ANDROID_RB_RESTART2, 0, "download");
+                reboot_main_system(ANDROID_RB_RESTART2, 0, "download");
                 break;
             case 2:
                 if (0 != ensure_path_mounted("/data"))

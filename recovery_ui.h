@@ -116,7 +116,7 @@ extern int ui_handle_key(int key, int visible);
 #include "device_config.h"
 
 // clean reboot to main system
-void reboot_main_system();
+void reboot_main_system(int cmd, int flags, char *arg);
 
 //ors script support in recovery.c
 int erase_volume(const char *volume);

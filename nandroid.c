@@ -42,6 +42,7 @@
 #include "recovery_ui.h"
 
 #include <sys/vfs.h>
+#include "cutils/android_reboot.h"
 
 #include "extendedcommands.h"
 #include "nandroid.h"
@@ -801,7 +802,7 @@ int twrp_backup(const char* backup_path)
     finish_nandroid_job();
     ui_print("\nTWRP Backup complete!\n");
     if (reboot_after_nandroid)
-        reboot_main_system();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
 }
 
@@ -964,7 +965,7 @@ int twrp_restore(const char* backup_path)
     finish_nandroid_job();
     ui_print("\nTWRP Restore complete!\n");
     if (reboot_after_nandroid)
-        reboot_main_system();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
 }
 //------------------------ end twrp backup and restore functions
@@ -1133,7 +1134,7 @@ int nandroid_backup(const char* backup_path)
     finish_nandroid_job();
     ui_print("\nBackup complete!\n");
     if (reboot_after_nandroid)
-        reboot_main_system();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
 }
 
@@ -1609,7 +1610,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     finish_nandroid_job();
     ui_print("\nRestore complete!\n");
     if (reboot_after_nandroid)
-        reboot_main_system();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
 }
 
