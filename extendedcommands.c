@@ -1787,7 +1787,9 @@ void show_multi_flash_menu() {
             {
                 for(i=2; i < numFiles+2; i++) {
                     if (strncmp(list[i], "(x)", 3) == 0) {
+#ifdef PHILZ_TOUCH_RECOVERY
                         force_wait = -1;
+#endif
                         if (install_zip(files[i-2]) != 0)
                             break;
                     }
