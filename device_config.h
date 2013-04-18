@@ -78,6 +78,21 @@
 #define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
 #endif
 
+// HTC Explorer - Pico
+#ifdef TARGET_DEVICE_PICO
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif
+
+// HTC One X - Endeavoru
+#ifdef TARGET_DEVICE_ENDEAVORU
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif
+
+// HTC One XL - Evita
+#ifdef TARGET_DEVICE_EVITA
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif
+
 
 // defaults
 #ifndef BOOTLOADER_CMD_ARG
