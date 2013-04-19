@@ -1693,6 +1693,7 @@ void wipe_data_menu() {
 /*      Original code by PhilZ @xda      */
 /*****************************************/
 
+#define MULTI_ZIP_FOLDER "clockworkmod/multi_flash"
 void show_multi_flash_menu() {
     static char* headers_dir[] = { "Choose a set of zip files",
                                    NULL

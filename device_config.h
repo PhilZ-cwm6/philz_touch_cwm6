@@ -85,7 +85,7 @@
 
 // HTC One X - Endeavoru
 #ifdef TARGET_DEVICE_ENDEAVORU
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/tegra-pwm-bl/brightness"
 #endif
 
 // HTC One XL - Evita
