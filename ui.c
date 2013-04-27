@@ -79,11 +79,7 @@ static gr_surface gBackground;
 static int ui_has_initialized = 0;
 static int ui_log_stdout = 1;
 
-#ifdef PHILZ_TOUCH_RECOVERY
 int boardEnableKeyRepeat = 0;
-#else
-static int boardEnableKeyRepeat = 0;
-#endif
 static int boardRepeatableKeys[64], boardNumRepeatableKeys = 0;
 
 static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
@@ -241,6 +237,7 @@ static void draw_progress_locked()
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_defines.c"
 #else
+
 static void draw_text_line(int row, const char* t) {
   if (t[0] != '\0') {
     gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
@@ -251,6 +248,7 @@ static void draw_text_line(int row, const char* t) {
 #define MENU_TEXT_COLOR 0, 191, 255, 255
 #define NORMAL_TEXT_COLOR 200, 200, 200, 255
 #define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+
 #endif
 
 // Redraw everything on the screen.  Does not flip pages.
@@ -268,6 +266,7 @@ static void draw_screen_locked(void)
         // don't "disable" the background anymore with this...
         // gr_color(0, 0, 0, 160);
         // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
+
         int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
         int j = 0;
@@ -408,23 +407,17 @@ static int input_callback(int fd, short revents, void *data)
     struct input_event ev;
     int ret;
     int fake_key = 0;
-#ifdef PHILZ_TOUCH_RECOVERY
-    gr_surface surface = gVirtualKeys;
-#endif
 
     ret = ev_get_input(fd, revents, &ev);
     if (ret)
         return -1;
 
-#ifdef BOARD_TOUCH_RECOVERY
+#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
     if (touch_handle_input(fd, ev))
-      return 0;
+        return 0;
 #endif
 
     if (ev.type == EV_SYN) {
-#ifdef PHILZ_TOUCH_RECOVERY
-        s_cur_slot = 0;
-#endif
         return 0;
     } else if (ev.type == EV_REL) {
         if (ev.code == REL_Y) {
@@ -447,11 +440,7 @@ static int input_callback(int fd, short revents, void *data)
                 rel_sum = 0;
             }
         }
-    }
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_gestures.c"
-#endif
-    else {
+    } else {
         rel_sum = 0;
     }
 
@@ -515,18 +504,13 @@ void ui_init(void)
     ui_has_initialized = 1;
     gr_init();
     ev_init(input_callback, NULL);
-#ifdef BOARD_TOUCH_RECOVERY
+#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
     touch_init();
 #endif
 
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
-#ifdef PHILZ_TOUCH_RECOVERY
-    gr_surface surface = gVirtualKeys;
-    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT);
-#endif
     max_menu_rows = text_rows - MIN_LOG_ROWS;
-
 #ifdef BOARD_TOUCH_RECOVERY
     max_menu_rows = get_max_menu_rows(max_menu_rows);
 #endif
