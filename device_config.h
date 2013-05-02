@@ -93,6 +93,10 @@
 #define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
 #endif
 
+// HTC One S - Ville
+#ifdef TARGET_DEVICE_VILLE
+#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
+#endif
 
 // defaults
 #ifndef BOOTLOADER_CMD_ARG

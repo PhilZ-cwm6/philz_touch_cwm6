@@ -481,15 +481,6 @@ get_menu_selection(char** headers, char** items, int menu_only,
                     break;
 #endif
                 case SELECT_ITEM:
-#ifdef PHILZ_TOUCH_RECOVERY
-                    if (check_valid_menu == 1) {
-                        selected = ui_menu_touch_select(selected);
-                        check_valid_menu = 0;
-                        if (found_valid_menu == 0) {
-                            break;
-                        }
-                    }
-#endif
                     chosen_item = selected;
                     if (ui_is_showing_back_button()) {
                         if (chosen_item == item_count) {

@@ -3501,24 +3501,30 @@ static int default_aromafm(const char* aromafm_path) {
 }
 
 void run_aroma_browser() {
-                    //we mount volumes so that they can be accessed when in aroma file manager gui
-                    if (volume_for_path("/sdcard") != NULL)
-                        ensure_path_mounted("/sdcard");
-                    if (volume_for_path("/external_sd") != NULL)
-                        ensure_path_mounted("/external_sd");
-                    if (volume_for_path("/emmc") != NULL)
-                        ensure_path_mounted("/emmc");
+    //we mount volumes so that they can be accessed when in aroma file manager gui
+    ensure_path_mounted("/system");
+    ensure_path_mounted("/data");
+    if (volume_for_path("/sdcard") != NULL)
+        ensure_path_mounted("/sdcard");
+    if (volume_for_path("/external_sd") != NULL)
+        ensure_path_mounted("/external_sd");
+    if (volume_for_path("/emmc") != NULL)
+        ensure_path_mounted("/emmc");
 
-                    //look for clockworkmod/.aromafm/aromafm.zip in /external_sd, then /sdcard and finally /emmc
-                    int ret = -1;
-                    if (volume_for_path("/external_sd") != NULL)
-                        ret = default_aromafm("/external_sd");
-                    if (ret != 0 && volume_for_path("/sdcard") != NULL)
-                        ret = default_aromafm("/sdcard");
-                    if (ret != 0 && volume_for_path("/emmc") != NULL)
-                        ret = default_aromafm("/emmc");
-                    if (ret != 0)
-                        ui_print("No clockworkmod/.aromafm/aromafm.zip on sdcards\n");
+    //look for clockworkmod/.aromafm/aromafm.zip in /external_sd, then /sdcard and finally /emmc
+    int ret = -1;
+    if (volume_for_path("/external_sd") != NULL)
+        ret = default_aromafm("/external_sd");
+    if (ret != 0 && volume_for_path("/sdcard") != NULL)
+        ret = default_aromafm("/sdcard");
+    if (ret != 0 && volume_for_path("/emmc") != NULL)
+        ret = default_aromafm("/emmc");
+    if (ret != 0)
+        ui_print("No clockworkmod/.aromafm/aromafm.zip on sdcards\n");
+
+    // unmount system and data
+    ensure_path_unmounted("/system");
+    ensure_path_unmounted("/data");
 }
 //------ end aromafm launcher functions
 
