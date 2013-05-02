@@ -56,7 +56,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 4
-PHILZ_BUILD := 4.96.8
+PHILZ_BUILD := 4.96.8.1
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -78,72 +78,48 @@ ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_NAME := i930x
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy S2 International - I9100
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
 TARGET_NAME := i9100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy Note - N7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_NAME := n7000
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy Note 2 - N7100
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
 TARGET_NAME := n710x-i317M-T889
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy Tab 2 - P5100
 else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_NAME := p5100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy Tab 2 - P3100
 else ifeq ($(TARGET_PRODUCT), cm_p3100)
 TARGET_NAME := p3100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Galaxy Note 10.1 - N8000
 else ifeq ($(TARGET_PRODUCT), cm_n8000)
 TARGET_NAME := n8000
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N8000
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #LGE Nexus 4 - Mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
 TARGET_NAME := Nexus_4
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #HTC Explorer - Pico
 else ifeq ($(TARGET_PRODUCT), cm_pico)
@@ -151,36 +127,24 @@ TARGET_NAME := HTC_Explorer
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #HTC One X - Endeavoru
 else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
 TARGET_NAME := HTC_One_X
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_ENDEAVORU
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #HTC One XL - evita
 else ifeq ($(TARGET_PRODUCT), cm_evita)
 TARGET_NAME := HTC_One_XL
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_EVITA
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #HTC One S - ville
 else ifeq ($(TARGET_PRODUCT), cm_ville)
 TARGET_NAME := HTC_One_S
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_VILLE
-ifdef PHILZ_TOUCH_RECOVERY
-BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../../../../PhilZ_Touch/touch_source/philz_keys_s2.c
-endif
 
 #Undefined Device
 else
