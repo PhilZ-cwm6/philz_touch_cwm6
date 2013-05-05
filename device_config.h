@@ -23,7 +23,6 @@
 // i9300
 #ifdef TARGET_DEVICE_I9300
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
@@ -31,7 +30,6 @@
 // i9100
 #ifdef TARGET_DEVICE_I9100
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
@@ -39,7 +37,6 @@
 // n7000
 #ifdef TARGET_DEVICE_N7000
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
@@ -47,7 +44,6 @@
 // n7100
 #ifdef TARGET_DEVICE_N7100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
@@ -55,54 +51,23 @@
 // p5100
 #ifdef TARGET_DEVICE_P5100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
 // p3100
 #ifdef TARGET_DEVICE_P3100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
 // n8000
 #ifdef TARGET_DEVICE_N8000
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/panel/brightness"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
-// Nexus 4
-#ifdef TARGET_DEVICE_MAKO
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
-#endif
-
-// HTC Explorer - Pico
-#ifdef TARGET_DEVICE_PICO
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
-#endif
-
-// HTC One X - Endeavoru
-#ifdef TARGET_DEVICE_ENDEAVORU
-#define BRIGHTNESS_SYS_FILE "/sys/class/backlight/tegra-pwm-bl/brightness"
-#endif
-
-// HTC One XL - Evita
-#ifdef TARGET_DEVICE_EVITA
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
-#endif
-
-// HTC One S - Ville
-#ifdef TARGET_DEVICE_VILLE
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
-#endif
 
 // defaults
 #ifndef BOOTLOADER_CMD_ARG
 #define BOOTLOADER_CMD_ARG "bootloader"
-#endif
-
-#ifndef BRIGHTNESS_SYS_FILE
-#define BRIGHTNESS_SYS_FILE "/sys/class/leds/lcd-backlight/brightness"
 #endif

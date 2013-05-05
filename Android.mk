@@ -37,7 +37,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-CWM_BASE_VERSION := 6.0.3.1
+CWM_BASE_VERSION := 6.0.3.2
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 RECOVERY_VERSION := $(RECOVERY_NAME) $(CWM_BASE_VERSION)
 
@@ -56,7 +56,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.00.5
+PHILZ_BUILD := 5.00.8
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -73,62 +73,62 @@ endif
 #Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com> #
 #adapted from kbc-developers                                 #
 ##############################################################
-#Galaxy S3 International - I9300
+#Galaxy S3 International - i9300
 ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_NAME := i930x
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
 
-#Galaxy S2 International - I9100
+#Galaxy S2 International - i9100
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
 TARGET_NAME := i9100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
 
-#Galaxy Note - N7000
+#Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_NAME := n7000
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
 
-#Galaxy Note 2 - N7100
+#Galaxy Note 2 - n7100
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
 TARGET_NAME := n710x-i317M-T889
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
 
-#Galaxy Tab 2 - P5100
+#Galaxy Tab 2 - p5100
 else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_NAME := p5100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
 
-#Galaxy Tab 2 - P3100
+#Galaxy Tab 2 - p3100
 else ifeq ($(TARGET_PRODUCT), cm_p3100)
 TARGET_NAME := p3100
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
 
-#Galaxy Note 10.1 - N8000
+#Galaxy Note 10.1 - n8000
 else ifeq ($(TARGET_PRODUCT), cm_n8000)
 TARGET_NAME := n8000
 #TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N8000
 
-#LGE Nexus 4 - Mako
+#LGE Nexus 4 - mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
 TARGET_NAME := Nexus_4
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
 
-#HTC Explorer - Pico
+#HTC Explorer - pico
 else ifeq ($(TARGET_PRODUCT), cm_pico)
 TARGET_NAME := HTC_Explorer
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
 
-#HTC One X - Endeavoru
+#HTC One X - endeavoru
 else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
 TARGET_NAME := HTC_One_X
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
@@ -145,6 +145,18 @@ else ifeq ($(TARGET_PRODUCT), cm_ville)
 TARGET_NAME := HTC_One_S
 #TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_VILLE
+
+#ASUS Nexus 7 - tilapia
+else ifeq ($(TARGET_PRODUCT), cm_tilapia)
+TARGET_NAME := ASUS_Nexus_7
+#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
+
+# Samsung Nexus 10 - manta
+else ifeq ($(TARGET_PRODUCT), cm_manta)
+TARGET_NAME := Samsung_Nexus_10
+#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
+LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
 
 #Undefined Device
 else
@@ -206,7 +218,7 @@ else
   LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_KEYMAPPING)
 endif
 
-LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
+LOCAL_STATIC_LIBRARIES += libmake_ext4fs libext4_utils_static libz libsparse_static
 LOCAL_STATIC_LIBRARIES += libminzip libunz libmincrypt
 
 LOCAL_STATIC_LIBRARIES += libminizip libminadbd libedify libbusybox libmkyaffs2image libunyaffs liberase_image libdump_image libflash_image
@@ -226,7 +238,7 @@ LOCAL_C_INCLUDES += system/extras/ext4_utils
 
 include $(BUILD_EXECUTABLE)
 
-RECOVERY_LINKS := edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop dedupe minizip
+RECOVERY_LINKS := make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop dedupe minizip
 
 # nc is provided by external/netcat
 RECOVERY_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(RECOVERY_LINKS))
@@ -315,6 +327,7 @@ include $(commands_recovery_local_path)/edify/Android.mk
 include $(commands_recovery_local_path)/updater/Android.mk
 include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/utilities/Android.mk
+include $(commands_recovery_local_path)/su/Android.mk
 include $(commands_recovery_local_path)/pigz/Android.mk
 include $(commands_recovery_local_path)/fb2png/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
