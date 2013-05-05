@@ -741,6 +741,11 @@ int twrp_backup(const char* backup_path)
     if (backup_system && 0 != (ret = nandroid_backup_partition(backup_path, "/system")))
         return ret;
 
+    vol = volume_for_path("/preload");
+    if (backup_preload && vol != NULL && 0 == stat(vol->device, &s)) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/preload")))
+            return ret;
+    }
 
     if (backup_data && 0 != (ret = nandroid_backup_partition(backup_path, "/data")))
         return ret;
@@ -926,6 +931,12 @@ int twrp_restore(const char* backup_path)
 
     if (backup_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
         return ret;
+
+    vol = volume_for_path("/preload");
+    if (backup_preload && vol != NULL && 0 == stat(vol->device, &s)) {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/preload")))
+            return ret;
+    }
 
     if (backup_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
         return ret;

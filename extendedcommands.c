@@ -2098,7 +2098,7 @@ int run_ors_script(const char* ors_script) {
                         if (value2[i] == 'S' || value2[i] == 's') {
                             backup_system = 1;
                             ui_print("System\n");
-                            if (!twrp_backup_mode && nandroid_add_preload) {
+                            if (nandroid_add_preload) {
                                 backup_preload = 1;
                                 ui_print("Preload enabled in nandroid settings.\n");
                                 ui_print("It will be Processed with /system\n");
@@ -2142,8 +2142,7 @@ int run_ors_script(const char* ors_script) {
                     backup_boot = 1, backup_system = 1;
                     backup_data = 1, backup_cache = 1, backup_sdext = 1;
                     get_android_secure_path();
-                    if (!twrp_backup_mode)
-                        backup_preload = nandroid_add_preload;
+                    backup_preload = nandroid_add_preload;
                 }
 
                 if (twrp_backup_mode)
@@ -2295,7 +2294,7 @@ static void show_custom_ors_menu() {
                                 NULL
     };
 
-    static char* list[] = { "Search sdcard",
+    char* list[] = { "Search sdcard",
                             NULL,
                             NULL
     };
@@ -2432,10 +2431,8 @@ void reset_custom_job_settings(int custom_job) {
         backup_data = 1, backup_cache = 1, backup_preload = 1;
         backup_wimax = 0;
         backup_sdext = 0;
-        if (twrp_backup_mode) {
-            backup_preload = 0;
+        if (twrp_backup_mode)
             backup_wimax = 0;
-        }
     } else {
         backup_boot = 1, backup_recovery = 1, backup_system = 1;
         backup_data = 1, backup_cache = 1, backup_preload = 1;
@@ -2863,7 +2860,7 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_system ^= 1;
                 break;
             case 3:
-                if (twrp_backup_mode || volume_for_path("/preload") == NULL)
+                if (volume_for_path("/preload") == NULL)
                     backup_preload = 0;
                 else backup_preload ^= 1;
                 break;
@@ -3030,7 +3027,7 @@ static void custom_backup_menu() {
                 backup_system ^= 1;
                 break;
             case 3:
-                if (twrp_backup_mode || volume_for_path("/preload") == NULL)
+                if (volume_for_path("/preload") == NULL)
                     backup_preload = 0;
                 else backup_preload ^= 1;
                 break;
