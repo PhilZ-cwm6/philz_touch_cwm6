@@ -1601,7 +1601,7 @@ int directory_found(const char* dir) {
     return 0;
 }
 
-// get file size (by by Dees_Troy - TWRP)
+// get file size (by Dees_Troy - TWRP)
 unsigned long Get_File_Size(const char* Path) {
     struct stat st;
     if (stat(Path, &st) != 0)
@@ -1609,7 +1609,7 @@ unsigned long Get_File_Size(const char* Path) {
     return st.st_size;
 }
 
-// get folder size (by by Dees_Troy - TWRP)
+// get folder size (by Dees_Troy - TWRP)
 unsigned long long Get_Folder_Size(const char* Path) {
     DIR* d;
     struct dirent* de;
