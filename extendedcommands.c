@@ -1534,7 +1534,7 @@ void show_advanced_menu()
 /*  YOU MUST AGREE TO SHARE THE CHANGES  */
 /*                                       */
 /*       Start PhilZ Menu settings       */
-/*      Code written by by PhilZ@xda     */
+/*      Code written by PhilZ@xda     */
 /*      Part of PhilZ Touch Recovery     */
 /*****************************************/
 

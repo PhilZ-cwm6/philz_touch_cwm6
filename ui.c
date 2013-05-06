@@ -36,7 +36,7 @@
 
 extern int __system(const char *command);
 
-#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY)
+#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
 static int gShowBackButton = 1;
 #else
 static int gShowBackButton = 0;
