@@ -866,6 +866,10 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     char tmp[PATH_MAX];
     int index;
     int nand_starts = 1;
+
+    Volume* vol = volume_for_path(backup_file_image);
+    Total_Size = 0, Used_Size = 0, Free_Size = 0;
+
     for (index=0; index<backup_count; index++)
     {
         compute_twrp_backup_stats(index);
@@ -888,8 +892,11 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
             return -1;
 #endif
             tmp[PATH_MAX - 1] = NULL;
-            if (callback)
+            if (callback) {
+                if (vol != NULL && vol->mount_point != NULL) // shouldn't be needed
+                    Get_Size_Via_statfs(vol->mount_point);
                 nandroid_callback(tmp);
+            }
         }
         if (0 != __pclose(fp))
             return -1;
