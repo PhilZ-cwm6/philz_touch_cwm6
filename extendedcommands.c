@@ -17,6 +17,9 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+// statfs
+#include <sys/vfs.h>
+
 #include <signal.h>
 #include <sys/wait.h>
 
@@ -1568,10 +1571,10 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         LOGE("Cannot open /tmp/custom_tail.log\n");
 }
 
-// is there a second storage (/sdcard is always present)
-int no_second_storage() {
-    return (volume_for_path("/external_sd") == NULL
-                && volume_for_path("/emmc") == NULL);
+// is there a second storage (/sdcard is always present in fstab)
+int has_second_storage() {
+    return (volume_for_path("/external_sd") != NULL
+                || volume_for_path("/emmc") != NULL);
 }
 
 //delete a file
@@ -1610,6 +1613,65 @@ unsigned long Get_File_Size(const char* Path) {
     return st.st_size;
 }
 
+// get partition size info (adapted from Dees_Troy - TWRP)
+unsigned long long Total_Size;
+unsigned long long Used_Size;
+unsigned long long Free_Size;
+
+int Get_Size_Via_statfs(const char* mount_point) {
+	struct statfs st;
+
+    if (mount_point == NULL || statfs(mount_point, &st) != 0) {
+        LOGE("Unable to statfs for size '%s'\n", mount_point);
+        return -1;
+    }
+
+	Total_Size = (st.f_blocks * st.f_bsize);
+	Used_Size = ((st.f_blocks - st.f_bfree) * st.f_bsize);
+	Free_Size = (st.f_bfree * st.f_bsize);
+	return 0;
+}
+
+int Find_Partition_Size(const char* Path) {
+	FILE* fp;
+	char line[512];
+	char tmpdevice[1024];
+
+    Volume* volume = volume_for_path(Path);
+    if (volume != NULL) {
+        fp = fopen("/proc/partitions", "rt");
+        if (fp != NULL) {
+            while (fgets(line, sizeof(line), fp) != NULL)
+            {
+                unsigned long major, minor, blocks;
+                char device[512];
+                char tmpString[64];
+
+                if (strlen(line) < 7 || line[0] == 'm')
+                    continue;
+
+                sscanf(line + 1, "%lu %lu %lu %s", &major, &minor, &blocks, device);
+                sprintf(tmpdevice, "/dev/block/");
+                strcat(tmpdevice, device);
+
+                if (volume->device != NULL && strcmp(tmpdevice, volume->device) == 0) {
+                    Total_Size = blocks * 1024ULL;
+                    fclose(fp);
+                    return 0;
+                }
+                if (volume->device2 != NULL && strcmp(tmpdevice, volume->device2) == 0) {
+                    Total_Size = blocks * 1024ULL;
+                    fclose(fp);
+                    return 0;
+                }
+            }
+            fclose(fp);
+        }
+    }
+
+    LOGE("Failed to find partition size '%s'\n", Path);
+	return -1;
+}
 // get folder size (by Dees_Troy - TWRP)
 unsigned long long Get_Folder_Size(const char* Path) {
     DIR* d;
@@ -1838,6 +1900,8 @@ int check_for_script_file(const char* ors_boot_script) {
 
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
+static int ignore_android_secure = 0;
+
 static int ors_backup_command(const char* backup_path, const char* options) {
     if (file_found(backup_path)) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
@@ -1853,7 +1917,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
 #endif
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
-    android_secure_ext = -1; //disable
+    ignore_android_secure = 1; //disable
 
     ui_print("Setting backup options:\n");
     char value1[SCRIPT_COMMAND_SIZE];
@@ -1888,7 +1952,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             backup_boot = 1;
             ui_print("Boot\n");
         } else if (value1[i] == 'A' || value1[i] == 'a') {
-            get_android_secure_path();
+            ignore_android_secure = 0;
             ui_print("Android secure\n");
         } else if (value1[i] == 'E' || value1[i] == 'e') {
             backup_sdext = 1;
@@ -2083,7 +2147,7 @@ int run_ors_script(const char* ors_script) {
 #endif
                 backup_boot = 0, backup_recovery = 0, backup_system = 0;
                 backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
-                android_secure_ext = -1; //disable
+                ignore_android_secure = 1; //disable
 
                 // check what type of restore we need
                 if (strstr(value1, TWRP_BACKUP_PATH) != NULL)
@@ -2123,7 +2187,7 @@ int run_ors_script(const char* ors_script) {
                             backup_boot = 1;
                             ui_print("Boot\n");
                         } else if (value2[i] == 'A' || value2[i] == 'a') {
-                            get_android_secure_path();
+                            ignore_android_secure = 0;
                             ui_print("Android secure\n");
                         } else if (value2[i] == 'E' || value2[i] == 'e') {
                             backup_sdext = 1;
@@ -2142,7 +2206,7 @@ int run_ors_script(const char* ors_script) {
                     LOGI("Restoring default partitions");
                     backup_boot = 1, backup_system = 1;
                     backup_data = 1, backup_cache = 1, backup_sdext = 1;
-                    get_android_secure_path();
+                    ignore_android_secure = 0;
                     backup_preload = nandroid_add_preload;
                 }
 
@@ -2403,24 +2467,29 @@ static void delete_custom_backups(const char* backup_path)
     }
 }
 
-int get_android_secure_path() {
+int get_android_secure_path(char *and_sec_path) {
+    if (ignore_android_secure)
+        return android_secure_ext = 0;
+
+    android_secure_ext = 1;
     struct stat st;
-    if (is_data_media()) {
-        if (volume_for_path("/external_sd") != NULL)
-            android_secure_ext = 1;
-        else android_secure_ext = -1;
+    if (is_data_media() && volume_for_path("/external_sd") != NULL) {
+        strcpy(and_sec_path, "/external_sd/.android_secure");
     }
-    else if (volume_for_path("/external_sd") != NULL 
-             && ensure_path_mounted("/external_sd") == 0
-             && stat("/external_sd/.android_secure", &st) == 0)
-        android_secure_ext = 1;
-    else if (ensure_path_mounted("/sdcard") == 0
-             && stat("/sdcard/.android_secure", &st) == 0)
-        android_secure_ext = 0;
-    else if (volume_for_path("/emmc") != NULL
-             && ensure_path_mounted("/emmc") == 0
-             && stat("/emmc/.android_secure", &st) == 0)
-        android_secure_ext = 1;
+    else if (volume_for_path("/external_sd") != NULL &&
+                 ensure_path_mounted("/external_sd") == 0 &&
+                 stat("/external_sd/.android_secure", &st) == 0) {
+        strcpy(and_sec_path, "/external_sd/.android_secure");
+    }
+    else if (ensure_path_mounted("/sdcard") == 0 && 
+                stat("/sdcard/.android_secure", &st) == 0) {
+        strcpy(and_sec_path, "/sdcard/.android_secure");
+    }
+    else if (volume_for_path("/emmc") != NULL &&
+                 ensure_path_mounted("/emmc") == 0 &&
+                 stat("/emmc/.android_secure", &st) == 0) {
+        strcpy(and_sec_path, "/emmc/.android_secure");
+    }
     else android_secure_ext = 0;
     
     return android_secure_ext;
@@ -2443,7 +2512,8 @@ void reset_custom_job_settings(int custom_job) {
 
     backup_modem = 0;
     backup_efs = 0;
-    get_android_secure_path();
+    backup_misc = 0;
+    ignore_android_secure = 0;
     reboot_after_nandroid = 0;
 }
 
@@ -2466,9 +2536,11 @@ static void ui_print_backup_list() {
     if (backup_modem)
         ui_print(" - modem");
     if (backup_wimax)
-        ui_print(" - WiMAX");
+        ui_print(" - wimax");
     if (backup_efs)
-        ui_print(" - EFS Partition");
+        ui_print(" - efs");
+    if (backup_misc)
+        ui_print(" - misc");
     ui_print("!\n");
 }
 
@@ -2703,7 +2775,8 @@ static void browse_backup_folders(const char* backup_path)
 }
 
 static void validate_backup_job(const char* backup_path) {
-    int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data + backup_cache + backup_sdext + backup_wimax;
+    int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data +
+                backup_cache + backup_sdext + backup_wimax + backup_misc;
     if (0 == (backup_efs + sum + backup_modem)) {
         ui_print("Select at least one partition to restore!\n");
         return;
@@ -2754,6 +2827,7 @@ static void custom_restore_menu(const char* backup_path) {
     char item_sdext[MENU_MAX_COLS];
     char item_modem[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
+    char item_misc[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
@@ -2766,6 +2840,7 @@ static void custom_restore_menu(const char* backup_path) {
                 item_sdext,
                 item_modem,
                 item_efs,
+                item_misc,
                 ">> Start Custom Restore Job <<",
                 item_reboot,
                 NULL,
@@ -2775,7 +2850,7 @@ static void custom_restore_menu(const char* backup_path) {
     char tmp[PATH_MAX];
     if (0 == get_partition_device("wimax", tmp)) {
         // show wimax restore option
-        list[12] = "show wimax menu";
+        list[13] = "show wimax menu";
     }
 
     static int custom_items;
@@ -2803,11 +2878,10 @@ static void custom_restore_menu(const char* backup_path) {
         if (backup_data) ui_format_gui_menu(item_data, "Restore data", "(x)");
         else ui_format_gui_menu(item_data, "Restore data", "( )");
 
-        if (!backup_data || android_secure_ext == -1)
-            ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
-        else if (android_secure_ext == 1)
-            ui_format_gui_menu(item_andsec, "Restore and-sec", "2nd SD");
-        else ui_format_gui_menu(item_andsec, "Restore and-sec", "sdcard");
+        get_android_secure_path(tmp);
+        if (backup_data && android_secure_ext)
+            ui_format_gui_menu(item_andsec, "Restore and-sec", dirname(tmp));
+        else ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
 
         if (backup_cache) ui_format_gui_menu(item_cache, "Restore cache", "(x)");
         else ui_format_gui_menu(item_cache, "Restore cache", "( )");
@@ -2831,14 +2905,19 @@ static void custom_restore_menu(const char* backup_path) {
             ui_format_gui_menu(item_efs, "Restore efs [.tar]", "(x)");
         else ui_format_gui_menu(item_efs, "Restore efs", "( )");
 
+        if (volume_for_path("/misc") == NULL)
+            ui_format_gui_menu(item_misc, "Restore misc", "N/A");
+        else if (backup_misc) ui_format_gui_menu(item_misc, "Restore misc", "(x)");
+        else ui_format_gui_menu(item_misc, "Restore misc", "( )");
+
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[12]) {
+        if (NULL != list[13]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
-            list[12] = item_wimax;
+            list[13] = item_wimax;
         }
 
         if (!custom_items && !twrp_backup_mode) {
@@ -2869,13 +2948,9 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_data ^= 1;
                 break;
             case 5:
-                android_secure_ext++;
-                if (android_secure_ext > 1)
-                    android_secure_ext = -1;
-                if (android_secure_ext == 0 && is_data_media())
-                    android_secure_ext = 1;
-                if (android_secure_ext == 1 && no_second_storage())
-                    android_secure_ext = -1;
+                ignore_android_secure ^= 1;
+                if (!ignore_android_secure && has_second_storage())
+                    ui_print("To force restore to 2nd storage, keep only one .android_secure folder\n");
                 break;
             case 6:
                 backup_cache ^= 1;
@@ -2906,12 +2981,17 @@ static void custom_restore_menu(const char* backup_path) {
                 }
                 break;
             case 10:
-                validate_backup_job(backup_path);
+                if (volume_for_path("/misc") == NULL)
+                    backup_misc = 0;
+                else backup_misc ^= 1;
                 break;
             case 11:
-                reboot_after_nandroid ^= 1;
+                validate_backup_job(backup_path);
                 break;
             case 12:
+                reboot_after_nandroid ^= 1;
+                break;
+            case 13:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;
@@ -2935,6 +3015,7 @@ static void custom_backup_menu() {
     char item_sdext[MENU_MAX_COLS];
     char item_modem[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
+    char item_misc[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
@@ -2947,6 +3028,7 @@ static void custom_backup_menu() {
                 item_sdext,
                 item_modem,
                 item_efs,
+                item_misc,
                 ">> Start Custom Backup Job <<",
                 item_reboot,
                 NULL,
@@ -2956,7 +3038,7 @@ static void custom_backup_menu() {
     char tmp[PATH_MAX];
     if (volume_for_path("/wimax") != NULL) {
         // show wimax backup option
-        list[12] = "show wimax menu";
+        list[13] = "show wimax menu";
     }
 
     reset_custom_job_settings(1);
@@ -2978,11 +3060,10 @@ static void custom_backup_menu() {
         if (backup_data) ui_format_gui_menu(item_data, "Backup data", "(x)");
         else ui_format_gui_menu(item_data, "Backup data", "( )");
 
-        if (!backup_data || android_secure_ext == -1)
-            ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");
-        else if (android_secure_ext == 1)
-            ui_format_gui_menu(item_andsec, "Backup and-sec", "2nd SD");
-        else ui_format_gui_menu(item_andsec, "Backup and-sec", "sdcard");
+        get_android_secure_path(tmp);
+        if (backup_data && android_secure_ext)
+            ui_format_gui_menu(item_andsec, "Backup and-sec", dirname(tmp));
+        else ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");
 
         if (backup_cache) ui_format_gui_menu(item_cache, "Backup cache", "(x)");
         else ui_format_gui_menu(item_cache, "Backup cache", "( )");
@@ -3003,14 +3084,19 @@ static void custom_backup_menu() {
             ui_format_gui_menu(item_efs, "Backup efs [img&tar]", "(x)");
         else ui_format_gui_menu(item_efs, "Backup efs", "( )");
 
+        if (volume_for_path("/misc") == NULL)
+            ui_format_gui_menu(item_misc, "Backup misc", "N/A");
+        else if (backup_misc) ui_format_gui_menu(item_misc, "Backup misc", "(x)");
+        else ui_format_gui_menu(item_misc, "Backup misc", "( )");
+
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[12]) {
+        if (NULL != list[13]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
-            list[12] = item_wimax;
+            list[13] = item_wimax;
         }
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -3036,13 +3122,9 @@ static void custom_backup_menu() {
                 backup_data ^= 1;
                 break;
             case 5:
-                android_secure_ext++;
-                if (android_secure_ext > 1)
-                    android_secure_ext = -1;
-                if (android_secure_ext == 0 && is_data_media())
-                    android_secure_ext = 1;
-                if (android_secure_ext == 1 && no_second_storage())
-                    android_secure_ext = -1;
+                ignore_android_secure ^= 1;
+                if (!ignore_android_secure && has_second_storage())
+                    ui_print("To force backup from 2nd storage, keep only one .android_secure folder\n");
                 break;
             case 6:
                 backup_cache ^= 1;
@@ -3061,12 +3143,17 @@ static void custom_backup_menu() {
                 else backup_efs ^= 1;
                 break;
             case 10:
-                validate_backup_job(NULL);
+                if (volume_for_path("/misc") == NULL)
+                    backup_misc = 0;
+                else backup_misc ^= 1;
                 break;
             case 11:
-                reboot_after_nandroid ^= 1;
+                validate_backup_job(NULL);
                 break;
             case 12:
+                reboot_after_nandroid ^= 1;
+                break;
+            case 13:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;
@@ -3845,7 +3932,7 @@ int verify_root_and_recovery() {
         ui_show_text(1);
         ret = 1;
         if (confirm_selection("Root access is missing. Root device?", "Yes - Root device (/system/xbin/su)")) {
-            __system("cp /res/su /system/xbin/su");
+            __system("cp /sbin/su.recovery /system/xbin/su");
             __system("chmod 6755 /system/xbin/su");
             __system("ln -sf /system/xbin/su /system/bin/su");
         }

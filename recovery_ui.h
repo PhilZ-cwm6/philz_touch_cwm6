@@ -118,21 +118,6 @@ extern int ui_handle_key(int key, int visible);
 // clean reboot to main system
 void reboot_main_system(int cmd, int flags, char *arg);
 
-//ors script support in recovery.c
-int erase_volume(const char *volume);
-void wipe_data(int confirm);
-extern int no_wipe_confirm;
-extern int check_for_script_file(const char* ors_boot_script);
-extern int run_ors_script(const char* ors_script);
-
-// general system functions
-unsigned long Get_File_Size(const char* Path);
-unsigned long long Get_Folder_Size(const char* Path);
-int file_found(const char* filename);
-int directory_found(const char* dir);
-void delete_a_file(const char* filename);
-void ensure_directory(const char* dir);
-
 // format toggle menus to screen width
 void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
 

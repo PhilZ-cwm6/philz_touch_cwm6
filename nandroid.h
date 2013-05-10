@@ -47,6 +47,7 @@ extern int backup_cache;
 extern int backup_sdext;
 extern int backup_wimax;
 extern int backup_efs;
+extern int backup_misc;
 extern int backup_modem;
 
 //toggle nandroid compression
@@ -63,8 +64,10 @@ extern int reboot_after_nandroid;
 
 // support .android_secure on external storage
 extern int android_secure_ext;
-int get_android_secure_path();
+int get_android_secure_path(char *and_sec_path);
 
+unsigned long long Backup_Size;
+unsigned long long Before_Used_Size;
 //----------------------------- End Custom nandroid + TWRP backup by PhilZ
 
 #endif

@@ -255,6 +255,9 @@ void setup_data_media() {
 
 int is_data_media_volume_path(const char* path) {
     Volume* v = volume_for_path(path);
+    // prevent segfault on bad call
+    if (v == NULL || v->fs_type == NULL)
+        return 0;
     return strcmp(v->fs_type, "datamedia") == 0;
 }
 
