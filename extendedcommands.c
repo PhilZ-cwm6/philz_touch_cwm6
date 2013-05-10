@@ -1504,6 +1504,7 @@ void show_advanced_menu()
                         ui_print("storage set to /data/media/0\n");
                     }
                     setup_data_media();
+                    ui_print("Reboot to apply settings!\n");
                 }
                 else ui_print("datamedia not supported\n");
                 break;

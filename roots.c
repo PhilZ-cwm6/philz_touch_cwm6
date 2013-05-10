@@ -245,11 +245,7 @@ void setup_data_media() {
             else sprintf(path, "/data/media");
 
             LOGI("using %s for %s\n", path, vol->mount_point);
-             // handle directory on start (probably useless) and then symlink on live toggle
-            if (rmdir(vol->mount_point) != 0) {
-                if (remove(vol->mount_point) != 0)
-                    LOGE("Could not apply settings! Please reboot so that they can take effect.\n");
-            }
+            rmdir(vol->mount_point);
             mkdir(path, 0755);
             symlink(path, vol->mount_point);
             return;
