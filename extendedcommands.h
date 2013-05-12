@@ -79,7 +79,7 @@ void wipe_data_menu();
 unsigned long long Total_Size; // Overall size of the partition
 unsigned long long Used_Size; // Overall used space
 unsigned long long Free_Size; // Overall free space
-int Get_Size_Via_statfs(const char* mount_point);
+int Get_Size_Via_statfs(const char* Path);
 int Find_Partition_Size(const char* Path);
 
 //ors script support in recovery.c

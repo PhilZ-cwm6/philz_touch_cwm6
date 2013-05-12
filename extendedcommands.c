@@ -1618,11 +1618,17 @@ unsigned long long Total_Size;
 unsigned long long Used_Size;
 unsigned long long Free_Size;
 
-int Get_Size_Via_statfs(const char* mount_point) {
+int Get_Size_Via_statfs(const char* Path) {
 	struct statfs st;
-
-    if (mount_point == NULL || statfs(mount_point, &st) != 0) {
-        LOGE("Unable to statfs for size '%s'\n", mount_point);
+    Volume* volume = volume_for_path(Path);
+    if (NULL == volume) {
+        LOGE("Cannot get size of null volume '%s'\n", Path);
+        return -1;
+    }
+    if (is_data_media_volume_path(volume->mount_point))
+        volume = volume_for_path("/data");
+    if (volume == NULL || volume->mount_point == NULL || statfs(volume->mount_point, &st) != 0) {
+        LOGE("Unable to statfs for size '%s'\n", Path);
         return -1;
     }
 

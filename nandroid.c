@@ -51,6 +51,16 @@
 #include "flashutils/flashutils.h"
 #include <libgen.h>
 
+
+time_t t_nandroid_start;
+static time_t now_sec(void) {
+    struct timeval now;
+    time_t t;
+    gettimeofday(&now, NULL);
+    t = now.tv_sec;
+    return t;
+}
+
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_nandroid_gui.c"
 #endif
@@ -106,6 +116,10 @@ static void nandroid_callback(const char* filename)
         size_progress[ui_get_text_cols() - 1] = '\0';
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    int color[] = {CYAN_BLUE_CODE};
+    ui_print_color(3, color);
+#endif
     ui_nice_print("%s\n%s\n", tmp, size_progress);
     if (!ui_was_niced() && nandroid_files_total != 0)
         ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
@@ -113,6 +127,9 @@ static void nandroid_callback(const char* filename)
         ui_delete_line();
         ui_delete_line();
     }
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_color(0, 0);
+#endif
 }
 
 static void compute_directory_stats(const char* directory)
@@ -146,9 +163,6 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
         return -1;
     }
 
-    Volume* vol = volume_for_path(backup_file_image);
-    Total_Size = 0, Used_Size = 0, Free_Size = 0;
-
     int nand_starts = 1;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -157,8 +171,7 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            if (vol != NULL && vol->mount_point != NULL) // shouldn't be needed
-                Get_Size_Via_statfs(vol->mount_point);
+            Get_Size_Via_statfs(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -183,9 +196,6 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
         return -1;
     }
 
-    Volume* vol = volume_for_path(backup_file_image);
-    Total_Size = 0, Used_Size = 0, Free_Size = 0;
-
     int nand_starts = 1;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -194,9 +204,7 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            if (vol != NULL && vol->mount_point != NULL) // shouldn't be needed
-                Get_Size_Via_statfs(vol->mount_point);
-
+            Get_Size_Via_statfs(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -250,9 +258,6 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
         return -1;
     }
 
-    Volume* vol = volume_for_path(backup_file_image);
-    Total_Size = 0, Used_Size = 0, Free_Size = 0;
-
     int nand_starts = 1;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -261,8 +266,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            if (vol != NULL && vol->mount_point != NULL)
-                Get_Size_Via_statfs(vol->mount_point);
+            Get_Size_Via_statfs(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -394,9 +398,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
 int nandroid_backup_partition(const char* backup_path, const char* root) {
     Volume *vol = volume_for_path(root);
     // make sure the volume exists before attempting anything...
-    if (vol == NULL || vol->fs_type == NULL)
-    {
-        ui_print("\n>> Backing up %s...\n", root);
+    if (vol == NULL || vol->fs_type == NULL) {
         ui_print("Volume not found! Skipping backup of %s...\n", root);
         return 0;
     }
@@ -603,7 +605,7 @@ static int check_backup_size() {
     int backup_size_mb = (int)(Backup_Size / 1048576LLU);
     backup_size_mb += 50; // extra 50 Mb for security measures
 
-    ui_print("\n>> Available space: %dMb (%d%%)\n", free_mb, free_percent);
+    ui_print("\n>> Free space: %dMb (%d%%)\n", free_mb, free_percent);
     ui_print(">> Needed space: %dMb\n", backup_size_mb);
     if (ret)
         ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped);
@@ -613,6 +615,25 @@ static int check_backup_size() {
             return -1;
     }
 
+    return 0;
+}
+
+static int show_backup_stats(const char* backup_path) {
+    int t_total = (int)(now_sec() - t_nandroid_start);
+    int minutes = t_total / 60;
+    int seconds = t_total % 60;
+
+    unsigned long long final_size = Get_Folder_Size(backup_path);
+    long double compression;
+    if (Backup_Size == 0 || final_size == 0)
+        compression = 0;
+    else compression = 1 - ((long double)(final_size) / (long double)(Backup_Size));
+
+    ui_print("\nBackup complete!\n");
+    ui_print("Backup time: %02i:%02i mn\n", minutes, seconds);
+    ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
+    if (default_backup_handler == tar_compress_wrapper && compression_value != TAR_FORMAT)
+        ui_print("Compression: %.2Lf%%\n", compression * 100);
     return 0;
 }
 
@@ -866,10 +887,6 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     char tmp[PATH_MAX];
     int index;
     int nand_starts = 1;
-
-    Volume* vol = volume_for_path(backup_file_image);
-    Total_Size = 0, Used_Size = 0, Free_Size = 0;
-
     for (index=0; index<backup_count; index++)
     {
         compute_twrp_backup_stats(index);
@@ -893,8 +910,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 #endif
             tmp[PATH_MAX - 1] = NULL;
             if (callback) {
-                if (vol != NULL && vol->mount_point != NULL) // shouldn't be needed
-                    Get_Size_Via_statfs(vol->mount_point);
+                Get_Size_Via_statfs(backup_file_image);
                 nandroid_callback(tmp);
             }
         }
@@ -916,25 +932,21 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 }
 
 int twrp_backup(const char* backup_path) {
-    if (ensure_path_mounted(backup_path) != 0) {
+    if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path.\n");
-    }
     
-    Volume* volume = volume_for_path(backup_path);
-    if (NULL == volume)
-        return print_and_error("Unable to find volume for backup path.\n");
-    if (is_data_media_volume_path(volume->mount_point))
-        volume = volume_for_path("/data");
     int ret;
     struct statfs s;
 
-    if (volume == NULL || 0 != (ret = Get_Size_Via_statfs(volume->mount_point)))
+    // refresh size stats for backup_path
+    if (0 != Get_Size_Via_statfs(backup_path))
         return print_and_error("Unable to stat backup path.\n");
 
     if (check_backup_size() < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
+    t_nandroid_start = now_sec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = now_sec();
 #endif
@@ -1022,7 +1034,7 @@ int twrp_backup(const char* backup_path) {
     __system(tmp);
 
     finish_nandroid_job();
-    ui_print("\nTWRP Backup complete!\n");
+    show_backup_stats(backup_path);
     if (reboot_after_nandroid)
         reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
@@ -1207,22 +1219,26 @@ int nandroid_backup(const char* backup_path)
     if (ensure_path_mounted(backup_path) != 0) {
         return print_and_error("Can't mount backup path.\n");
     }
-    
+/*
+    // replaced by Get_Size_Via_statfs() check
     Volume* volume = volume_for_path(backup_path);
     if (NULL == volume)
         return print_and_error("Unable to find volume for backup path.\n");
     if (is_data_media_volume_path(volume->mount_point))
         volume = volume_for_path("/data");
+*/
     int ret;
     struct statfs s;
 
-    if (volume == NULL || 0 != (ret = Get_Size_Via_statfs(volume->mount_point)))
+    // refresh size stats for backup_path
+    if (0 != (ret = Get_Size_Via_statfs(backup_path)))
         return print_and_error("Unable to stat backup path.\n");
 
     if (check_backup_size() < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
+    t_nandroid_start = now_sec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = now_sec(); //support dim screen timeout during nandroid operation
 #endif
@@ -1349,7 +1365,7 @@ int nandroid_backup(const char* backup_path)
     __system(tmp);
 
     finish_nandroid_job();
-    ui_print("\nBackup complete!\n");
+    show_backup_stats(backup_path);
     if (reboot_after_nandroid)
         reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
