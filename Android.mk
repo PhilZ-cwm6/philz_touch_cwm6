@@ -14,9 +14,10 @@ LOCAL_SRC_FILES := \
     extendedcommands.c \
     nandroid.c \
     ../../system/core/toolbox/reboot.c \
+    ../../system/core/toolbox/dynarray.c \
     firmware.c \
     edifyscripting.c \
-    setprop.c \
+    prop.c \
     default_recovery_ui.c \
     adb_install.c \
     verifier.c
@@ -56,7 +57,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.03.0
+PHILZ_BUILD := 5.03.7
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -73,90 +74,97 @@ endif
 #Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com> #
 #adapted from kbc-developers                                 #
 ##############################################################
-#Galaxy S3 International - i9300
-ifeq ($(TARGET_PRODUCT), cm_i9300)
-TARGET_NAME := i930x
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
 
 #Galaxy S2 International - i9100
-else ifeq ($(TARGET_PRODUCT), cm_i9100)
+ifeq ($(TARGET_PRODUCT), cm_i9100)
 TARGET_NAME := i9100
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
+
+#Galaxy S3 International - i9300
+else ifeq ($(TARGET_PRODUCT), cm_i9300)
+TARGET_NAME := i930x
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
+
+#Galaxy S4 International - i9500
+else ifeq ($(TARGET_PRODUCT), cm_i9500)
+TARGET_NAME := i9500
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
 #Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_NAME := n7000
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
 
 #Galaxy Note 2 - n7100
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
 TARGET_NAME := n710x-i317M-T889
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
-
-#Galaxy Tab 2 - p5100
-else ifeq ($(TARGET_PRODUCT), cm_p5100)
-TARGET_NAME := p5100
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
-LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
-
-#Galaxy Tab 2 - p3100
-else ifeq ($(TARGET_PRODUCT), cm_p3100)
-TARGET_NAME := p3100
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
-LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
 
 #Galaxy Note 10.1 - n8000
 else ifeq ($(TARGET_PRODUCT), cm_n8000)
 TARGET_NAME := n8000
-#TARGET_RECOVERY_PIXEL_FORMAT := \"BGRA_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_N8000
 
-#LGE Nexus 4 - mako
-else ifeq ($(TARGET_PRODUCT), cm_mako)
-TARGET_NAME := Nexus_4
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
-LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
+#Galaxy Tab 2 - p3100
+else ifeq ($(TARGET_PRODUCT), cm_p3100)
+TARGET_NAME := p3100
+LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
+
+#Galaxy Tab 2 - p5100
+else ifeq ($(TARGET_PRODUCT), cm_p5100)
+TARGET_NAME := p5100
+LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
 
 #HTC Explorer - pico
 else ifeq ($(TARGET_PRODUCT), cm_pico)
 TARGET_NAME := HTC_Explorer
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
+
+#HTC One - m7
+else ifeq ($(TARGET_PRODUCT), cm_m7)
+TARGET_NAME := HTC_One
+LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_ONE
 
 #HTC One X - endeavoru
 else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
 TARGET_NAME := HTC_One_X
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_ENDEAVORU
 
 #HTC One XL - evita
 else ifeq ($(TARGET_PRODUCT), cm_evita)
 TARGET_NAME := HTC_One_XL
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_EVITA
 
 #HTC One S - ville
 else ifeq ($(TARGET_PRODUCT), cm_ville)
 TARGET_NAME := HTC_One_S
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_VILLE
+
+#LGE Nexus 4 - mako
+else ifeq ($(TARGET_PRODUCT), cm_mako)
+TARGET_NAME := Nexus_4
+LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
 
 #ASUS Nexus 7 - tilapia
 else ifeq ($(TARGET_PRODUCT), cm_tilapia)
 TARGET_NAME := ASUS_Nexus_7
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
 
 # Samsung Nexus 10 - manta
 else ifeq ($(TARGET_PRODUCT), cm_manta)
 TARGET_NAME := Samsung_Nexus_10
-#TARGET_RECOVERY_PIXEL_FORMAT := \"RGBX_8888\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
+
+# Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
+else ifeq ($(TARGET_PRODUCT), cm_maguro)
+TARGET_NAME := Samsung_Galaxy_Nexus
+LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
+
+# Samsung Galaxy Nexus S - crespo
+else ifeq ($(TARGET_PRODUCT), cm_crespo)
+TARGET_NAME := Samsung_Galaxy_Nexus_S
+LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS_S
 
 #Undefined Device
 else
@@ -238,7 +246,7 @@ LOCAL_C_INCLUDES += system/extras/ext4_utils
 
 include $(BUILD_EXECUTABLE)
 
-RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop dedupe minizip
+RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop getprop dedupe minizip
 
 # nc is provided by external/netcat
 RECOVERY_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(RECOVERY_LINKS))

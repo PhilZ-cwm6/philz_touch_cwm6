@@ -66,6 +66,12 @@
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
+// i9500
+#ifdef TARGET_DEVICE_I9500
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
 
 // defaults
 #ifndef BOOTLOADER_CMD_ARG
