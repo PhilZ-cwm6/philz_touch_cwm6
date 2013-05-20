@@ -90,6 +90,12 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
 TARGET_NAME := i9500
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
+#Galaxy S4 - i9505, jfltecan and jfltetmo
+else ifeq ($(TARGET_PRODUCT), cm_jfltecan)
+TARGET_NAME := i9505
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
+LOCAL_CFLAGS += -DUSE_MKE2FS_FIX
+
 #Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_NAME := n7000
