@@ -57,7 +57,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.03.8
+PHILZ_BUILD := 5.03.9
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -121,9 +121,14 @@ else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_NAME := p5100
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
 
-#HTC DROID Incredible 4G LTE - fireball
+#HTC Desire X - protou
+else ifeq ($(TARGET_PRODUCT), cm_protou)
+TARGET_NAME := HTC_Desire_X
+LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_DESIRE_X
+
+#HTC Droid Incredible 4G LTE - fireball
 else ifeq ($(TARGET_PRODUCT), cm_fireball)
-TARGET_NAME := HTC_DROID_Incredible_4G
+TARGET_NAME := HTC_Droid_Incredible_4G_LTE
 LOCAL_CFLAGS += -DTARGET_DEVICE_FIREBALL
 
 #HTC Explorer - pico

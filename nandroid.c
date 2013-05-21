@@ -441,9 +441,9 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 /*****************************************/
 
 //these general variables are needed to not break backup and restore by external script
-int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1, backup_preload = 1;
+int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
-int backup_efs = 0, backup_misc = 0, backup_modem = 0;
+int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0;
 int is_custom_backup = 0;
 int reboot_after_nandroid = 0;
 int android_secure_ext = 0;

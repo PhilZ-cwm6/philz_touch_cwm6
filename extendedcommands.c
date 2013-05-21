@@ -1920,10 +1920,13 @@ static int ors_backup_command(const char* backup_path, const char* options) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
         return -1;
     }
+    if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR) {
+        LOGE("Default backup format must be tar!\n");
+        return -1;
+    }
     is_custom_backup = 1;
     int old_compression_value = compression_value;
     compression_value = TAR_FORMAT;
-    nandroid_force_backup_format("tar");
 #ifdef PHILZ_TOUCH_RECOVERY
     int old_enable_md5sum = enable_md5sum;
     enable_md5sum = 1;
@@ -1988,7 +1991,6 @@ static int ors_backup_command(const char* backup_path, const char* options) {
 
     is_custom_backup = 0;
     compression_value = old_compression_value;
-    nandroid_force_backup_format("");
     reset_custom_job_settings(0);
 #ifdef PHILZ_TOUCH_RECOVERY
     enable_md5sum = old_enable_md5sum;
@@ -2511,18 +2513,19 @@ int get_android_secure_path(char *and_sec_path) {
 void reset_custom_job_settings(int custom_job) {
     if (custom_job) {
         backup_boot = 1, backup_recovery = 1, backup_system = 1;
-        backup_data = 1, backup_cache = 1, backup_preload = 1;
+        backup_data = 1, backup_cache = 1;
         backup_wimax = 0;
         backup_sdext = 0;
         if (twrp_backup_mode)
             backup_wimax = 0;
     } else {
         backup_boot = 1, backup_recovery = 1, backup_system = 1;
-        backup_data = 1, backup_cache = 1, backup_preload = 1;
+        backup_data = 1, backup_cache = 1;
         backup_wimax = 1;
         backup_sdext = 1;
     }
 
+    backup_preload = 0;
     backup_modem = 0;
     backup_efs = 0;
     backup_misc = 0;
@@ -2610,9 +2613,7 @@ static void custom_backup_handler() {
                 if (ensure_path_mounted(int_sd) == 0) {
                     char backup_path[PATH_MAX] = "";
                     get_custom_backup_path(int_sd, backup_path);
-                    nandroid_force_backup_format("tar");
                     nandroid_backup(backup_path);
-                    nandroid_force_backup_format("");
                 } else {
                     ui_print("Couldn't mount %s\n", int_sd);
                 }
@@ -2623,9 +2624,7 @@ static void custom_backup_handler() {
                 if (ensure_path_mounted(ext_sd) == 0) {
                     char backup_path[PATH_MAX] = "";
                     get_custom_backup_path(ext_sd, backup_path);
-                    nandroid_force_backup_format("tar");
                     nandroid_backup(backup_path);
-                    nandroid_force_backup_format("");
                 } else {
                     ui_print("Couldn't mount %s\n", ext_sd);
                 }
@@ -2815,7 +2814,9 @@ static void validate_backup_job(const char* backup_path) {
     else
     {
         // it is a backup job to validate
-        if (twrp_backup_mode)
+        if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR)
+            LOGE("Default backup format must be tar!\n");
+        else if (twrp_backup_mode)
             twrp_backup_handler();
         else if (backup_efs && (sum + backup_modem) != 0)
             ui_print("efs must be backed up alone!\n");
