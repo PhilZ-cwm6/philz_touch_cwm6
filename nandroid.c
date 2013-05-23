@@ -504,7 +504,7 @@ static int check_backup_size() {
     Before_Used_Size = Used_Size; // save Used_Size to refresh data written stats later
     Backup_Size = 0;
 
-    static char* partitions[] = { "/recovery",
+    static const char* Partitions_List[] = {"/recovery",
                     "/boot",
                     "/wimax",
                     "/modem",
@@ -539,45 +539,46 @@ static int check_backup_size() {
             backup_sdext,
     };
 
-    char skipped[1024] = "";
+    char skipped_parts[1024] = "";
     int ret = 0;
     struct statfs s;
     Volume* vol;
 
     int i;
-    for(i=0; partitions[i] != NULL; i++) {
+    for(i=0; Partitions_List[i] != NULL; i++) {
         if (!backup_status[i])
             continue;
-        if (strcmp(partitions[i], "/data") == 0 && is_data_media())
+        if (strcmp(Partitions_List[i], "/data") == 0 && is_data_media())
             continue;
-        if (strcmp(partitions[i], "/datadata") == 0 && !has_datadata())
+        if (strcmp(Partitions_List[i], "/datadata") == 0 && !has_datadata())
             continue;
         
-        vol = volume_for_path(partitions[i]);
-        if (vol == NULL || 0 != stat(vol->device, &s)) continue;
+        vol = volume_for_path(Partitions_List[i]);
+        if (vol == NULL || 0 != statfs(vol->device, &s))
+            continue;
 
-        if (Is_Image(partitions[i]) == 0) {
-            if (Find_Partition_Size(partitions[i]) == 0) {
+        if (Is_Image(Partitions_List[i]) == 0) {
+            if (Find_Partition_Size(Partitions_List[i]) == 0) {
                 Backup_Size += Total_Size;
-                LOGI("%s backup size (/proc)=%lluMb\n", partitions[i], Total_Size / 1048576LLU); // debug
+                LOGI("%s backup size (/proc)=%lluMb\n", Partitions_List[i], Total_Size / 1048576LLU); // debug
             } else {
                 ret++;
-                strcat(skipped, " - ");
-                strcat(skipped, partitions[i]);
+                strcat(skipped_parts, " - ");
+                strcat(skipped_parts, Partitions_List[i]);
             }
-        } else if (Is_File_System(partitions[i]) == 0) {
+        } else if (Is_File_System(Partitions_List[i]) == 0) {
             if (0 == ensure_path_mounted(vol->mount_point) && 0 == Get_Size_Via_statfs(vol->mount_point)) {
                 Backup_Size += Used_Size;
-                LOGI("%s backup size (stat)=%lluMb\n", partitions[i], Used_Size / 1048576LLU); // debug
+                LOGI("%s backup size (stat)=%lluMb\n", Partitions_List[i], Used_Size / 1048576LLU); // debug
             } else {
                 ret++;
-                strcat(skipped, " - ");
-                strcat(skipped, partitions[i]);
+                strcat(skipped_parts, " - ");
+                strcat(skipped_parts, Partitions_List[i]);
             }
         } else {
             ret++;
-            strcat(skipped, " - Unknown file system: ");
-            strcat(skipped, partitions[i]);
+            strcat(skipped_parts, " - Unknown file system: ");
+            strcat(skipped_parts, Partitions_List[i]);
         }
     }
 
@@ -589,7 +590,7 @@ static int check_backup_size() {
             LOGI("/data backup size=%lluMb\n", data_backup_size / 1048576LLU); // debug
         } else {
             ret++;
-            strcat(skipped, " - /data");
+            strcat(skipped_parts, " - /data");
         }
     }
 
@@ -608,7 +609,7 @@ static int check_backup_size() {
     ui_print("\n>> Free space: %dMb (%d%%)\n", free_mb, free_percent);
     ui_print(">> Needed space: %dMb\n", backup_size_mb);
     if (ret)
-        ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped);
+        ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped_parts);
 
     if (free_percent < 3 || (default_backup_handler != tar_compress_wrapper && free_mb < backup_size_mb)) {
         if (!confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
@@ -961,24 +962,24 @@ int twrp_backup(const char* backup_path) {
         return ret;
 
     Volume *vol = volume_for_path("/efs");
-    if (backup_efs && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_efs && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/efs")))
             return ret;
     }
 
     vol = volume_for_path("/misc");
-    if (backup_misc && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_misc && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/misc")))
             return ret;
     }
 
     sprintf(tmp, "/modem");
     vol = volume_for_path(tmp);
-    if (vol == NULL || 0 != stat(vol->device, &s)) {
+    if (vol == NULL || 0 != statfs(vol->device, &s)) {
         sprintf(tmp, "/radio");
         vol = volume_for_path(tmp);
     }
-    if (backup_modem && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_modem && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, tmp)))
             return ret;
     }
@@ -987,7 +988,7 @@ int twrp_backup(const char* backup_path) {
         return ret;
 
     vol = volume_for_path("/preload");
-    if (backup_preload && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_preload && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload")))
             return ret;
     }
@@ -1012,7 +1013,7 @@ int twrp_backup(const char* backup_path) {
 
     vol = volume_for_path("/sd-ext");
     if (backup_sdext) {
-        if (vol == NULL || 0 != stat(vol->device, &s))
+        if (vol == NULL || 0 != statfs(vol->device, &s))
         {
             ui_print("No sd-ext found. Skipping backup of sd-ext.\n");
         }
@@ -1151,24 +1152,24 @@ int twrp_restore(const char* backup_path)
 
     struct statfs s;
     Volume *vol = volume_for_path("/efs");
-    if (backup_efs == RESTORE_EFS_TAR && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_efs == RESTORE_EFS_TAR && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/efs")))
             return ret;
     }
 
     vol = volume_for_path("/misc");
-    if (backup_misc && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_misc && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/misc")))
             return ret;
     }
 
     sprintf(tmp, "/modem");
     vol = volume_for_path(tmp);
-    if (vol == NULL || 0 != stat(vol->device, &s)) {
+    if (vol == NULL || 0 != statfs(vol->device, &s)) {
         sprintf(tmp, "/radio");
         vol = volume_for_path(tmp);
     }
-    if (vol != NULL && 0 == stat(vol->device, &s)) {
+    if (vol != NULL && 0 == statfs(vol->device, &s)) {
         if (backup_modem == RAW_IMG_FILE && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
             return ret;
     }
@@ -1177,7 +1178,7 @@ int twrp_restore(const char* backup_path)
         return ret;
 
     vol = volume_for_path("/preload");
-    if (backup_preload && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_preload && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/preload")))
             return ret;
     }
@@ -1253,7 +1254,7 @@ int nandroid_backup(const char* backup_path)
         return ret;
 
     Volume *vol = volume_for_path("/wimax");
-    if (backup_wimax && vol != NULL && 0 == stat(vol->device, &s))
+    if (backup_wimax && vol != NULL && 0 == statfs(vol->device, &s))
     {
         char serialno[PROPERTY_VALUE_MAX];
         ui_print("\n>> Backing up WiMAX...\n");
@@ -1267,7 +1268,7 @@ int nandroid_backup(const char* backup_path)
 
     //2 copies of efs are made: tarball and raw backup
     vol = volume_for_path("/efs");
-    if (backup_efs && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_efs && vol != NULL && 0 == statfs(vol->device, &s)) {
         //first backup in raw format, returns 0 on success (or if skipped), else 1
         strcpy(tmp, backup_path);
         if (0 != custom_backup_raw_handler(dirname(tmp), "/efs")) {
@@ -1280,18 +1281,18 @@ int nandroid_backup(const char* backup_path)
     }
 
     vol = volume_for_path("/misc");
-    if (backup_misc && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_misc && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/misc")))
             return ret;
     }
 
     sprintf(tmp, "/modem");
     vol = volume_for_path(tmp);
-    if (vol == NULL || 0 != stat(vol->device, &s)) {
+    if (vol == NULL || 0 != statfs(vol->device, &s)) {
         sprintf(tmp, "/radio");
         vol = volume_for_path(tmp);
     }
-    if (backup_modem && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_modem && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_backup_partition(backup_path, tmp)))
             return ret;
     }
@@ -1300,7 +1301,7 @@ int nandroid_backup(const char* backup_path)
         return ret;
 
     vol = volume_for_path("/preload");
-    if (vol != NULL && 0 == stat(vol->device, &s)) {
+    if (vol != NULL && 0 == statfs(vol->device, &s)) {
         if (is_custom_backup && backup_preload) {
             if (0 != (ret = nandroid_backup_partition(backup_path, "/preload"))) {
                 ui_print("Failed to backup /preload!\n");
@@ -1336,7 +1337,7 @@ int nandroid_backup(const char* backup_path)
 
     if (backup_sdext) {
         vol = volume_for_path("/sd-ext");
-        if (vol == NULL || 0 != stat(vol->device, &s))
+        if (vol == NULL || 0 != statfs(vol->device, &s))
         {
             ui_print("No sd-ext found. Skipping backup of sd-ext.\n");
         }
@@ -1567,7 +1568,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     ui_print("\n>> Restoring %s...\n", mount_point);
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/%s.img", backup_path, name);
-    struct stat file_info;
+    struct statfs file_info;
     if (strcmp(backup_path, "-") == 0) {
         if (vol)
             backup_filesystem = vol->fs_type;
@@ -1668,7 +1669,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    int callback = statfs("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
     if (!twrp_backup_mode) compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
@@ -1799,7 +1800,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     struct statfs s;
     Volume *vol = volume_for_path("/wimax");
-    if (restore_wimax && vol != NULL && 0 == stat(vol->device, &s))
+    if (restore_wimax && vol != NULL && 0 == statfs(vol->device, &s))
     {
         ui_print("\n>> Restoring WiMAX...\n");
         char serialno[PROPERTY_VALUE_MAX];
@@ -1832,24 +1833,24 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     // this could be done here since efs is processed alone, but must be done before md5 checksum!
     // same applies for modem.bin restore
     vol = volume_for_path("/efs");
-    if (backup_efs == RESTORE_EFS_TAR && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_efs == RESTORE_EFS_TAR && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/efs")))
             return ret;
     }
 
     vol = volume_for_path("/misc");
-    if (backup_misc && vol != NULL && 0 == stat(vol->device, &s)) {
+    if (backup_misc && vol != NULL && 0 == statfs(vol->device, &s)) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/misc")))
             return ret;
     }
 
     sprintf(tmp, "/modem");
     vol = volume_for_path(tmp);
-    if (vol == NULL || 0 != stat(vol->device, &s)) {
+    if (vol == NULL || 0 != statfs(vol->device, &s)) {
         sprintf(tmp, "/radio");
         vol = volume_for_path(tmp);
     }
-    if (vol != NULL && 0 == stat(vol->device, &s)) {
+    if (vol != NULL && 0 == statfs(vol->device, &s)) {
         if (backup_modem == RAW_IMG_FILE && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
             return ret;
     }
@@ -1858,7 +1859,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return ret;
 
     vol = volume_for_path("/preload");
-    if (vol != NULL && 0 == stat(vol->device, &s)) {
+    if (vol != NULL && 0 == statfs(vol->device, &s)) {
         if (is_custom_backup && backup_preload) {
             if (0 != (ret = nandroid_restore_partition(backup_path, "/preload"))) {
                 ui_print("Failed to restore /preload!\n");

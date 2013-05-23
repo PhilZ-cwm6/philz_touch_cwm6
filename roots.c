@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <sys/vfs.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mounts.h"
@@ -417,7 +416,7 @@ int format_volume(const char* volume) {
 
     // silent failure to format non existing sd-ext when defined in recovery.fstab
     if (strcmp(volume, "/sd-ext") == 0) {
-        struct statfs s;
+        struct stat s;
         if (0 != stat(v->device, &s)) {
             LOGI("Skipping format of sd-ext\n");
             return -1;

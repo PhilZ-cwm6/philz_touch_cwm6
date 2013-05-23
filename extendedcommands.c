@@ -2644,7 +2644,7 @@ static void custom_restore_handler(const char* backup_path) {
                                 NULL
     };
 
-    struct stat s;
+    struct statfs s;
     char* file = NULL;
     static char* confirm_install = "Restore from this backup?";
     char tmp[PATH_MAX];
@@ -2684,7 +2684,7 @@ static void custom_restore_handler(const char* backup_path) {
 
         //ensure there is no efs.img file in same folder (as nandroid_restore_partition_extended will force it to be restored)
         sprintf(tmp, "%s/efs.img", file);
-        if (0 == stat(tmp, &s)) {
+        if (0 == statfs(tmp, &s)) {
             ui_print("efs.img file detected in %s!\n", file);
             ui_print("Either select efs.img to restore it,\n");
             ui_print("or remove it to restore nandroid source.\n");
@@ -2709,11 +2709,11 @@ static void custom_restore_handler(const char* backup_path) {
         backup_source = basename(file);
         sprintf(tmp, "/modem");
         Volume *vol = volume_for_path(tmp);
-        if (vol == NULL || 0 != stat(vol->device, &s)) {
+        if (vol == NULL || 0 != statfs(vol->device, &s)) {
             sprintf(tmp, "/radio");
             vol = volume_for_path(tmp);
         }
-        if (vol != NULL && 0 == stat(vol->device, &s)) {
+        if (vol != NULL && 0 == statfs(vol->device, &s)) {
             ui_print("%s will be flashed to %s!\n", backup_source, tmp);
             static char confirm[PATH_MAX];
             sprintf(confirm, "Yes - Restore %s", backup_source);
