@@ -2668,7 +2668,7 @@ static void custom_restore_handler(const char* backup_path) {
         ui_print("%s will be flashed to /efs!\n", backup_source);
         sprintf(tmp, "Yes - Restore %s", backup_source);
         if (confirm_selection(confirm_install, tmp))
-            custom_restore_raw_handler(file, "/efs");
+            dd_raw_restore_handler(file, "/efs");
     } else if (backup_efs == RESTORE_EFS_TAR) {
         if (volume_for_path("/efs") == NULL) {
             LOGE("No /efs partition to flash\n");
@@ -2709,16 +2709,16 @@ static void custom_restore_handler(const char* backup_path) {
         backup_source = basename(file);
         sprintf(tmp, "/modem");
         Volume *vol = volume_for_path(tmp);
-        if (vol == NULL || 0 != statfs(vol->device, &s)) {
+        if (vol == NULL) {
             sprintf(tmp, "/radio");
             vol = volume_for_path(tmp);
         }
-        if (vol != NULL && 0 == statfs(vol->device, &s)) {
+        if (vol != NULL) {
             ui_print("%s will be flashed to %s!\n", backup_source, tmp);
             static char confirm[PATH_MAX];
             sprintf(confirm, "Yes - Restore %s", backup_source);
             if (confirm_selection(confirm_install, confirm))
-                custom_restore_raw_handler(file, tmp);
+                dd_raw_restore_handler(file, tmp);
         } else
             LOGE("no /modem or /radio partition to flash\n");
     } else {

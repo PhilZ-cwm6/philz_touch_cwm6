@@ -38,8 +38,8 @@ int twrp_restore(const char* backup_path);
 #define RESTORE_EFS_TAR 1
 #define RESTORE_EFS_IMG 2
 
-int custom_backup_raw_handler(const char* backup_path, const char* root);
-int custom_restore_raw_handler(const char* backup_path, const char* root);
+int dd_raw_backup_handler(const char* backup_path, const char* root);
+int dd_raw_restore_handler(const char* backup_path, const char* root);
 extern int is_custom_backup;
 extern int backup_boot;
 extern int backup_recovery;
