@@ -23,9 +23,8 @@ unsigned nandroid_get_default_backup_format();
 /*    Keep this credits header    */
 /**********************************/
 
-#define EFS_BACKUP_PATH "clockworkmod/custom_backup/.efs_backup"
-#define MODEM_BIN_PATH "clockworkmod/custom_backup/.modem_bin"
-#define CUSTOM_BACKUP_PATH "clockworkmod/custom_backup"
+#define EFS_BACKUP_PATH "clockworkmod/backup/.efs_backup"
+#define MODEM_BIN_PATH "clockworkmod/backup/.modem_bin"
 #define TWRP_BACKUP_PATH "TWRP/BACKUPS"
 extern int twrp_backup_mode;
 int gen_twrp_md5sum(const char* backup_path);
