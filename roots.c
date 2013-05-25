@@ -64,9 +64,8 @@ static int parse_options(char* options, Volume* volume) {
         if (strncmp(option, "length=", 7) == 0) {
             volume->length = strtoll(option+7, NULL, 10);
         } else if (strncmp(option, "fstype2=", 8) == 0) {
-            //volume->fs_type2 = volume->fs_type; // fs_type2 option in recovery.fstab becomes fs_type in remaining code
-            //volume->fs_type = strdup(option + 8); // and fs_type in code is now the fs_type2 entry in recovery.fstab
-            volume->fs_type2 = strdup(option + 8);
+            volume->fs_type2 = volume->fs_type;
+            volume->fs_type = strdup(option + 8);
         } else if (strncmp(option, "fs_options=", 11) == 0) {
             volume->fs_options = strdup(option + 11);
         } else if (strncmp(option, "fs_options2=", 12) == 0) {
@@ -198,21 +197,6 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
     }
     if (ret == 0)
         return 0;
-
-    //exfat support by PhilZ
-    if (strcmp(fs_type, "vfat") == 0) {
-        char mount_cmd[PATH_MAX];
-        sprintf(mount_cmd, "mount -t exfat %s %s %s", fs_options != NULL ? fs_options : "", device, mount_point);
-        ret = __system(mount_cmd);
-        if (ret == 0) {
-            // LOGE("success: mount exfat %s %s %s\n", fs_options, device, mount_point); // debug
-            return 0;
-        }
-        LOGI("failed to mount ext4/vfat/exfat %s %s %s\n", device, mount_point, fs_options);
-        return ret;
-    }
-    // end exfat support for sdcard
-
     LOGW("failed to mount %s %s %s (%s)\n", device, mount_point, fs_type, strerror(errno));
     return ret;
 }
