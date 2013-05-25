@@ -2486,21 +2486,18 @@ int get_android_secure_path(char *and_sec_path) {
 
     android_secure_ext = 1;
     struct stat st;
-    if (is_data_media() && volume_for_path("/external_sd") != NULL) {
+    if (volume_for_path("/external_sd") != NULL &&
+                ensure_path_mounted("/external_sd") == 0 &&
+                stat("/external_sd/.android_secure", &st) == 0) {
         strcpy(and_sec_path, "/external_sd/.android_secure");
     }
-    else if (volume_for_path("/external_sd") != NULL &&
-                 ensure_path_mounted("/external_sd") == 0 &&
-                 stat("/external_sd/.android_secure", &st) == 0) {
-        strcpy(and_sec_path, "/external_sd/.android_secure");
-    }
-    else if (ensure_path_mounted("/sdcard") == 0 && 
+    else if (!is_data_media() && ensure_path_mounted("/sdcard") == 0 && 
                 stat("/sdcard/.android_secure", &st) == 0) {
         strcpy(and_sec_path, "/sdcard/.android_secure");
     }
     else if (volume_for_path("/emmc") != NULL &&
-                 ensure_path_mounted("/emmc") == 0 &&
-                 stat("/emmc/.android_secure", &st) == 0) {
+                ensure_path_mounted("/emmc") == 0 &&
+                stat("/emmc/.android_secure", &st) == 0) {
         strcpy(and_sec_path, "/emmc/.android_secure");
     }
     else android_secure_ext = 0;
@@ -3564,6 +3561,7 @@ static void regenerate_md5_sum_menu() {
         return;
 
     ui_print("Generating md5 sum...\n");
+    // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
     sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
     if (0 != __system(tmp))
         ui_print("Error while generating md5 sum!\n");
