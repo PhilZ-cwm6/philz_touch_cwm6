@@ -57,7 +57,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.04.9
+PHILZ_BUILD := 5.05.3
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -88,11 +88,13 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
 #Galaxy S4 International - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
 TARGET_NAME := i9500
+BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
 #Galaxy S4 - i9505, jfltecan and jfltetmo
 else ifeq ($(TARGET_PRODUCT), cm_jfltecan)
 TARGET_NAME := i9505
+BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 LOCAL_CFLAGS += -DUSE_MKE2FS_FIX
 
@@ -170,6 +172,7 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
 # Samsung Nexus 10 - manta
 else ifeq ($(TARGET_PRODUCT), cm_manta)
 TARGET_NAME := Samsung_Nexus_10
+BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
 
 # Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
@@ -177,10 +180,10 @@ else ifeq ($(TARGET_PRODUCT), cm_maguro)
 TARGET_NAME := Samsung_Galaxy_Nexus
 LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
 
-# Samsung Galaxy Nexus S - crespo
+# Samsung Nexus S - crespo
 else ifeq ($(TARGET_PRODUCT), cm_crespo)
-TARGET_NAME := Samsung_Galaxy_Nexus_S
-LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS_S
+TARGET_NAME := Samsung_Nexus_S
+LOCAL_CFLAGS += -DTARGET_DEVICE_SAMSUNG_NEXUS_S
 
 #Undefined Device
 else

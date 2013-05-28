@@ -52,13 +52,14 @@
 #include <libgen.h>
 
 
-time_t t_nandroid_start;
-static time_t now_sec(void) {
+static long nandroid_start_msec;
+static long now_msec(void) {
     struct timeval now;
-    time_t t;
+    long mseconds;
     gettimeofday(&now, NULL);
-    t = now.tv_sec;
-    return t;
+    mseconds = now.tv_sec * 1000;
+    mseconds += now.tv_usec / 1000;
+    return mseconds;
 }
 
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -150,6 +151,16 @@ static void compute_directory_stats(const char* directory)
     }
 }
 
+static long last_size_update = 0;
+static void update_size_progress(const char* backup_file_image) {
+    // statfs every 0.5sec interval maximum
+    if (last_size_update == 0 || (now_msec() - last_size_update) > 500) {
+        Get_Size_Via_statfs(backup_file_image);
+        last_size_update = now_msec();
+    }
+}
+
+
 typedef void (*file_event_callback)(const char* filename);
 typedef int (*nandroid_backup_handler)(const char* backup_path, const char* backup_file_image, int callback);
 
@@ -164,6 +175,7 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
@@ -171,7 +183,7 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            Get_Size_Via_statfs(backup_file_image);
+            update_size_progress(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -197,6 +209,7 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
@@ -204,7 +217,7 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            Get_Size_Via_statfs(backup_file_image);
+            update_size_progress(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -259,6 +272,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
@@ -266,7 +280,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
-            Get_Size_Via_statfs(backup_file_image);
+            update_size_progress(backup_file_image);
             nandroid_callback(tmp);
         }
     }
@@ -583,9 +597,11 @@ static int check_backup_size() {
     if (backup_data && is_data_media()) {
         if (0 == ensure_path_mounted("/data") && 0 == Get_Size_Via_statfs("/data")) {
             unsigned long long data_backup_size;
-            data_backup_size = Used_Size - Get_Folder_Size("/data/media");
+            unsigned long long data_media_size = Get_Folder_Size("/data/media");
+            data_backup_size = Used_Size - data_media_size;
             Backup_Size += data_backup_size;
-            LOGI("/data backup size=%lluMb\n", data_backup_size / 1048576LLU); // debug
+            LOGI("/data: tot size=%lluMb, backup size=%lluMb, total used=%lluMb, media=%lluMb\n", Total_Size / 1048576LLU,
+                     data_backup_size / 1048576LLU, Used_Size / 1048576LLU, data_media_size / 1048576LLU);
         } else {
             ret++;
             strcat(skipped_parts, " - /data");
@@ -618,20 +634,20 @@ static int check_backup_size() {
 }
 
 static int show_backup_stats(const char* backup_path) {
-    int t_total = (int)(now_sec() - t_nandroid_start);
-    int minutes = t_total / 60;
-    int seconds = t_total % 60;
+    long total_msec = now_msec() - nandroid_start_msec;
+    int minutes = total_msec / 60000;
+    int seconds = (total_msec % 60000) / 1000;
 
     unsigned long long final_size = Get_Folder_Size(backup_path);
     long double compression;
-    if (Backup_Size == 0 || final_size == 0)
+    if (Backup_Size == 0 || final_size == 0 || compression_value == TAR_FORMAT)
         compression = 0;
     else compression = 1 - ((long double)(final_size) / (long double)(Backup_Size));
 
     ui_print("\nBackup complete!\n");
     ui_print("Backup time: %02i:%02i mn\n", minutes, seconds);
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
-    if (default_backup_handler == tar_compress_wrapper && compression_value != TAR_FORMAT)
+    if (default_backup_handler == tar_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
     return 0;
 }
@@ -902,6 +918,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     char tmp[PATH_MAX];
     int index;
     int nand_starts = 1;
+    last_size_update = 0;
     for (index=0; index<backup_count; index++)
     {
         compute_twrp_backup_stats(index);
@@ -925,7 +942,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 #endif
             tmp[PATH_MAX - 1] = NULL;
             if (callback) {
-                Get_Size_Via_statfs(backup_file_image);
+                update_size_progress(backup_file_image);
                 nandroid_callback(tmp);
             }
         }
@@ -963,9 +980,9 @@ int twrp_backup(const char* backup_path) {
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    t_nandroid_start = now_sec();
+    nandroid_start_msec = now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_sec();
+    last_key_ev = nandroid_start_msec;
 #endif
 
     char tmp[PATH_MAX];
@@ -1148,7 +1165,7 @@ int twrp_restore(const char* backup_path)
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_sec();
+    last_key_ev = now_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
@@ -1255,9 +1272,9 @@ int nandroid_backup(const char* backup_path)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    t_nandroid_start = now_sec();
+    nandroid_start_msec = now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_sec(); //support dim screen timeout during nandroid operation
+    last_key_ev = nandroid_start_msec; //support dim screen timeout during nandroid operation
 #endif
 
     char tmp[PATH_MAX];
@@ -1791,7 +1808,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_sec();
+    last_key_ev = now_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
