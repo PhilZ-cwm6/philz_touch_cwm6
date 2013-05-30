@@ -107,20 +107,24 @@ static void nandroid_callback(const char* filename)
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = NULL;
     tmp[ui_get_text_cols() - 1] = '\0';
+    if (strlen(tmp) == 0)
+        return;
+
     nandroid_files_count++;
     ui_increment_frame();
 
-    char size_progress[256] = "";
+    char size_progress[256] = "Size progress: N/A";
     if (Backup_Size != 0) {
         sprintf(size_progress, "Done %llu/%lluMb - Free %lluMb",
                 (Used_Size - Before_Used_Size) / 1048576LLU, Backup_Size / 1048576LLU, Free_Size / 1048576LLU);
-        size_progress[ui_get_text_cols() - 1] = '\0';
     }
+    size_progress[ui_get_text_cols() - 1] = '\0';
 
 #ifdef PHILZ_TOUCH_RECOVERY
     int color[] = {CYAN_BLUE_CODE};
     ui_print_color(3, color);
 #endif
+
     // do not write size progress to log file
     ui_nolog_lines(1);
     ui_nice_print("%s\n%s\n", tmp, size_progress);
@@ -513,7 +517,7 @@ static int Is_Image(const char* root) {
 
 unsigned long long Backup_Size;
 unsigned long long Before_Used_Size;
-static int check_backup_size() {
+static int check_backup_size(const char* backup_path) {
     int total_mb = (int)(Total_Size / 1048576LLU);
     int used_mb = (int)(Used_Size / 1048576LLU);
     int free_mb = (int)(Free_Size / 1048576LLU);
@@ -556,6 +560,7 @@ static int check_backup_size() {
             backup_sdext,
     };
 
+    LOGI("Checking needed space for backup '%s'\n", backup_path);
     char skipped_parts[1024] = "";
     int ret = 0;
     Volume* vol;
@@ -990,7 +995,7 @@ int twrp_backup(const char* backup_path) {
     if (0 != Get_Size_Via_statfs(backup_path))
         return print_and_error("Unable to stat backup path.\n");
 
-    if (check_backup_size() < 0)
+    if (check_backup_size(backup_path) < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
@@ -1283,7 +1288,7 @@ int nandroid_backup(const char* backup_path)
     if (0 != (ret = Get_Size_Via_statfs(backup_path)))
         return print_and_error("Unable to stat backup path.\n");
 
-    if (check_backup_size() < 0)
+    if (check_backup_size(backup_path) < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
