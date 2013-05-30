@@ -598,10 +598,12 @@ static int check_backup_size() {
         if (0 == ensure_path_mounted("/data") && 0 == Get_Size_Via_statfs("/data")) {
             unsigned long long data_backup_size;
             unsigned long long data_media_size = Get_Folder_Size("/data/media");
-            data_backup_size = Used_Size - data_media_size;
+            unsigned long long data_used_bytes = Get_Folder_Size("/data");
+            data_backup_size = data_used_bytes - data_media_size;
             Backup_Size += data_backup_size;
-            LOGI("/data: tot size=%lluMb, backup size=%lluMb, total used=%lluMb, media=%lluMb\n", Total_Size / 1048576LLU,
-                     data_backup_size / 1048576LLU, Used_Size / 1048576LLU, data_media_size / 1048576LLU);
+            LOGI("/data: tot size=%lluMb, free=%lluMb, backup size=%lluMb, used=%lluMb, media=%lluMb\n",
+                    Total_Size/1048576LLU, Free_Size/1048576LLU, data_backup_size/1048576LLU,
+                    data_used_bytes/1048576LLU, data_media_size/1048576LLU);
         } else {
             ret++;
             strcat(skipped_parts, " - /data");

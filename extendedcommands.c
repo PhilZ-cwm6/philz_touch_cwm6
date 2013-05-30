@@ -1637,9 +1637,9 @@ int Get_Size_Via_statfs(const char* Path) {
         return -1;
     }
 
-	Total_Size = (st.f_blocks * st.f_bsize);
-	Used_Size = ((st.f_blocks - st.f_bfree) * st.f_bsize);
-	Free_Size = (st.f_bfree * st.f_bsize);
+    Total_Size = (unsigned long long)(st.f_blocks) * (unsigned long long)(st.f_bsize);
+    Free_Size = (unsigned long long)(st.f_bfree) * (unsigned long long)(st.f_bsize);
+    Used_Size = Total_Size - Free_Size;
 	return 0;
 }
 
@@ -1688,8 +1688,9 @@ unsigned long long Get_Folder_Size(const char* Path) {
     DIR* d;
     struct dirent* de;
     struct stat st;
-    char path2[1024], filename[1024];
+    char path2[PATH_MAX]; char filename[PATH_MAX];
     unsigned long long dusize = 0;
+    unsigned long long dutemp = 0;
 
     // Make a copy of path in case the data in the pointer gets overwritten later
     strcpy(path2, Path);
@@ -1698,6 +1699,7 @@ unsigned long long Get_Folder_Size(const char* Path) {
     if (d == NULL)
     {
         LOGE("error opening '%s'\n", path2);
+        LOGE("error: %s\n", strerror(errno));
         return 0;
     }
 
@@ -1708,7 +1710,9 @@ unsigned long long Get_Folder_Size(const char* Path) {
             strcpy(filename, path2);
             strcat(filename, "/");
             strcat(filename, de->d_name);
-            dusize += Get_Folder_Size(filename);
+            dutemp = Get_Folder_Size(filename);
+            dusize += dutemp;
+            dutemp = 0;
         }
         else if (de->d_type == DT_REG)
         {
