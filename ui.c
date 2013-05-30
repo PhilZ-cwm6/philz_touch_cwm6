@@ -693,6 +693,17 @@ int ui_get_text_cols() {
     return text_cols;
 }
 
+// exclude specified line from writing to log for next ui_print() calls
+// pass -1 to disable and restore all logging
+// for now, used only in ui_nice_print() to not write backup size progress in log
+// calling 2 times a ui_print() there will cause whole screen to refresh and flashy effect on deleted lines
+// to improve: support multi line exclude, use another delimiter to preserve \n if needed
+// first line is 0
+static int no_stdout_line = -1;
+void ui_nolog_lines(int lines) {
+    no_stdout_line = lines;
+}
+
 void ui_print(const char *fmt, ...)
 {
     char buf[256];
@@ -701,7 +712,27 @@ void ui_print(const char *fmt, ...)
     vsnprintf(buf, 256, fmt, ap);
     va_end(ap);
 
-    if (ui_log_stdout)
+    // check if we need to exclude some line from write to log
+    // first line is line 0
+    if (no_stdout_line >= 0) {
+        char buf2[256];
+        char str[256];
+        // copy the buffer to modify it
+        strcpy(buf2, buf);
+        char *ptr = strtok(buf2, "\n");
+        int i = 0;
+        while(ptr != NULL) {
+            // parse the buffer and write line to log except exclude line
+            if (i != no_stdout_line) {
+                strcpy(str, ptr);
+                strcat(str, "\n");
+                fputs(str, stdout);
+            }
+            ptr = strtok(NULL, "\n");
+            i++;
+        }
+    }
+    else if (ui_log_stdout)
         fputs(buf, stdout);
 
     // if we are running 'ui nice' mode, we do not want to force a screen update

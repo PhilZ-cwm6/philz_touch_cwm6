@@ -121,7 +121,10 @@ static void nandroid_callback(const char* filename)
     int color[] = {CYAN_BLUE_CODE};
     ui_print_color(3, color);
 #endif
+    // do not write size progress to log file
+    ui_nolog_lines(1);
     ui_nice_print("%s\n%s\n", tmp, size_progress);
+    ui_nolog_lines(-1);
     if (!ui_was_niced() && nandroid_files_total != 0)
         ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
     if (!ui_was_niced()) {
@@ -635,7 +638,7 @@ static int check_backup_size() {
     return 0;
 }
 
-static int show_backup_stats(const char* backup_path) {
+static void show_backup_stats(const char* backup_path) {
     long total_msec = now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
     int seconds = (total_msec % 60000) / 1000;
@@ -651,7 +654,16 @@ static int show_backup_stats(const char* backup_path) {
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
     if (default_backup_handler == tar_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
-    return 0;
+}
+
+// show restore stats (only time for now)
+static void show_restore_stats() {
+    long total_msec = now_msec() - nandroid_start_msec;
+    int minutes = total_msec / 60000;
+    int seconds = (total_msec % 60000) / 1000;
+
+    ui_print("\nRestore complete!\n");
+    ui_print("Restore time: %02i:%02i mn\n", minutes, seconds);
 }
 
 //custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
@@ -1166,6 +1178,7 @@ int twrp_restore(const char* backup_path)
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
+    nandroid_start_msec = now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = now_msec();
 #endif
@@ -1240,7 +1253,7 @@ int twrp_restore(const char* backup_path)
         return ret;
 
     finish_nandroid_job();
-    ui_print("\nTWRP Restore complete!\n");
+    show_restore_stats();
     if (reboot_after_nandroid)
         reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
@@ -1809,6 +1822,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
+    nandroid_start_msec = now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = now_msec();
 #endif
@@ -1932,7 +1946,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return ret;
 
     finish_nandroid_job();
-    ui_print("\nRestore complete!\n");
+    show_restore_stats();
     if (reboot_after_nandroid)
         reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     return 0;
