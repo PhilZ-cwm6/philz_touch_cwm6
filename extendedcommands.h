@@ -67,7 +67,6 @@ void handle_nandroid_menu(int item_count, int selected);
 #endif
 
 
-
 /* Start PhilZ Settings */
 
 // print custom logtail (detailed logging report in raw-backup.sh...)

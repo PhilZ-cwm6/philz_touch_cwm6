@@ -464,7 +464,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 //these general variables are needed to not break backup and restore by external script
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
-int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0;
+int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0, backup_radio = 0;
 int is_custom_backup = 0;
 int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
@@ -549,7 +549,7 @@ static int check_backup_size(const char* backup_path) {
             backup_boot,
             backup_wimax,
             backup_modem,
-            backup_modem,
+            backup_radio,
             backup_efs,
             backup_misc,
             backup_system,
@@ -1025,14 +1025,15 @@ int twrp_backup(const char* backup_path) {
             return ret;
     }
 
-    sprintf(tmp, "/modem");
-    vol = volume_for_path(tmp);
-    if (vol == NULL) {
-        sprintf(tmp, "/radio");
-        vol = volume_for_path(tmp);
-    }
+    vol = volume_for_path("/modem");
     if (backup_modem && NULL != vol) {
-        if (0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/modem")))
+            return ret;
+    }
+
+    vol = volume_for_path("/radio");
+    if (backup_radio && NULL != vol) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/radio")))
             return ret;
     }
 
@@ -1216,14 +1217,15 @@ int twrp_restore(const char* backup_path)
             return ret;
     }
 
-    sprintf(tmp, "/modem");
-    vol = volume_for_path(tmp);
-    if (vol == NULL) {
-        sprintf(tmp, "/radio");
-        vol = volume_for_path(tmp);
+    vol = volume_for_path("/modem");
+    if (backup_modem == RAW_IMG_FILE && vol != NULL) {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/modem")))
+            return ret;
     }
-    if (vol != NULL) {
-        if (backup_modem == RAW_IMG_FILE && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+
+    vol = volume_for_path("/radio");
+    if (backup_radio == RAW_IMG_FILE && vol != NULL) {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/radio")))
             return ret;
     }
 
@@ -1339,14 +1341,15 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
 
-    sprintf(tmp, "/modem");
-    vol = volume_for_path(tmp);
-    if (vol == NULL) {
-        sprintf(tmp, "/radio");
-        vol = volume_for_path(tmp);
+    vol = volume_for_path("/modem");
+    if (backup_modem && NULL != vol) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/modem")))
+            return ret;
     }
-    if (backup_modem && vol != NULL) {
-        if (0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+
+    vol = volume_for_path("/radio");
+    if (backup_radio && NULL != vol) {
+        if (0 != (ret = nandroid_backup_partition(backup_path, "/radio")))
             return ret;
     }
 
@@ -1898,14 +1901,15 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
             return ret;
     }
 
-    sprintf(tmp, "/modem");
-    vol = volume_for_path(tmp);
-    if (vol == NULL) {
-        sprintf(tmp, "/radio");
-        vol = volume_for_path(tmp);
+    vol = volume_for_path("/modem");
+    if (backup_modem == RAW_IMG_FILE && vol != NULL) {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/modem")))
+            return ret;
     }
-    if (vol != NULL) {
-        if (backup_modem == RAW_IMG_FILE && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+
+    vol = volume_for_path("/radio");
+    if (backup_radio == RAW_IMG_FILE && vol != NULL) {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/radio")))
             return ret;
     }
 

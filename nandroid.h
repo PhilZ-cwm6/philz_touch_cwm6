@@ -25,6 +25,7 @@ unsigned nandroid_get_default_backup_format();
 
 #define EFS_BACKUP_PATH "clockworkmod/backup/.efs_backup"
 #define MODEM_BIN_PATH "clockworkmod/backup/.modem_bin"
+#define RADIO_BIN_PATH "clockworkmod/backup/.radio_bin"
 #define TWRP_BACKUP_PATH "TWRP/BACKUPS"
 extern int twrp_backup_mode;
 int gen_twrp_md5sum(const char* backup_path);
@@ -51,6 +52,7 @@ extern int backup_wimax;
 extern int backup_efs;
 extern int backup_misc;
 extern int backup_modem;
+extern int backup_radio;
 
 //toggle nandroid compression
 #define TAR_GZ_LOW 3

@@ -2526,6 +2526,7 @@ void reset_custom_job_settings(int custom_job) {
 
     backup_preload = 0;
     backup_modem = 0;
+    backup_radio = 0;
     backup_efs = 0;
     backup_misc = 0;
     ignore_android_secure = 0;
@@ -2550,6 +2551,8 @@ static void ui_print_backup_list() {
         ui_print(" - sd-ext");
     if (backup_modem)
         ui_print(" - modem");
+    if (backup_radio)
+        ui_print(" - radio");
     if (backup_wimax)
         ui_print(" - wimax");
     if (backup_efs)
@@ -2706,20 +2709,35 @@ static void custom_restore_handler(const char* backup_path) {
 
         //restore modem.bin raw image
         backup_source = basename(file);
-        sprintf(tmp, "/modem");
-        Volume *vol = volume_for_path(tmp);
-        if (vol == NULL) {
-            sprintf(tmp, "/radio");
-            vol = volume_for_path(tmp);
-        }
+        Volume *vol = volume_for_path("/modem");
         if (vol != NULL) {
-            ui_print("%s will be flashed to %s!\n", backup_source, tmp);
-            static char confirm[PATH_MAX];
+            ui_print("%s will be flashed to /modem!\n", backup_source);
+            char confirm[PATH_MAX];
             sprintf(confirm, "Yes - Restore %s", backup_source);
             if (confirm_selection(confirm_install, confirm))
-                dd_raw_restore_handler(file, tmp);
+                dd_raw_restore_handler(file, "/modem");
         } else
-            LOGE("no /modem or /radio partition to flash\n");
+            LOGE("no /modem partition to flash\n");
+    } else if (backup_radio == RAW_BIN_FILE) {
+        file = choose_file_menu(backup_path, ".bin", headers);
+        if (file == NULL) {
+            //either no valid files found or we selected no files by pressing back menu
+            if (no_files_found)
+                ui_print("Nothing to restore in %s !\n", backup_path);
+            return;
+        }
+
+        //restore radio.bin raw image
+        backup_source = basename(file);
+        Volume *vol = volume_for_path("/radio");
+        if (vol != NULL) {
+            ui_print("%s will be flashed to /radio!\n", backup_source);
+            char confirm[PATH_MAX];
+            sprintf(confirm, "Yes - Restore %s", backup_source);
+            if (confirm_selection(confirm_install, confirm))
+                dd_raw_restore_handler(file, "/radio");
+        } else
+            LOGE("no /radio partition to flash\n");
     } else {
         //process backup job
         file = choose_file_menu(backup_path, "show_all_files", headers);
@@ -2757,7 +2775,7 @@ static void browse_backup_folders(const char* backup_path)
         ext_sd = "/external_sd";
 
     if (ext_sd != NULL)
-        list[1] = "Restore from External sdcard";    
+        list[1] = "Restore from External sdcard";
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item)
@@ -2788,24 +2806,31 @@ static void browse_backup_folders(const char* backup_path)
 static void validate_backup_job(const char* backup_path) {
     int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data +
                 backup_cache + backup_sdext + backup_wimax + backup_misc;
-    if (0 == (backup_efs + sum + backup_modem)) {
+    if (0 == (sum + backup_efs + backup_modem + backup_radio)) {
         ui_print("Select at least one partition to restore!\n");
         return;
     }
+
     if (backup_path != NULL)
     {
         // it is a restore job
         if (backup_modem == RAW_BIN_FILE) {
-            if (0 != (sum + backup_efs))
+            if (0 != (sum + backup_efs + backup_radio))
                 ui_print("modem.bin format must be restored alone!\n");
             else
                 browse_backup_folders(MODEM_BIN_PATH);
         }
+        else if (backup_radio == RAW_BIN_FILE) {
+            if (0 != (sum + backup_efs + backup_modem))
+                ui_print("radio.bin format must be restored alone!\n");
+            else
+                browse_backup_folders(RADIO_BIN_PATH);
+        }
         else if (twrp_backup_mode)
             browse_backup_folders(backup_path);
-        else if (backup_efs && (sum + backup_modem) != 0)
+        else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
             ui_print("efs must be restored alone!\n");
-        else if (backup_efs && (sum + backup_modem) == 0)
+        else if (backup_efs && (sum + backup_modem + backup_radio) == 0)
             browse_backup_folders(EFS_BACKUP_PATH);
         else
             browse_backup_folders(backup_path);
@@ -2817,7 +2842,7 @@ static void validate_backup_job(const char* backup_path) {
             LOGE("Default backup format must be tar!\n");
         else if (twrp_backup_mode)
             twrp_backup_handler();
-        else if (backup_efs && (sum + backup_modem) != 0)
+        else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
             ui_print("efs must be backed up alone!\n");
         else
             custom_backup_handler();
@@ -2839,6 +2864,7 @@ static void custom_restore_menu(const char* backup_path) {
     char item_cache[MENU_MAX_COLS];
     char item_sdext[MENU_MAX_COLS];
     char item_modem[MENU_MAX_COLS];
+    char item_radio[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
@@ -2852,6 +2878,7 @@ static void custom_restore_menu(const char* backup_path) {
                 item_cache,
                 item_sdext,
                 item_modem,
+                item_radio,
                 item_efs,
                 item_misc,
                 ">> Start Custom Restore Job <<",
@@ -2863,7 +2890,7 @@ static void custom_restore_menu(const char* backup_path) {
     char tmp[PATH_MAX];
     if (0 == get_partition_device("wimax", tmp)) {
         // show wimax restore option
-        list[13] = "show wimax menu";
+        list[14] = "show wimax menu";
     }
 
     reset_custom_job_settings(1);
@@ -2896,13 +2923,21 @@ static void custom_restore_menu(const char* backup_path) {
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Restore sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Restore sd-ext", "( )");
 
-        if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+        if (volume_for_path("/modem") == NULL)
             ui_format_gui_menu(item_modem, "Restore modem", "N/A");
         else if (backup_modem == RAW_IMG_FILE)
             ui_format_gui_menu(item_modem, "Restore modem [.img]", "(x)");
         else if (backup_modem == RAW_BIN_FILE)
             ui_format_gui_menu(item_modem, "Restore modem [.bin]", "(x)");
         else ui_format_gui_menu(item_modem, "Restore modem", "( )");
+
+        if (volume_for_path("/radio") == NULL)
+            ui_format_gui_menu(item_radio, "Restore radio", "N/A");
+        else if (backup_radio == RAW_IMG_FILE)
+            ui_format_gui_menu(item_radio, "Restore radio [.img]", "(x)");
+        else if (backup_radio == RAW_BIN_FILE)
+            ui_format_gui_menu(item_radio, "Restore radio [.bin]", "(x)");
+        else ui_format_gui_menu(item_radio, "Restore radio", "( )");
 
         if (volume_for_path("/efs") == NULL)
             ui_format_gui_menu(item_efs, "Restore efs", "N/A");
@@ -2920,11 +2955,11 @@ static void custom_restore_menu(const char* backup_path) {
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[13]) {
+        if (NULL != list[14]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
-            list[13] = item_wimax;
+            list[14] = item_wimax;
         }
 
 
@@ -2962,7 +2997,7 @@ static void custom_restore_menu(const char* backup_path) {
                 backup_sdext ^= 1;
                 break;
             case 8:
-                if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+                if (volume_for_path("/modem") == NULL)
                     backup_modem = 0;
                 else {
                     backup_modem++;
@@ -2973,6 +3008,17 @@ static void custom_restore_menu(const char* backup_path) {
                 }
                 break;
             case 9:
+                if (volume_for_path("/radio") == NULL)
+                    backup_radio = 0;
+                else {
+                    backup_radio++;
+                    if (backup_radio > 2)
+                        backup_radio = 0;
+                    if (twrp_backup_mode && backup_radio == RAW_BIN_FILE)
+                        backup_radio = 0;
+                }
+                break;
+            case 10:
                 if (volume_for_path("/efs") == NULL)
                     backup_efs = 0;
                 else {
@@ -2983,18 +3029,18 @@ static void custom_restore_menu(const char* backup_path) {
                         backup_efs = 0;
                 }
                 break;
-            case 10:
+            case 11:
                 if (volume_for_path("/misc") == NULL)
                     backup_misc = 0;
                 else backup_misc ^= 1;
                 break;
-            case 11:
+            case 12:
                 validate_backup_job(backup_path);
                 break;
-            case 12:
+            case 13:
                 reboot_after_nandroid ^= 1;
                 break;
-            case 13:
+            case 14:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;
@@ -3017,6 +3063,7 @@ static void custom_backup_menu() {
     char item_cache[MENU_MAX_COLS];
     char item_sdext[MENU_MAX_COLS];
     char item_modem[MENU_MAX_COLS];
+    char item_radio[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
@@ -3030,6 +3077,7 @@ static void custom_backup_menu() {
                 item_cache,
                 item_sdext,
                 item_modem,
+                item_radio,
                 item_efs,
                 item_misc,
                 ">> Start Custom Backup Job <<",
@@ -3041,7 +3089,7 @@ static void custom_backup_menu() {
     char tmp[PATH_MAX];
     if (volume_for_path("/wimax") != NULL) {
         // show wimax backup option
-        list[13] = "show wimax menu";
+        list[14] = "show wimax menu";
     }
 
     reset_custom_job_settings(1);
@@ -3074,10 +3122,15 @@ static void custom_backup_menu() {
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Backup sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Backup sd-ext", "( )");
 
-        if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+        if (volume_for_path("/modem") == NULL)
             ui_format_gui_menu(item_modem, "Backup modem", "N/A");
         else if (backup_modem) ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
         else ui_format_gui_menu(item_modem, "Backup modem", "( )");
+
+        if (volume_for_path("/radio") == NULL)
+            ui_format_gui_menu(item_radio, "Backup radio", "N/A");
+        else if (backup_radio) ui_format_gui_menu(item_radio, "Backup radio [.img]", "(x)");
+        else ui_format_gui_menu(item_radio, "Backup radio", "( )");
 
         if (volume_for_path("/efs") == NULL)
             ui_format_gui_menu(item_efs, "Backup efs", "N/A");
@@ -3095,11 +3148,11 @@ static void custom_backup_menu() {
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[13]) {
+        if (NULL != list[14]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
-            list[13] = item_wimax;
+            list[14] = item_wimax;
         }
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -3136,27 +3189,32 @@ static void custom_backup_menu() {
                 backup_sdext ^= 1;
                 break;
             case 8:
-                if (volume_for_path("/modem") == NULL && volume_for_path("/radio") == NULL)
+                if (volume_for_path("/modem") == NULL)
                     backup_modem = 0;
                 else backup_modem ^= 1;
                 break;
             case 9:
+                if (volume_for_path("/radio") == NULL)
+                    backup_radio = 0;
+                else backup_radio ^= 1;
+                break;
+            case 10:
                 if (volume_for_path("/efs") == NULL)
                     backup_efs = 0;
                 else backup_efs ^= 1;
                 break;
-            case 10:
+            case 11:
                 if (volume_for_path("/misc") == NULL)
                     backup_misc = 0;
                 else backup_misc ^= 1;
                 break;
-            case 11:
+            case 12:
                 validate_backup_job(NULL);
                 break;
-            case 12:
+            case 13:
                 reboot_after_nandroid ^= 1;
                 break;
-            case 13:
+            case 14:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;
