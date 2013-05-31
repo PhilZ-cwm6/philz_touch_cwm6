@@ -167,18 +167,18 @@ else ifeq ($(TARGET_PRODUCT), cm_tilapia)
 TARGET_NAME := ASUS_Nexus_7
 LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
 
-# Samsung Nexus 10 - manta
+#Samsung Nexus 10 - manta
 else ifeq ($(TARGET_PRODUCT), cm_manta)
 TARGET_NAME := Samsung_Nexus_10
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
 
-# Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
+#Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
 else ifeq ($(TARGET_PRODUCT), cm_maguro)
 TARGET_NAME := Samsung_Galaxy_Nexus
 LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
 
-# Samsung Nexus S - crespo
+#Samsung Nexus S - crespo
 else ifeq ($(TARGET_PRODUCT), cm_crespo)
 TARGET_NAME := Samsung_Nexus_S
 LOCAL_CFLAGS += -DTARGET_DEVICE_SAMSUNG_NEXUS_S
