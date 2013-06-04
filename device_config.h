@@ -20,19 +20,23 @@
 //for ums lun file fix on some devices and show log menu function
 
 
-// i9300
-#ifdef TARGET_DEVICE_I9300
-#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
-#define BOOTLOADER_CMD_ARG "download"
-#endif
-
-
 // i9100
 #ifdef TARGET_DEVICE_I9100
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
+// i9300
+#ifdef TARGET_DEVICE_I9300
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// S3 - d2tmo - SGH-T999
+#ifdef TARGET_DEVICE_D2TMO
+//#define BOARD_UMS_LUNFILE    "/sys/class/android_usb/android0/f_mass_storage/lun0/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
 
 // n7000
 #ifdef TARGET_DEVICE_N7000
@@ -40,13 +44,11 @@
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
-
 // n7100
 #ifdef TARGET_DEVICE_N7100
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
-
 
 // p5100
 #ifdef TARGET_DEVICE_P5100
