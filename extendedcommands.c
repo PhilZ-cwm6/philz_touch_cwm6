@@ -139,7 +139,7 @@ int install_zip(const char* packagefilepath)
 
 void show_install_update_menu()
 {
-    static char* headers[] = {  "Apply update from .zip file on SD card",
+    static char* headers[] = {  "Install update from zip file",
                                 "",
                                 NULL
     };
@@ -930,10 +930,12 @@ void show_partition_menu()
     for (i = 0; i < num_volumes; ++i) {
         Volume* v = &device_volumes[i];
         if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
-            sprintf(&mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
-            sprintf(&mount_menu[mountable_volumes].unmount, "unmount %s", v->mount_point);
-            mount_menu[mountable_volumes].v = &device_volumes[i];
-            ++mountable_volumes;
+            if (strcmp("datamedia", v->fs_type) != 0) {
+                sprintf(&mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
+                sprintf(&mount_menu[mountable_volumes].unmount, "unmount %s", v->mount_point);
+                mount_menu[mountable_volumes].v = &device_volumes[i];
+                ++mountable_volumes;
+            }
             if (is_safe_to_format(v->mount_point)) {
                 sprintf(&format_menu[formatable_volumes].txt, "format %s", v->mount_point);
                 format_menu[formatable_volumes].v = &device_volumes[i];
