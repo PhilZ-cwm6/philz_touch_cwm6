@@ -83,12 +83,11 @@ void write_string_to_file(const char* filename, const char* string) {
     sprintf(tmp, "mkdir -p $(dirname %s)", filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
-    if (file == NULL) {
+    if (file != NULL) {
+	    fprintf(file, "%s", string);
+	    fclose(file);
+    } else
         LOGE("Cannot write to %s\n", filename);
-        return;
-    }
-    fprintf(file, "%s", string);
-    fclose(file);
 }
 
 void write_recovery_version() {
@@ -250,22 +249,12 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
             // NULL means that we are gathering directories, so skip this
             if (fileExtensionOrDirectory != NULL)
             {
-                if (strcmp("show_all_files", fileExtensionOrDirectory) == 0) {
-                    struct stat info;
-                    char fullFileName[PATH_MAX];
-                    strcpy(fullFileName, directory);
-                    strcat(fullFileName, de->d_name);
-                    lstat(fullFileName, &info);
-                    if (S_ISDIR(info.st_mode))
-                        continue;
-                } else {
-                    // make sure that we can have the desired extension (prevent seg fault)
-                    if (strlen(de->d_name) < extension_length)
-                        continue;
-                    // compare the extension
-                    if (strcmp(de->d_name + strlen(de->d_name) - extension_length, fileExtensionOrDirectory) != 0)
-                        continue;
-                }
+                // make sure that we can have the desired extension (prevent seg fault)
+                if (strlen(de->d_name) < extension_length)
+                    continue;
+                // compare the extension
+                if (strcmp(de->d_name + strlen(de->d_name) - extension_length, fileExtensionOrDirectory) != 0)
+                    continue;
             }
             else
             {
@@ -1839,7 +1828,7 @@ void show_multi_flash_menu() {
             strncpy(list[i], "(x) ", 4);
         }
 
-        static int select_all = 1;
+        int select_all = 1;
         int chosen_item;
         for (;;)
         {
@@ -2742,7 +2731,7 @@ static void custom_restore_handler(const char* backup_path) {
             LOGE("no /radio partition to flash\n");
     } else {
         //process backup job
-        file = choose_file_menu(backup_path, "show_all_files", headers);
+        file = choose_file_menu(backup_path, "", headers);
         if (file == NULL) {
             //either no valid files found or we selected no files by pressing back menu
             if (no_files_found)
@@ -3275,7 +3264,7 @@ int gen_twrp_md5sum(const char* backup_path) {
     char tmp[PATH_MAX];
     int numFiles = 0;
     sprintf(tmp, "%s/", backup_path);
-    char** files = gather_files(tmp, "show_all_files", &numFiles);
+    char** files = gather_files(tmp, "", &numFiles);
     if (numFiles == 0) {
         ui_print("No files found in backup path %s\n", tmp);
         free_string_array(files);
@@ -3518,7 +3507,7 @@ void twrp_restore_handler(const char* backup_path) {
     get_device_id(device_id);
     sprintf(tmp, "%s%s/", backup_path, device_id);
 
-    char* file = choose_file_menu(tmp, "show_all_files", headers);
+    char* file = choose_file_menu(tmp, "", headers);
     if (file == NULL) {
         //either no valid files found or we selected no files by pressing back menu
         if (no_files_found)
@@ -3614,7 +3603,7 @@ static void regenerate_md5_sum_menu() {
     if (ensure_path_mounted(backup_path) != 0)
         return;
 
-    char* file = choose_file_menu(backup_path, "show_all_files", headers);
+    char* file = choose_file_menu(backup_path, "", headers);
     if (file == NULL) return;
 
     char tmp[PATH_MAX];
