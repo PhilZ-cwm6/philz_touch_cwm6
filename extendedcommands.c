@@ -1517,11 +1517,12 @@ void show_advanced_menu()
             case 7:
                 if (is_data_media()) {
                     if (use_migrated_storage()) {
-                        delete_a_file("/data/media/0/clockworkmod/.use_migrated_storage");
+                        write_string_to_file("/data/media/.cwm_force_data_media", "1");
                         ui_print("storage set to /data/media\n");
                     }
                     else {
-                        write_string_to_file("/data/media/0/clockworkmod/.use_migrated_storage", "1");
+                        mkdir("/data/media/0", S_IRWXU | S_IRWXG | S_IRWXO);
+                        delete_a_file("/data/media/.cwm_force_data_media");
                         ui_print("storage set to /data/media/0\n");
                     }
                     setup_data_media();

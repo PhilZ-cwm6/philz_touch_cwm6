@@ -202,7 +202,8 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
 
 int use_migrated_storage() {
     struct stat s;
-    return lstat("/data/media/0/clockworkmod/.use_migrated_storage", &s) == 0;
+    return lstat("/data/media/0", &s) == 0 &&
+            lstat("/data/media/.cwm_force_data_media", &s) != 0;
 }
 
 int is_data_media() {
