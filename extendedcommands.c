@@ -249,12 +249,22 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
             // NULL means that we are gathering directories, so skip this
             if (fileExtensionOrDirectory != NULL)
             {
-                // make sure that we can have the desired extension (prevent seg fault)
-                if (strlen(de->d_name) < extension_length)
-                    continue;
-                // compare the extension
-                if (strcmp(de->d_name + strlen(de->d_name) - extension_length, fileExtensionOrDirectory) != 0)
-                    continue;
+                if (strcmp("", fileExtensionOrDirectory) == 0) {
+                    struct stat info;
+                    char fullFileName[PATH_MAX];
+                    strcpy(fullFileName, directory);
+                    strcat(fullFileName, de->d_name);
+                    lstat(fullFileName, &info);
+                    if (S_ISDIR(info.st_mode))
+                        continue;
+                } else {
+                    // make sure that we can have the desired extension (prevent seg fault)
+                    if (strlen(de->d_name) < extension_length)
+                        continue;
+                    // compare the extension
+                    if (strcmp(de->d_name + strlen(de->d_name) - extension_length, fileExtensionOrDirectory) != 0)
+                        continue;
+                }
             }
             else
             {
