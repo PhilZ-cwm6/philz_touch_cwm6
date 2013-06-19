@@ -80,6 +80,11 @@ ifeq ($(TARGET_PRODUCT), cm_i9100)
 TARGET_NAME := i9100
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
 
+#Galaxy R / Z - i9103
+else ifeq ($(TARGET_PRODUCT), cm_i9103)
+TARGET_NAME := i9103
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9103
+
 #Galaxy S3 International - i9300
 else ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_NAME := i930x
@@ -95,8 +100,8 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
 TARGET_NAME := i9500
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
-#Galaxy S4 - i9505, jfltecan and jfltetmo
-else ifeq ($(TARGET_PRODUCT), cm_jfltecan)
+#Galaxy S4 - i9505, jfltexx
+else ifeq ($(TARGET_PRODUCT), cm_jfltexx)
 TARGET_NAME := i9505
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 LOCAL_CFLAGS += -DUSE_MKE2FS_FIX
@@ -175,7 +180,6 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
 #Samsung Nexus 10 - manta
 else ifeq ($(TARGET_PRODUCT), cm_manta)
 TARGET_NAME := Samsung_Nexus_10
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
 
 #Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)

@@ -20,13 +20,19 @@
 //for ums lun file fix on some devices and show log menu function
 
 
-// i9100
+// i9100 - Galaxy S2 international
 #ifdef TARGET_DEVICE_I9100
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
-// i9300
+// i9103 - Galaxy R / Z
+#ifdef TARGET_DEVICE_I9103
+#define BOARD_UMS_LUNFILE     "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// i9300 - Galaxy S3 international
 #ifdef TARGET_DEVICE_I9300
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BOOTLOADER_CMD_ARG "download"
