@@ -1605,8 +1605,11 @@ void delete_a_file(const char* filename) {
 // check if file or folder exists
 int file_found(const char* filename) {
     struct stat s;
-    ensure_path_mounted(filename);
-    // this will error on some ramdisk path (no valid volume), but stat will return valid file if it exists
+    if (strncmp(filename, "/sbin/", 6) != 0 && strncmp(filename, "/res/", 5) != 0 &&
+            strncmp(filename, "/tmp/", 5) != 0) {
+        // do not try to mount ramdisk, else it will error "unknown volume for path..."
+        ensure_path_mounted(filename);
+    }
     if (0 == stat(filename, &s))
         return 1;
 
