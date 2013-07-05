@@ -322,7 +322,17 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
             sprintf(mount_cmd, "mount %s %s", v->device, mount_point);
         else
             sprintf(mount_cmd, "mount %s", v->mount_point);
-        return __system(mount_cmd);
+
+        if ((result = __system(mount_cmd)) != 0) {
+            // try exfat-fuse if it exists
+            if (strcmp(v->fs_type, "vfat") == 0 || (v->fs_type2 != NULL && strcmp(v->fs_type2, "vfat") == 0)) {
+                struct stat s;
+                sprintf(mount_cmd, "/sbin/mount.exfat-fuse -o big_writes,max_read=131072,max_write=131072 %s %s", v->device, mount_point);
+                if (stat("/sbin/mount.exfat-fuse", &s) == 0)
+                    result = __system(mount_cmd);
+            }
+        }
+        return result;
     }
 
     LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, mount_point);

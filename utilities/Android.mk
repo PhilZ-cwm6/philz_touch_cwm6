@@ -57,3 +57,13 @@ LOCAL_CFLAGS := -Dmain=make_ext4fs_main
 LOCAL_SRC_FILES := ../../../system/extras/ext4_utils/make_ext4fs_main.c
 include $(BUILD_STATIC_LIBRARY)
 
+ifneq ($(USE_EXFAT_FUSE_BIN),)
+include $(CLEAR_VARS)
+LOCAL_MODULE := mount.exfat-fuse
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+LOCAL_SRC_FILES := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+endif
+
