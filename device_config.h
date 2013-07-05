@@ -26,6 +26,12 @@
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
+// i9100G - Galaxy S2 i9100G
+#ifdef TARGET_DEVICE_I9100G
+#define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
 // i9103 - Galaxy R / Z
 #ifdef TARGET_DEVICE_I9103
 #define BOARD_UMS_LUNFILE     "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
