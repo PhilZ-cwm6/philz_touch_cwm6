@@ -106,7 +106,7 @@ TARGET_NAME := i9500
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
 #Galaxy S4 - i9505, jfltexx
-else ifeq ($(TARGET_PRODUCT), cm_jfltexx)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
 TARGET_NAME := i9505
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 #USE_EXFAT_FUSE_BIN := true
