@@ -725,8 +725,11 @@ void ui_print(const char *fmt, ...)
             // parse the buffer and write line to log except exclude line
             if (i != no_stdout_line) {
                 strcpy(str, ptr);
-                strcat(str, "\n");
-                fputs(str, stdout);
+                // log only nandroid non empty lines
+                if (strcmp(str, " ") != 0) {
+                    strcat(str, "\n");
+                    fputs(str, stdout);
+                }
             }
             ptr = strtok(NULL, "\n");
             i++;

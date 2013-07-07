@@ -107,8 +107,6 @@ static void nandroid_callback(const char* filename)
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = NULL;
     tmp[ui_get_text_cols() - 1] = '\0';
-    if (strlen(tmp) == 0)
-        return;
 
     nandroid_files_count++;
     ui_increment_frame();
@@ -127,6 +125,9 @@ static void nandroid_callback(const char* filename)
 
     // do not write size progress to log file
     ui_nolog_lines(1);
+    // strlen(tmp) check avoids ui_nolog_lines() printing size progress to log on empty lines
+    if (strlen(tmp) == 0)
+        sprintf(tmp, " ");
     ui_nice_print("%s\n%s\n", tmp, size_progress);
     ui_nolog_lines(-1);
     if (!ui_was_niced() && nandroid_files_total != 0)
@@ -636,7 +637,7 @@ static int check_backup_size(const char* backup_path) {
     if (ret)
         ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped_parts);
 
-    if (free_percent < 3 || (default_backup_handler != tar_compress_wrapper && free_mb < backup_size_mb)) {
+    if (free_percent < 3 || (default_backup_handler == tar_compress_wrapper && free_mb < backup_size_mb)) {
         if (!confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
             return -1;
     }
