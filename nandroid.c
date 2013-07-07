@@ -466,6 +466,7 @@ int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
 int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0, backup_radio = 0;
 int is_custom_backup = 0;
+int twrp_backup_mode = 0;
 int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
 int nandroid_add_preload = 0;

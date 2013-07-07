@@ -1567,7 +1567,6 @@ void show_advanced_menu()
 
 // 0 == stop browsing default file locations
 static int browse_for_file = 1;
-int twrp_backup_mode = 0;
 
 //start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
@@ -1935,14 +1934,6 @@ int check_for_script_file(const char* ors_boot_script) {
 static int ignore_android_secure = 0;
 
 static int ors_backup_command(const char* backup_path, const char* options) {
-    if (file_found(backup_path)) {
-        LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
-        return -1;
-    }
-    if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR) {
-        LOGE("Default backup format must be tar!\n");
-        return -1;
-    }
     is_custom_backup = 1;
     int old_compression_value = compression_value;
     compression_value = TAR_FORMAT;
@@ -2005,10 +1996,18 @@ static int ors_backup_command(const char* backup_path, const char* options) {
         }
     }
 
-    int ret;
-    ret = nandroid_backup(backup_path);
-
+    int ret = -1;
+    if (file_found(backup_path)) {
+        LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
+    } else if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR) {
+        LOGE("Default backup format must be tar!\n");
+    } else if (twrp_backup_mode) {
+        ret = twrp_backup(backup_path);
+    } else {
+        ret = nandroid_backup(backup_path);
+    }
     is_custom_backup = 0;
+    twrp_backup_mode = 0;
     compression_value = old_compression_value;
     reset_custom_job_settings(0);
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -2112,7 +2111,7 @@ int run_ors_script(const char* ors_script) {
                 char other_sd[20] = "";
 #ifdef PHILZ_TOUCH_RECOVERY
                 // read user set volume target
-                get_ors_backup_path(other_sd);
+                get_ors_backup_volume(other_sd);
 #else
                 // if possible, always prefer external storage as backup target
                 if (volume_for_path("/external_sd") != NULL && ensure_path_mounted("/external_sd") == 0)
@@ -2129,6 +2128,10 @@ int run_ors_script(const char* ors_script) {
                 }
 
                 char backup_path[PATH_MAX];
+#ifdef PHILZ_TOUCH_RECOVERY
+                if (twrp_ors_backup_format())
+                    twrp_backup_mode = 1;
+#endif
                 tok = strtok(value, " ");
                 strcpy(value1, tok);
                 tok = strtok(NULL, " ");
@@ -2143,27 +2146,20 @@ int run_ors_script(const char* ors_script) {
                             remove_nl = 1;
                     } else
                         remove_nl = 0;
+
                     strncpy(value2, tok, line_len - remove_nl);
                     ui_print("Backup folder set to '%s'\n", value2);
-                    sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
+                    if (twrp_backup_mode) {
+                        char device_id[PROPERTY_VALUE_MAX];
+                        get_device_id(device_id);
+                        sprintf(backup_path, "%s/%s/%s/%s", other_sd, TWRP_BACKUP_PATH, device_id, value2);
+                    } else {
+                        sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
+                    }
+                } else if (twrp_backup_mode) {
+                    get_twrp_backup_path(other_sd, backup_path);
                 } else {
-                    time_t t = time(NULL);
-                    struct tm *tmp = localtime(&t);
-                    if (tmp == NULL)
-                    {
-                        struct timeval tp;
-                        gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "%s/clockworkmod/backup/%d", other_sd, tp.tv_sec);
-                    }
-                    else {
-                        if (strcmp(other_sd, "/sdcard") == 0) {
-                            strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
-                        } else if (strcmp(other_sd, "/external_sd") == 0) {
-                            strftime(backup_path, sizeof(backup_path), "/external_sd/clockworkmod/backup/%F.%H.%M.%S", tmp);
-                        } else {
-                            strftime(backup_path, sizeof(backup_path), "/emmc/clockworkmod/backup/%F.%H.%M.%S", tmp);
-                        }
-                    }
+                    get_custom_backup_path(other_sd, backup_path);
                 }
                 if (0 != (ret_val = ors_backup_command(backup_path, value1)))
                     ui_print("Backup failed !!\n");
@@ -2579,7 +2575,7 @@ static void ui_print_backup_list() {
     ui_print("!\n");
 }
 
-static void get_custom_backup_path(const char* sd_path, char *backup_path) {
+void get_custom_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
@@ -3337,7 +3333,7 @@ static void sanitize_device_id(char *device_id) {
 #define CPUINFO_HARDWARE        "Hardware"
 #define CPUINFO_HARDWARE_LEN    (strlen(CPUINFO_HARDWARE))
 
-static void get_device_id(char *device_id) {
+void get_device_id(char *device_id) {
     // First try system properties
     property_get("ro.serialno", device_id, "");
     if (strlen(device_id) != 0) {
@@ -3449,7 +3445,7 @@ static void get_device_id(char *device_id) {
 }
 // End of Device ID functions
 
-static void get_twrp_backup_path(const char* sd_path, char *backup_path) {
+void get_twrp_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
 #ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
@@ -3501,8 +3497,7 @@ void twrp_backup_handler() {
                     char backup_path[PATH_MAX];
                     get_twrp_backup_path(int_sd, backup_path);
                     twrp_backup(backup_path);
-                } else
-                    ui_print("Couldn't mount %s\n", int_sd);
+                }
             }
             break;
         case 1:
@@ -3511,8 +3506,7 @@ void twrp_backup_handler() {
                     char backup_path[PATH_MAX];
                     get_twrp_backup_path(ext_sd, backup_path);
                     twrp_backup(backup_path);
-                } else
-                    ui_print("Couldn't mount %s\n", ext_sd);
+                }
             }
             break;
     }
