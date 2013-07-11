@@ -889,7 +889,7 @@ main(int argc, char **argv) {
 
     ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
     ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
-    LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_NAME) "\n");
+    LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
 
     load_volume_table();
     process_volumes();
