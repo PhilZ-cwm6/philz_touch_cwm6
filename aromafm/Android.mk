@@ -1,8 +1,10 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-  AROMAFM_LOCALPATH := $(LOCAL_PATH)
-  LOCAL_SRC_FILES := 	\
+AROMAFM_LOCALPATH := $(LOCAL_PATH)
+AROMA_OUT_PATH := $(TARGET_RECOVERY_ROOT_OUT)/../../aromafm_out
+
+LOCAL_SRC_FILES := \
     libs/zlib/adler32.c \
     libs/zlib/crc32.c \
     libs/zlib/infback.c \
@@ -11,7 +13,7 @@ include $(CLEAR_VARS)
     libs/zlib/inftrees.c \
     libs/zlib/zutil.c \
     libs/zlib/inflate_fast_copy_neon.s \
-  \
+    \
     libs/png/png.c \
     libs/png/pngerror.c \
     libs/png/pnggccrd.c \
@@ -26,14 +28,14 @@ include $(CLEAR_VARS)
     libs/png/pngtrans.c \
     libs/png/pngvcrd.c \
     libs/png/png_read_filter_row_neon.s \
-  \
+    \
     libs/minutf8/minutf8.c \
     libs/minzip/DirUtil.c \
     libs/minzip/Hash.c \
     libs/minzip/Inlines.c \
     libs/minzip/SysUtil.c \
     libs/minzip/Zip.c \
-  \
+    \
     libs/freetype/autofit/autofit.c \
     libs/freetype/base/basepic.c \
     libs/freetype/base/ftapi.c \
@@ -56,7 +58,7 @@ include $(CLEAR_VARS)
     libs/freetype/base/ftlcdfil.c \
     \
     src/aroma_openpty.c \
-	  src/controls/aroma_controls.c \
+    src/controls/aroma_controls.c \
     src/controls/aroma_control_button.c \
     src/controls/aroma_control_check.c \
     src/controls/aroma_control_checkbox.c \
@@ -83,42 +85,38 @@ include $(CLEAR_VARS)
     src/libs/aroma_zip.c \
     src/main/aroma.c \
     src/main/aroma_ui.c
-  
-  LOCAL_MODULE                  := aroma_filemanager
-  LOCAL_MODULE_TAGS             := eng
-  LOCAL_FORCE_STATIC_EXECUTABLE := true
-  
-  LOCAL_C_INCLUDES              := $(AROMAFM_LOCALPATH)/include
-  LOCAL_MODULE_PATH             := $(AROMAFM_LOCALPATH)/out
-  LOCAL_STATIC_LIBRARIES        := libm libc
-  
-  LOCAL_CFLAGS                  := -O2 
-  LOCAL_CFLAGS                  += -DFT2_BUILD_LIBRARY=1 -DDARWIN_NO_CARBON 
-  LOCAL_CFLAGS                  += -fdata-sections -ffunction-sections
-  LOCAL_CFLAGS                  += -Wl,--gc-sections -fPIC -DPIC
-  LOCAL_CFLAGS                  += -D_AROMA_NODEBUG
-  
-  #
-  # Comment It, If You Don't Want To Use NEON
-  #
-  LOCAL_CFLAGS                  += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
+
+LOCAL_MODULE                  := aroma_filemanager
+LOCAL_MODULE_TAGS             := eng
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+
+LOCAL_C_INCLUDES              := $(AROMAFM_LOCALPATH)/include
+# LOCAL_MODULE_CLASS          := RECOVERY_EXECUTABLES
+# LOCAL_MODULE_CLASS          := UTILITY_EXECUTABLES
+# LOCAL_MODULE_PATH           := $(AROMAFM_LOCALPATH)/out
+LOCAL_MODULE_PATH             := $(AROMA_OUT_PATH)
+LOCAL_STATIC_LIBRARIES        := libm libc
+
+LOCAL_CFLAGS                  := -O2
+LOCAL_CFLAGS                  += -DFT2_BUILD_LIBRARY=1 -DDARWIN_NO_CARBON
+LOCAL_CFLAGS                  += -fdata-sections -ffunction-sections
+LOCAL_CFLAGS                  += -Wl,--gc-sections -fPIC -DPIC
+LOCAL_CFLAGS                  += -D_AROMA_NODEBUG
+
+ifeq ($(TARGET_ARCH_VARIANT), armv7-a-neon)
+    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
+endif
+
+# Create zip installer
+AROMA_DEVICE_NAME   := $(shell echo $(TARGET_PRODUCT) | cut -d _ -f 2)
+AROMA_ZIP_FILE      := $(AROMA_OUT_PATH)/aromafm_$(AROMA_DEVICE_NAME).zip
+$(AROMA_ZIP_FILE): aroma_filemanager
+	$(info )
+	$(info Making Aroma Installer Zip...)
+	$(AROMAFM_LOCALPATH)/tools/android_building.sh $(AROMAFM_LOCALPATH) $(AROMA_OUT_PATH) $(AROMA_DEVICE_NAME)
+	$(info Install ----> $(AROMA_ZIP_FILE))
+	$(info )
+
+ALL_DEFAULT_INSTALLED_MODULES += $(AROMA_ZIP_FILE)
 
 include $(BUILD_EXECUTABLE)
-    
-    
-include $(CLEAR_VARS)
-LOCAL_MODULE        := aroma_filemanager.zip
-LOCAL_MODULE_TAGS   := eng
-ifeq ($(MAKECMDGOALS),aroma_filemanager.zip)
-  $(info ==========================================================================)
-  $(info )
-  $(info MAKING AROMA Installer ZIP)
-  OUTPUT_SH := $(shell $(AROMAFM_LOCALPATH)/tools/android_building.sh)
-  ifeq ($(OUTPUT_SH),0)
-    $(info Please Compile AROMA Installer First, by running: make -j4 aroma_filemanager)
-  else
-    $(info AROMA ZIP is On $(AROMAFM_LOCALPATH)/out/aromafm.zip)
-  endif
-  $(info )
-  $(info ==========================================================================)
-endif
