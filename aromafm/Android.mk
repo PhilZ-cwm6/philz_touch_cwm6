@@ -12,7 +12,6 @@ LOCAL_SRC_FILES := \
     libs/zlib/inflate.c \
     libs/zlib/inftrees.c \
     libs/zlib/zutil.c \
-    libs/zlib/inflate_fast_copy_neon.s \
     \
     libs/png/png.c \
     libs/png/pngerror.c \
@@ -27,7 +26,6 @@ LOCAL_SRC_FILES := \
     libs/png/pngset.c \
     libs/png/pngtrans.c \
     libs/png/pngvcrd.c \
-    libs/png/png_read_filter_row_neon.s \
     \
     libs/minutf8/minutf8.c \
     libs/minzip/DirUtil.c \
@@ -86,6 +84,14 @@ LOCAL_SRC_FILES := \
     src/main/aroma.c \
     src/main/aroma_ui.c
 
+LOCAL_CFLAGS                  :=
+ifeq ($(TARGET_ARCH_VARIANT), armv7-a-neon)
+    LOCAL_SRC_FILES           += \
+        libs/zlib/inflate_fast_copy_neon.s \
+        libs/png/png_read_filter_row_neon.s
+    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON -D__ARM_NEON__
+endif
+
 LOCAL_MODULE                  := aroma_filemanager
 LOCAL_MODULE_TAGS             := eng
 LOCAL_FORCE_STATIC_EXECUTABLE := true
@@ -97,15 +103,11 @@ LOCAL_C_INCLUDES              := $(AROMAFM_LOCALPATH)/include
 LOCAL_MODULE_PATH             := $(AROMA_OUT_PATH)
 LOCAL_STATIC_LIBRARIES        := libm libc
 
-LOCAL_CFLAGS                  := -O2
+LOCAL_CFLAGS                  += -O2
 LOCAL_CFLAGS                  += -DFT2_BUILD_LIBRARY=1 -DDARWIN_NO_CARBON
 LOCAL_CFLAGS                  += -fdata-sections -ffunction-sections
 LOCAL_CFLAGS                  += -Wl,--gc-sections -fPIC -DPIC
 LOCAL_CFLAGS                  += -D_AROMA_NODEBUG
-
-ifeq ($(TARGET_ARCH_VARIANT), armv7-a-neon)
-    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
-endif
 
 # Create zip installer
 AROMA_DEVICE_NAME   := $(shell echo $(TARGET_PRODUCT) | cut -d _ -f 2)
