@@ -89,7 +89,9 @@ ifeq ($(TARGET_ARCH_VARIANT), armv7-a-neon)
     LOCAL_SRC_FILES           += \
         libs/zlib/inflate_fast_copy_neon.s \
         libs/png/png_read_filter_row_neon.s
-    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON -D__ARM_NEON__
+    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
+    # -mfloat-abi=softfp -mfpu=neon will define __ARM_NEON__ in the compiler
+
 endif
 
 LOCAL_MODULE                  := aroma_filemanager
