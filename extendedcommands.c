@@ -1531,19 +1531,11 @@ void show_advanced_menu()
                 else ui_print("datamedia not supported\n");
                 break;
             case 8:
-                if (ensure_path_mounted("/sdcard") != 0) {
-                    ui_print("Can't mount /sdcard\n");
-                    break;
-                }
-                if (can_partition("/sdcard")) {
+                if (can_partition("/sdcard"))
                     partition_sdcard("/sdcard");
-                } else ui_print("Can't partition non vfat volume (/sdcard)\n");
                 break;
             case 9:
-                if (ensure_path_mounted(other_sd) != 0) {
-                    ui_print("Can't mount %s\n", other_sd);
-                    break;
-                }
+				// no need to check can_partition(other_sd) since it was done before
                 partition_sdcard(other_sd);
                 break;
         }
