@@ -10,14 +10,14 @@
 /* For pthread_rwlock_t */
 #define _GNU_SOURCE
 
-#include "config.h"
-#include "fuse_i.h"
-#include "fuse_lowlevel.h"
-#include "fuse_opt.h"
-#include "fuse_misc.h"
-#include "fuse_common_compat.h"
-#include "fuse_compat.h"
-#include "fuse_kernel.h"
+#include "../../../external/fuse/android/config.h"
+#include "../../../external/fuse/lib/fuse_i.h"
+#include "../../../external/fuse/include/fuse_lowlevel.h"
+#include "../../../external/fuse/include/fuse_opt.h"
+#include "../../../external/fuse/lib/fuse_misc.h"
+#include "../../../external/fuse/include/fuse_common_compat.h"
+#include "../../../external/fuse/include/fuse_compat.h"
+#include "../../../external/fuse/include/fuse_kernel.h"
 
 #include <stdio.h>
 #include <string.h>

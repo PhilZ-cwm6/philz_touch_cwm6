@@ -17,35 +17,35 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
-	../android/statvfs.c \
-	buffer.c \
-	cuse_lowlevel.c \
-	fuse.c \
-	fuse_kern_chan.c \
-	fuse_loop.c \
-	fuse_loop_mt.c \
-	fuse_lowlevel.c \
-	fuse_mt.c fuse_opt.c \
-	fuse_session.c \
-	fuse_signals.c \
-	helper.c \
-	mount.c \
-	mount_util.c \
-	ulockmgr.c
+    ../../../external/fuse/android/statvfs.c \
+    ../../../external/fuse/lib/buffer.c \
+    ../../../external/fuse/lib/cuse_lowlevel.c \
+    fuse.c \
+    ../../../external/fuse/lib/fuse_kern_chan.c \
+    ../../../external/fuse/lib/fuse_loop.c \
+    ../../../external/fuse/lib/fuse_loop_mt.c \
+    ../../../external/fuse/lib/fuse_lowlevel.c \
+    ../../../external/fuse/lib/fuse_mt.c \
+    ../../../external/fuse/lib/fuse_opt.c \
+    ../../../external/fuse/lib/fuse_session.c \
+    ../../../external/fuse/lib/fuse_signals.c \
+    ../../../external/fuse/lib/helper.c \
+    ../../../external/fuse/lib/mount.c \
+    ../../../external/fuse/lib/mount_util.c \
+    ../../../external/fuse/lib/ulockmgr.c
 
 LOCAL_C_INCLUDES := \
-	bootable/recovery/fuse/android \
-	bootable/recovery/fuse/include
+    external/fuse/android \
+    external/fuse/include
 
 LOCAL_STATIC_LIBRARIES := \
-	libc
+    libc
 
 LOCAL_CFLAGS := \
-	-D_FILE_OFFSET_BITS=64 \
-	-DFUSE_USE_VERSION=26
+    -D_FILE_OFFSET_BITS=64 \
+    -DFUSE_USE_VERSION=26
 
 LOCAL_MODULE := libfuse.recovery
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_STATIC_LIBRARY)
-

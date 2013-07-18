@@ -57,7 +57,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.08.6
+PHILZ_BUILD := 5.09.0
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -372,9 +372,9 @@ include $(commands_recovery_local_path)/fb2png/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
 
 ifneq ($(DEVICE_USE_EXFAT_FUSE),)
-include $(commands_recovery_local_path)/exfat/fuse/Android.mk \
-	$(commands_recovery_local_path)/fuse/lib/Android.mk \
-	$(commands_recovery_local_path)/exfat/libexfat/Android.mk
+include $(commands_recovery_local_path)/fuse/Android.mk \
+        $(commands_recovery_local_path)/exfat/fuse/Android.mk \
+        $(commands_recovery_local_path)/exfat/libexfat/Android.mk
 endif
 
 ifeq ($(NO_AROMA_FILE_MANAGER),)
