@@ -371,6 +371,12 @@ include $(commands_recovery_local_path)/pigz/Android.mk
 include $(commands_recovery_local_path)/fb2png/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
 
+ifneq ($(DEVICE_USE_EXFAT_FUSE),)
+include $(commands_recovery_local_path)/exfat/fuse/Android.mk \
+	$(commands_recovery_local_path)/fuse/lib/Android.mk \
+	$(commands_recovery_local_path)/exfat/libexfat/Android.mk
+endif
+
 ifeq ($(NO_AROMA_FILE_MANAGER),)
 	include $(commands_recovery_local_path)/aromafm/Android.mk
 endif
