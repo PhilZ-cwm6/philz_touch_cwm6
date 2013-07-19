@@ -315,21 +315,27 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         return result;
     } else {
         // let's try mounting with the mount binary and hope for the best.
-        char mount_cmd[PATH_MAX];
         // case called by ensure_path_mounted_at_mount_point("/emmc", "/sdcard") in edifyscripting.c
         // for sdcard marker check on devices where /sdcard is external storage
+        // keep both alternatives to not break things for MTD devices when using v->device on system mount command
+        char mount_cmd[PATH_MAX];
         if (strcmp(v->mount_point, mount_point) != 0)
             sprintf(mount_cmd, "mount %s %s", v->device, mount_point);
         else
             sprintf(mount_cmd, "mount %s", v->mount_point);
 
         if ((result = __system(mount_cmd)) != 0) {
-            // try exfat-fuse if it exists
+            // try exfat-fuse if it exists, else ntfs-3g
             if (strcmp(v->fs_type, "vfat") == 0 || (v->fs_type2 != NULL && strcmp(v->fs_type2, "vfat") == 0)) {
                 struct stat s;
-                sprintf(mount_cmd, "/sbin/mount.exfat-fuse -o big_writes,max_read=131072,max_write=131072 %s %s", v->device, mount_point);
-                if (stat("/sbin/mount.exfat-fuse", &s) == 0)
+                if (stat("/sbin/mount.exfat-fuse", &s) == 0) {
+                    sprintf(mount_cmd, "/sbin/mount.exfat-fuse -o big_writes,max_read=131072,max_write=131072 %s %s", v->device, mount_point);
                     result = __system(mount_cmd);
+                }
+                if (result != 0 && stat("/sbin/mount.ntfs-3g", &s) == 0) {
+                    sprintf(mount_cmd, "/sbin/mount.ntfs-3g -o rw,umask=0 %s %s", v->device, mount_point);
+                    result = __system(mount_cmd);
+                }
             }
         }
         return result;
