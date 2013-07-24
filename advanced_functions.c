@@ -52,7 +52,7 @@
 /*  YOU MUST AGREE TO SHARE THE CHANGES  */
 /*                                       */
 /*       Start PhilZ Menu settings       */
-/*      Code written by PhilZ@xda     */
+/*      Code written by PhilZ@xda        */
 /*      Part of PhilZ Touch Recovery     */
 /*****************************************/
 
@@ -60,7 +60,15 @@
 // used to format toggle menus to device screen width (only touch build)
 #define MENU_MAX_COLS 64
 
-static int browse_for_file = 1;
+// Returns the current time in msec: 
+unsigned long gettime_now_msec(void) {
+    struct timeval now;
+    long mseconds;
+    gettimeofday(&now, NULL);
+    mseconds = now.tv_sec * 1000;
+    mseconds += now.tv_usec / 1000;
+    return mseconds;
+}
 
 //start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
@@ -117,6 +125,62 @@ int directory_found(const char* dir) {
     if (S_ISDIR(s.st_mode))
         return 1;
 
+    return 0;
+}
+
+//check if path is in ramdisk since volume_for_path() will be NULL on these
+int is_path_ramdisk(const char* path) {
+    const char *ramdisk_dirs[] = { "/sbin/", "/res/", "/tmp/", NULL };
+    int i = 0;
+    while (ramdisk_dirs[i] != NULL) {
+        if (strncmp(path, ramdisk_dirs[i], strlen(ramdisk_dirs[i])) == 0)
+            return 1;
+        i++;
+    }
+    return 0;
+}
+
+//copy file (ramdisk check compatible)
+int copy_a_file(const char* file_in, const char* file_out) {
+    if (strcmp(file_in, file_out) == 0) {
+        LOGI("source and destination files are same, skipping copy.\n");
+        return 0;
+    }
+
+    if (!is_path_ramdisk(file_in) && ensure_path_mounted(file_in) != 0) {
+        ui_print("cannot mount volume for %s\n", file_in);
+        return -1;
+    }
+
+    if (!is_path_ramdisk(file_out) && ensure_path_mounted(file_out) != 0) {
+        ui_print("cannot mount volume for %s\n", file_out);
+        return -1;
+    }
+
+    //this will chmod folder to 775
+    char tmp[PATH_MAX];
+    strcpy(tmp, file_out);
+    ensure_directory(dirname(tmp));
+    FILE *fp = fopen(file_in, "rb");
+    if (fp == NULL) {
+        ui_print("Source file not found (%s)\n", file_in);
+        return -1;
+    }
+    FILE *fp_out = fopen(file_out, "wb");
+    if (fp_out == NULL) {
+        ui_print("Failed to create destination file %s\n", file_out);
+        return -1;
+    }
+
+    //start copy
+    char buf[PATH_MAX];
+    size_t size;
+    //unsigned int size;
+    while (size = fread(buf, 1, sizeof(buf), fp)) {
+        fwrite(buf, 1, size, fp_out);
+    }
+    fclose(fp);
+    fclose(fp_out);
     return 0;
 }
 
@@ -243,6 +307,111 @@ unsigned long long Get_Folder_Size(const char* Path) {
     return dusize;
 }
 
+
+/**********************************/
+/*       Start file parser        */
+/*    Original source by PhilZ    */
+/**********************************/
+//get value of key from a given config file
+static int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
+    int ret = 0;
+    char line[PROPERTY_VALUE_MAX];
+    ensure_path_mounted(config_file);
+    FILE *fp = fopen(config_file, "rb");
+    if (fp != NULL) {
+        while(fgets(line, sizeof(line), fp) != NULL) {
+            if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=') {
+                strcpy(value, strstr(line, "=") + 1);
+                //remove trailing \n char
+                if (value[strlen(value)-1] == '\n')
+                    value[strlen(value)-1] = '\0';
+                if (value[0] != '\0') {
+                    fclose(fp);
+                    LOGI("%s=%s\n", key, value);
+                    return ret;
+                }
+            }
+        }
+        ret = 1;
+        fclose(fp);
+    } else {
+        LOGI("Cannot open %s\n", config_file);
+        ret = -1;
+    }
+
+    strcpy(value, value_def);
+    LOGI("%s set to default (%s)\n", key, value_def);
+    return ret;
+}
+
+// set value of key in config file
+static int write_config_file(const char* config_file, const char* key, const char* value) {
+    if (ensure_path_mounted(config_file) != 0) {
+        LOGE("Cannot mount path for settings file: %s\n", config_file);
+        return -1;
+    }
+
+    char config_file_tmp[PATH_MAX];
+    strcpy(config_file_tmp, config_file);
+    ensure_directory(dirname(config_file_tmp));
+    strcpy(config_file_tmp, config_file);
+    strcat(config_file_tmp, ".tmp");
+    delete_a_file(config_file_tmp);
+    FILE *fp = fopen(config_file, "rb");
+    FILE *f_tmp = fopen(config_file_tmp, "wb");
+    if (f_tmp == NULL) {
+        LOGE("failed to create temporary settings file!\n");
+        return -1;
+    }
+
+    // if a new settings file needs to be created, we write a user info header
+    if (fp == NULL) {
+        const char* header[] = {
+            "#PhilZ Touch Settings File\n",
+            "#Edit only in appropriate UNIX format (Notepad+++...)\n",
+            "#Entries are in the form of:\n",
+            "#key=value\n",
+            "#Do not add spaces in between!\n",
+            "\n",
+            NULL
+        };
+
+        int i;
+        for(i=0; header[i] != NULL; i++) {
+            fwrite(header[i], 1, strlen(header[i]), f_tmp);
+        }
+    }
+
+    // parsing existing config file and writing new temporary file.
+    if (fp != NULL) {
+        char line[PROPERTY_VALUE_MAX];
+        while(fgets(line, sizeof(line), fp) != NULL) {
+            // ignore any existing line with key we want to set
+            if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=')
+                continue;
+            // ensure trailing \n, in case some one got a bad editor...
+            if (line[strlen(line)-1] != '\n')
+                strcat(line, "\n");
+            fwrite(line, 1, strlen(line), f_tmp);
+        }
+        fclose(fp);
+    }
+
+    // write new key=value entry
+    char new_entry[PROPERTY_VALUE_MAX];
+    sprintf(new_entry, "%s=%s\n", key, value);
+    fwrite(new_entry, 1, strlen(new_entry), f_tmp);
+    fclose(f_tmp);
+
+    if (rename(config_file_tmp, config_file) !=0) {
+        LOGE("failed renaming temporary settings file!\n");
+        return -1;
+    }
+    LOGI("%s was set to %s\n", key, value);
+    return 0;
+}
+//----- end file settings parser
+
 // start wipe data and system options and menu
 void wipe_data_menu() {
     static char* headers[] = {  "Choose wipe option",
@@ -278,14 +447,9 @@ void wipe_data_menu() {
 
 
 /*****************************************/
-/*   DO NOT REMOVE THIS CREDITS HEARDER  */
-/* IF YOU MODIFY ANY PART OF THIS SOURCE */
-/*  YOU MUST AGREE TO SHARE THE CHANGES  */
-/*                                       */
 /*      Start Multi-Flash Zip code       */
 /*      Original code by PhilZ @xda      */
 /*****************************************/
-
 #define MULTI_ZIP_FOLDER "clockworkmod/multi_flash"
 void show_multi_flash_menu() {
     static char* headers_dir[] = { "Choose a set of zip files",
@@ -420,9 +584,8 @@ void show_multi_flash_menu() {
 /*  Enhanced by PhilZ @xda               */
 /*****************************************/
 
-// check ors script at boot (called from recovery.c)
-// format the script file to fix path in install zip commands from goomanager
 #define SCRIPT_COMMAND_SIZE 512
+static int ignore_android_secure = 0;
 
 int check_for_script_file(const char* ors_boot_script) {
     ensure_path_mounted(ors_boot_script);
@@ -440,10 +603,40 @@ int check_for_script_file(const char* ors_boot_script) {
     return 0;
 }
 
+// sets the default backup volume for ors backup command
+static void get_ors_backup_volume(char *other_sd) {
+    char value[PROPERTY_VALUE_MAX];
+    char value_def[15];
+
+    // favor external storage as default
+    if (volume_for_path("/external_sd") != NULL && ensure_path_mounted("/external_sd") == 0)
+        sprintf(value_def, "/external_sd");
+    else if (volume_for_path("/sdcard") != NULL && ensure_path_mounted("/sdcard") == 0)
+        sprintf(value_def, "/sdcard");
+    else if (volume_for_path("/emmc") != NULL && ensure_path_mounted("/emmc") == 0)
+        sprintf(value_def, "/emmc");
+    else
+        return;
+
+    read_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", value, value_def);
+    if (strcmp(value, "/external_sd") == 0 || strcmp(value, "/sdcard") == 0 || strcmp(value, "/emmc") == 0) {
+        if (volume_for_path(value) != NULL && ensure_path_mounted(value) == 0)
+            strcpy(other_sd, value);
+    }
+}
+
+// checks if ors backup should be done in cwm (ret=0) or twrp (ret=1) format
+static int twrp_ors_backup_format() {
+    char value[PROPERTY_VALUE_MAX];
+    int ret = 0;
+    read_config_file(PHILZ_SETTINGS_FILE, "ors_backup_format", value, "cwm");
+    if (strcmp(value, "twrp") == 0)
+        ret = 1;
+    return ret;
+}
+
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
-static int ignore_android_secure = 0;
-
 static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
     int old_compression_value = compression_value;
@@ -830,6 +1023,7 @@ int run_ors_script(const char* ors_script) {
 //end of open recovery script file code
 
 //show menu: select ors from default path
+static int browse_for_file = 1;
 static void choose_default_ors_menu(const char* ors_path)
 {
     if (ensure_path_mounted(ors_path) != 0) {
@@ -934,21 +1128,432 @@ static void show_custom_ors_menu() {
 //----------end open recovery script support
 
 
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
-#endif
+/**********************************/
+/*       Start Get ROM Name       */
+/*    Original source by PhilZ    */
+/**********************************/
+// formats a string to be compliant with filenames standard and limits its length to max_len
+static void format_filename(char *valid_path, int max_len) {
+    // remove non allowed chars (invalid file names) and limit valid_path filename to max_len chars
+    // we could use a whitelist: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-
+    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|";
+    int i = 0;
+    for(i=0; valid_path[i] != '\0' && i < max_len; i++) {
+        int j = 0;
+        while (j < strlen(invalid_fn)) {
+            if (valid_path[i] == invalid_fn[j])
+                valid_path[i] = '_';
+            j++;
+        }
+        if (valid_path[i] == 13)
+            valid_path[i] = '_';
+    }
+    valid_path[max_len] = '\0';
+    if (valid_path[strlen(valid_path)-1] == '_') {
+        valid_path[strlen(valid_path)-1] = '\0';
+    }
+}
+
+// get rom_name function
+#define MAX_ROM_NAME_LENGTH 31
+void get_rom_name(char *rom_name) {
+    const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.build.display.id", NULL };
+    const char *key;
+    sprintf(rom_name, "noname");
+    int i = 0;
+    while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
+        if (read_config_file("/system/build.prop", key, rom_name, "noname") < 0) {
+            ui_print("failed to open /system/build.prop!\n");
+            ui_print("using default noname.\n");
+            break;
+        }
+        i++;
+    }
+    if (strcmp(rom_name, "noname") != 0) {
+        format_filename(rom_name, MAX_ROM_NAME_LENGTH);
+    }
+}
+
+
+/**********************************/
+/*   Misc Nandroid Settings Menu  */
+/**********************************/
+void misc_nandroid_menu()
+{
+    static char* headers[] = {  "Misc Nandroid Settings",
+                                "",
+                                NULL
+    };
+
+    char item_md5[MENU_MAX_COLS];
+    char item_preload[MENU_MAX_COLS];
+    char item_compress[MENU_MAX_COLS];
+    char item_ors_path[MENU_MAX_COLS];
+    char item_ors_format[MENU_MAX_COLS];
+    char* list[] = { item_md5,
+                    item_preload,
+                    item_compress,
+                    item_ors_path,
+                    item_ors_format,
+                    NULL
+    };
+
+    for (;;) {
+        if (enable_md5sum) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
+        else ui_format_gui_menu(item_md5, "MD5 checksum", "( )");
+
+        if (volume_for_path("/preload") == NULL)
+            ui_format_gui_menu(item_preload, "Include /preload", "N/A");
+        else if (nandroid_add_preload) ui_format_gui_menu(item_preload, "Include /preload", "(x)");
+        else ui_format_gui_menu(item_preload, "Include /preload", "( )");
+
+        if (compression_value == TAR_GZ_LOW)
+            ui_format_gui_menu(item_compress, "Compression", "Low");
+        else if (compression_value == TAR_GZ_MEDIUM)
+            ui_format_gui_menu(item_compress, "Compression", "Med");
+        else if (compression_value == TAR_GZ_HIGH)
+            ui_format_gui_menu(item_compress, "Compression", "Max");
+        else ui_format_gui_menu(item_compress, "Compression", "( )");
+
+        char other_sd[20] = "";
+        get_ors_backup_volume(other_sd);
+        if (strcmp(other_sd, "") != 0)
+            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", other_sd);
+        else ui_format_gui_menu(item_ors_path,  "ORS Backup Target", "N/A");
+
+        if (twrp_ors_backup_format())
+            ui_format_gui_menu(item_ors_format, "ORS Backup Format", "TWRP");
+        else ui_format_gui_menu(item_ors_format, "ORS Backup Format", "CWM");
+
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                {
+                    char value[3];
+                    enable_md5sum ^= 1;
+                    sprintf(value, "%d", enable_md5sum);
+                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value);
+                }
+                break;
+            case 1:
+                {
+                    char value[3];
+                    if (volume_for_path("/preload") == NULL)
+                        nandroid_add_preload = 0;
+                    else
+                        nandroid_add_preload ^= 1;
+                    sprintf(value, "%d", nandroid_add_preload);
+                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value);
+                }
+                break;
+            case 2:
+                {
+                    //switch pigz [-0, 3, 6, 9] compression level
+                    char value[8];
+                    compression_value += 3;
+                    if (compression_value == TAR_GZ_LOW)
+                        sprintf(value, "low");
+                    else if (compression_value == TAR_GZ_MEDIUM)
+                        sprintf(value, "medium");
+                    else if (compression_value == TAR_GZ_HIGH)
+                        sprintf(value, "high");
+                    else {
+                        compression_value = TAR_FORMAT;
+                        sprintf(value, "false");
+                    }
+                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
+                }
+                break;
+            case 3:
+                {
+                    if (volume_for_path("/external_sd") != NULL)
+                        sprintf(other_sd, "/external_sd");
+                    else if (volume_for_path("/emmc") != NULL)
+                        sprintf(other_sd, "/emmc");
+                    else
+                        sprintf(other_sd, "");
+
+                    if (strstr(item_ors_path, "/sdcard") != NULL)
+                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", other_sd);
+                    else if (strstr(item_ors_path, "N/A") == NULL)
+                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", "/sdcard");                        
+                }
+                break;
+            case 4:
+                {
+                    char value[5] = "twrp";
+                    if (twrp_ors_backup_format())
+                        sprintf(value, "cwm");
+                    write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_format", value);
+                }
+                break;
+        }
+    }
+}
+//-------- End Misc Nandroid Settings
+
+
+/****************************************/
+/*  Start Install Zip from custom path  */
+/*                 and                  */
+/*       Free Browse Mode Support       */
+/****************************************/
+void set_custom_zip_path() {
+    static char* headers[] = {  "Setup Free Browse Mode",
+                                NULL
+    };
+    char* list_main[] = {"Disable Free Browse Mode",
+                            "Start Folder in Internal sdcard",
+                            NULL,
+                            NULL};
+
+    char *int_sd = "/sdcard";
+    char *ext_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        int_sd = "/emmc";
+        ext_sd = "/sdcard";
+    } else if (volume_for_path("/external_sd") != NULL)
+        ext_sd = "/external_sd";
+
+    if (ext_sd != NULL)
+        list_main[2] = "Start Folder in External sdcard";
+
+    char custom_path[PATH_MAX];
+    int chosen_item = get_menu_selection(headers, list_main, 0, 0);
+    switch (chosen_item)
+    {
+        case 0:
+            if (0 == write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", ""))
+                ui_print("Free browse mode disabled\n");
+            return;
+        case 1:
+            sprintf(custom_path, "%s/", int_sd);
+            break;
+        case 2:
+            sprintf(custom_path, "%s/", ext_sd);
+            break;
+        default:
+            return;
+    }
+
+    // populate fixed headers (display current path while browsing)
+    int j = 0;
+    while (headers[j]) {
+        j++;
+    }
+    const char** fixed_headers = (const char*)malloc((j + 2) * sizeof(char*));
+    j = 0;
+    while (headers[j]) {
+        fixed_headers[j] = headers[j];
+        j++;
+    }
+    fixed_headers[j] = custom_path;
+    fixed_headers[j + 1] = NULL;
+
+    // start browsing for custom path
+    char tmp[PATH_MAX];
+    sprintf(tmp, "%s", custom_path);
+    int dir_len = strlen(custom_path);
+    int numDirs = 0;
+    char** dirs = gather_files(custom_path, NULL, &numDirs);
+    char** list = (char**) malloc((numDirs + 3) * sizeof(char*));
+    list[0] = strdup("../");
+    list[1] = strdup(">> Set current folder as default <<");
+    list[numDirs+2] = NULL; // Go Back Menu
+
+    // populate list with current folders. Reserved list[0] for ../ to browse backward
+    int i;
+    for(i=2; i < numDirs+2; i++) {
+        list[i] = strdup(dirs[i-2] + dir_len);
+    }
+
+    for (;;) {
+        chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+        if (chosen_item == 0) {
+            sprintf(tmp, "%s", custom_path);
+            if (strcmp(dirname(custom_path), "/") == 0)
+                sprintf(custom_path, "/");
+            else
+                sprintf(custom_path, "%s/", dirname(tmp));
+        } else if (chosen_item == 1) {
+            if (strlen(custom_path) > PROPERTY_VALUE_MAX)
+                LOGE("Maximum allowed path length is %d\n", PROPERTY_VALUE_MAX);
+            else if (0 == write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", custom_path)) {
+                ui_print("Default install zip folder set to %s\n", custom_path);
+                break;
+            }
+        } else
+            sprintf(custom_path, "%s", dirs[chosen_item - 2]);
+
+        // browse selected folder
+        fixed_headers[j] = custom_path;
+        dir_len = strlen(custom_path);
+        numDirs = 0;
+        free_string_array(list);
+        free_string_array(dirs);
+        dirs = gather_files(custom_path, NULL, &numDirs);
+        list = (char**) malloc((numDirs + 3) * sizeof(char*));
+        list[0] = strdup("../");
+        list[1] = strdup(">> Set current folder as default <<");
+        list[numDirs+2] = NULL;
+        for(i=2; i < numDirs+2; i++) {
+            list[i] = strdup(dirs[i-2] + dir_len);
+        }
+    }
+    free_string_array(list);
+    free_string_array(dirs);
+    free(fixed_headers);
+}
+
+int show_custom_zip_menu() {
+    static char* headers[] = {  "Choose a zip to apply",
+                                NULL
+    };
+
+    char val[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", val, "");
+    if (strcmp(val, "") == 0) {
+        LOGI("Free browse mode disabled. Using default mode\n");
+        return 1;
+    }
+    if (ensure_path_mounted(val) != 0) {
+        LOGE("Cannot mount custom path %s\n", val);
+        LOGE("You must first setup a valid folder\n");
+        LOGE("Switching to default mode\n");
+        return -1;
+    }
+
+    char tmp[PATH_MAX];
+    char custom_path[PATH_MAX];
+    sprintf(custom_path, "%s", val);
+    if (custom_path[strlen(custom_path) - 1] != '/')
+        strcat(custom_path, "/");
+    //LOGE("Retained val to custom_path=%s\n", custom_path);
+
+    // populate fixed headers (display current path while browsing)
+    int j = 0;
+    while (headers[j]) {
+        j++;
+    }
+    const char** fixed_headers = (const char*)malloc((j + 2) * sizeof(char*));
+    j = 0;
+    while (headers[j]) {
+        fixed_headers[j] = headers[j];
+        j++;
+    }
+    fixed_headers[j] = custom_path;
+    fixed_headers[j + 1] = NULL;
+
+    //gather zip files and display ../ to browse backward
+    int dir_len = strlen(custom_path);
+    int numDirs = 0;
+    int numFiles = 0;
+    int total;
+    char** dirs = gather_files(custom_path, NULL, &numDirs);
+    char** files = gather_files(custom_path, ".zip", &numFiles);
+    total = numFiles + numDirs;
+    char** list = (char**) malloc((total + 2) * sizeof(char*));
+    list[0] = strdup("../");
+    list[total+1] = NULL;
+
+    // populate menu list with current folders and zip files. Reserved list[0] for ../ to browse backward
+    int i;
+    //LOGE(">> Dirs (num=%d):\n", numDirs);
+    for(i=1; i < numDirs+1; i++) {
+        list[i] = strdup(dirs[i-1] + dir_len);
+        //LOGE("list[%d]=%s\n", i, list[i]);
+    }
+    //LOGE("\n>> Files (num=%d):\n", numFiles);
+    for(i=1; i < numFiles+1; i++) {
+        list[numDirs+i] = strdup(files[i-1] + dir_len);
+        //LOGE("list[%d]=%s\n", numDirs+i, list[numDirs+i]);
+    }
+
+    int chosen_item;
+    for (;;) {
+/*
+        LOGE("\n\n>> Total list:\n");
+        for(i=0; i < total+1; i++) {
+            LOGE("list[%d]=%s\n", i, list[i]);
+        }
+*/
+        chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
+        //LOGE("\n\n>> Gathering files for chosen_item=%d:\n", chosen_item);
+        if (chosen_item == GO_BACK) {
+            if (strcmp(custom_path, "/") == 0)
+                break;
+            else chosen_item = 0;
+        }
+        if (chosen_item < numDirs+1 && chosen_item >= 0) {
+            if (chosen_item == 0) {
+                sprintf(tmp, "%s", dirname(custom_path));
+                if (strcmp(tmp, "/") != 0)
+                    strcat(tmp, "/");
+                sprintf(custom_path, "%s", tmp);
+            } else sprintf(custom_path, "%s", dirs[chosen_item - 1]);
+            //LOGE("\n\n Selected chosen_item=%d is: %s\n\n", chosen_item, custom_path);
+
+            // browse selected folder
+            fixed_headers[j] = custom_path;
+            dir_len = strlen(custom_path);
+            numDirs = 0;
+            numFiles = 0;
+            free_string_array(list);
+            free_string_array(files);
+            free_string_array(dirs);
+            dirs = gather_files(custom_path, NULL, &numDirs);
+            files = gather_files(custom_path, ".zip", &numFiles);
+            total = numFiles + numDirs;
+            list = (char**) malloc((total + 2) * sizeof(char*));
+            list[0] = strdup("../");
+            list[total+1] = NULL;
+                
+            //LOGE(">> Dirs (num=%d):\n", numDirs);
+            for(i=1; i < numDirs+1; i++) {
+                list[i] = strdup(dirs[i-1] + dir_len);
+                //LOGE("list[%d]=%s\n", i, list[i]);
+            }
+            //LOGE("\n>> Files (num=%d):\n", numFiles);
+            for(i=1; i < numFiles+1; i++) {
+                list[numDirs+i] = strdup(files[i-1] + dir_len);
+                //LOGE("list[%d]=%s\n", numDirs+i, list[numDirs+i]);
+            }
+        } else if (chosen_item > numDirs && chosen_item < total+1) {
+            // we selected a zip file to install
+            break;
+        }
+    }
+/*
+    LOGE("\n\n>> Selected dir contains:\n");
+    for(i=0; i < total+1; i++) {
+        LOGE("list[%d]=%s\n", i, list[i]);
+    }
+*/
+    //flashing selected zip file
+    if (chosen_item !=  GO_BACK) {
+        sprintf(tmp, "Yes - Install %s", list[chosen_item]);
+        if (confirm_selection("Install selected file?", tmp))
+            install_zip(files[chosen_item - numDirs - 1]);
+    }
+    free_string_array(list);
+    free_string_array(files);
+    free_string_array(dirs);
+    free(fixed_headers);
+    return 0;
+}
+//-------- End Free Browse Mode
 
 
 /*****************************************/
-/*   DO NOT REMOVE THIS CREDITS HEARDER  */
-/* IF YOU MODIFY ANY PART OF THIS SOURCE */
-/*  YOU MUST AGREE TO SHARE THE CHANGES  */
-/*                                       */
 /*   Custom Backup and Restore Support   */
 /*       code written by PhilZ @xda      */
 /*        for PhilZ Touch Recovery       */
 /*****************************************/
-
 static void choose_delete_folder(const char* path) {
     if (ensure_path_mounted(path) != 0) {
         LOGE("Can't mount %s\n", path);
@@ -2269,7 +2874,16 @@ void run_aroma_browser() {
 }
 //------ end aromafm launcher functions
 
-// start show PhilZ Touch Settings Menu
+
+/***********************************/
+/*                                 */
+/* Start PhilZ Touch Settings Menu */
+/*                                 */
+/***********************************/
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
+#endif
+
 void show_philz_settings()
 {
     static char* headers[] = {  "PhilZ Settings",

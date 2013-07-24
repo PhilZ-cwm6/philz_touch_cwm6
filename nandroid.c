@@ -53,19 +53,12 @@
 #include <libgen.h>
 
 
-static long nandroid_start_msec;
-static long now_msec(void) {
-    struct timeval now;
-    long mseconds;
-    gettimeofday(&now, NULL);
-    mseconds = now.tv_sec * 1000;
-    mseconds += now.tv_usec / 1000;
-    return mseconds;
-}
-
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_nandroid_gui.c"
 #endif
+
+// time in msec when nandroid job starts: used for dim timeout and total backup time
+static long nandroid_start_msec;
 
 void nandroid_generate_timestamp_path(const char* backup_path)
 {
@@ -85,7 +78,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
 
 void ensure_directory(const char* dir) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s; chmod 777 %s;", dir, dir);
+    sprintf(tmp, "mkdir -p %s; chmod 777 %s", dir, dir);
     __system(tmp);
 }
 
@@ -163,9 +156,9 @@ static void compute_directory_stats(const char* directory)
 static long last_size_update = 0;
 static void update_size_progress(const char* backup_file_image) {
     // statfs every 0.5sec interval maximum
-    if (last_size_update == 0 || (now_msec() - last_size_update) > 3000) {
+    if (last_size_update == 0 || (gettime_now_msec() - last_size_update) > 3000) {
         Get_Size_Via_statfs(backup_file_image);
-        last_size_update = now_msec();
+        last_size_update = gettime_now_msec();
     }
 }
 
@@ -647,7 +640,7 @@ static int check_backup_size(const char* backup_path) {
 }
 
 static void show_backup_stats(const char* backup_path) {
-    long total_msec = now_msec() - nandroid_start_msec;
+    long total_msec = gettime_now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
     int seconds = (total_msec % 60000) / 1000;
 
@@ -666,7 +659,7 @@ static void show_backup_stats(const char* backup_path) {
 
 // show restore stats (only time for now)
 static void show_restore_stats() {
-    long total_msec = now_msec() - nandroid_start_msec;
+    long total_msec = gettime_now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
     int seconds = (total_msec % 60000) / 1000;
 
@@ -1004,7 +997,7 @@ int twrp_backup(const char* backup_path) {
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    nandroid_start_msec = now_msec();
+    nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = nandroid_start_msec;
 #endif
@@ -1189,9 +1182,9 @@ int twrp_restore(const char* backup_path)
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
-    nandroid_start_msec = now_msec();
+    nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_msec();
+    last_key_ev = gettime_now_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
@@ -1299,7 +1292,7 @@ int nandroid_backup(const char* backup_path)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    nandroid_start_msec = now_msec();
+    nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = nandroid_start_msec; //support dim screen timeout during nandroid operation
 #endif
@@ -1835,9 +1828,9 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
-    nandroid_start_msec = now_msec();
+    nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = now_msec();
+    last_key_ev = gettime_now_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
