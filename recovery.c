@@ -891,7 +891,7 @@ main(int argc, char **argv) {
     // If these fail, there's not really anywhere to complain...
     freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
     freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
-    printf("Starting recovery on GMT - %s", ctime(&start));
+    printf("Starting recovery on %s (UTC)", ctime(&start));
 
     device_ui_init(&ui_parameters);
     ui_init();
@@ -947,7 +947,7 @@ main(int argc, char **argv) {
 
     if (!sehandle) {
         fprintf(stderr, "Warning: No file_contexts\n");
-        // ui_print("Warning:  No file_contexts\n");
+        LOGI("Warning:  No file_contexts\n");
     }
 
     LOGI("device_recovery_start()\n");
