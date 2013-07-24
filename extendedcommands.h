@@ -19,8 +19,13 @@ do_nandroid_restore();
 void
 show_nandroid_restore_menu(const char* path);
 
+/*
 void
 show_nandroid_advanced_restore_menu(const char* path);
+*/
+
+void
+choose_default_backup_format();
 
 void
 show_nandroid_menu();

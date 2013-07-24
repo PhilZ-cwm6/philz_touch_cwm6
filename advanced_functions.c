@@ -1164,11 +1164,14 @@ void misc_nandroid_menu()
     char item_compress[MENU_MAX_COLS];
     char item_ors_path[MENU_MAX_COLS];
     char item_ors_format[MENU_MAX_COLS];
+    char item_size_progress[MENU_MAX_COLS];
     char* list[] = { item_md5,
                     item_preload,
                     item_compress,
                     item_ors_path,
                     item_ors_format,
+                    item_size_progress,
+                    "Default Backup Format...",
                     NULL
     };
 
@@ -1198,6 +1201,10 @@ void misc_nandroid_menu()
         if (twrp_ors_backup_format())
             ui_format_gui_menu(item_ors_format, "ORS Backup Format", "TWRP");
         else ui_format_gui_menu(item_ors_format, "ORS Backup Format", "CWM");
+
+        if (show_nandroid_size_progress)
+            ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
+        else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
@@ -1263,6 +1270,17 @@ void misc_nandroid_menu()
                         sprintf(value, "cwm");
                     write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_format", value);
                 }
+                break;
+            case 5:
+                {
+                    char value[3];
+                    show_nandroid_size_progress ^= 1;
+                    sprintf(value, "%d", show_nandroid_size_progress);
+                    write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
+                }
+                break;
+            case 6:
+                choose_default_backup_format();
                 break;
         }
     }
@@ -2890,10 +2908,25 @@ static void check_nandroid_md5sum() {
         enable_md5sum = 1;
 }
 
+//start check show nandroid size progress
+static void check_show_nand_size_progress() {
+    char value_def[3] = "1";
+#ifdef BOARD_HAS_SLOW_STORAGE
+    sprintf(value_def, "0");
+#endif
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value, value_def);
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
+        show_nandroid_size_progress = 0;
+    else
+        show_nandroid_size_progress = 1;
+}
+
 void refresh_recovery_settings() {
     refresh_nandroid_compression();
     check_nandroid_preload();
     check_nandroid_md5sum();
+    check_show_nand_size_progress();
 #ifdef PHILZ_TOUCH_RECOVERY
     refresh_touch_gui_settings();
 #endif

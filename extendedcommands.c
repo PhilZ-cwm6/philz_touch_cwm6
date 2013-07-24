@@ -1043,6 +1043,7 @@ void show_partition_menu()
     free(format_menu);
 }
 
+/*
 void show_nandroid_advanced_restore_menu(const char* path)
 {
     if (ensure_path_mounted(path) != 0) {
@@ -1113,6 +1114,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
             break;
     }
 }
+*/
 
 static void run_dedupe_gc(const char* other_sd) {
     ensure_path_mounted("/sdcard");
@@ -1125,7 +1127,7 @@ static void run_dedupe_gc(const char* other_sd) {
     }
 }
 
-static void choose_default_backup_format() {
+void choose_default_backup_format() {
     static char* headers[] = {  "Default Backup Format",
                                 "",
                                 NULL
@@ -1166,17 +1168,16 @@ void show_nandroid_menu()
                                 NULL
     };
 
-    char* list[] = { "Custom Backup and Restore",
-                        "Backup",
+    char* list[] = { "Backup",
                         "Restore",
                         "Delete",
-                        "Advanced Restore",
+                        "Advanced Backup and Restore",
+                        // "Advanced Restore",
                         "Free Unused Backup Data",
-                        "Choose Default Backup Format",
                         "Misc Nandroid Settings",
                         NULL,
                         NULL,
-                        NULL,
+                        // NULL,
                         NULL,
                         NULL,
                         NULL,
@@ -1186,20 +1187,20 @@ void show_nandroid_menu()
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc";
-        list[8] = "Backup to Internal sdcard";
-        list[9] = "Restore from Internal sdcard";
-        list[10] = "Advanced Restore from Internal sdcard";
-        list[11] = "Delete from Internal sdcard";
+        list[6] = "Backup to Internal sdcard";
+        list[7] = "Restore from Internal sdcard";
+        // list[8] = "Advanced Restore from Internal sdcard";
+        list[8] = "Delete from Internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
         other_sd = "/external_sd";
-        list[8] = "Backup to External sdcard";
-        list[9] = "Restore from External sdcard";
-        list[10] = "Advanced Restore from External sdcard";
-        list[11] = "Delete from External sdcard";
+        list[6] = "Backup to External sdcard";
+        list[7] = "Restore from External sdcard";
+        // list[8] = "Advanced Restore from External sdcard";
+        list[8] = "Delete from External sdcard";
     }
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-    extend_nandroid_menu(list, 12, sizeof(list) / sizeof(char*));
+    extend_nandroid_menu(list, 9, sizeof(list) / sizeof(char*));
 #endif
 
     for (;;) {
@@ -1209,11 +1210,6 @@ void show_nandroid_menu()
         switch (chosen_item)
         {
             case 0:
-                is_custom_backup = 1;
-                custom_backup_restore_menu();
-                is_custom_backup = 0;
-                break;
-            case 1:
                 {
                     char backup_path[PATH_MAX];
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
@@ -1237,28 +1233,32 @@ void show_nandroid_menu()
                     //write_recovery_version();
                 }
                 break;
-            case 2:
+            case 1:
                 show_nandroid_restore_menu("/sdcard");
                 //write_recovery_version();
                 break;
-            case 3:
+            case 2:
                 show_nandroid_delete_menu("/sdcard");
                 //write_recovery_version();
                 break;
+            case 3:
+                is_custom_backup = 1;
+                custom_backup_restore_menu();
+                is_custom_backup = 0;
+                break;
+/*
             case 4:
                 show_nandroid_advanced_restore_menu("/sdcard");
                 //write_recovery_version();
                 break;
-            case 5:
+*/
+            case 4:
                 run_dedupe_gc(other_sd);
                 break;
-            case 6:
-                choose_default_backup_format();
-                break;
-            case 7:
+            case 5:
                 misc_nandroid_menu();
                 break;
-            case 8:
+            case 6:
                 {
                     char backup_path[PATH_MAX];
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
@@ -1280,18 +1280,20 @@ void show_nandroid_menu()
                     nandroid_backup(backup_path);
                 }
                 break;
-            case 9:
+            case 7:
                 show_nandroid_restore_menu(other_sd);
                 break;
-            case 10:
+/*
+            case 8:
                 show_nandroid_advanced_restore_menu(other_sd);
                 break;
-            case 11:
+*/
+            case 8:
                 show_nandroid_delete_menu(other_sd);
                 break;
             default:
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-                handle_nandroid_menu(12, chosen_item);
+                handle_nandroid_menu(9, chosen_item);
 #endif
                 break;
         }
@@ -1392,7 +1394,6 @@ void show_advanced_menu()
                         "Report Error",
                         "Key Test",
                         "Show log",
-                        "Fix Permissions",
                         item_datamedia,
                         NULL,
                         NULL,
@@ -1400,20 +1401,20 @@ void show_advanced_menu()
     };
 
     char *other_sd = NULL;
-    list[8] = "Partition Internal sdcard";
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc";
-        list[8] = "Partition External sdcard";
-        list[9] = "Partition Internal sdcard";
+        list[7] = "Partition External sdcard";
+        list[8] = "Partition Internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
         other_sd = "/external_sd";
-        list[9] = "Partition External sdcard";
+        list[7] = "Partition Internal sdcard";
+        list[8] = "Partition External sdcard";
     }
 
-    // do not disable list[8] for now until the bug in get_filtered_menu_selection() is fixed
+    // do not disable list[7] for now until the bug in get_filtered_menu_selection() is fixed
     if (other_sd != NULL && !can_partition(other_sd))
-        list[9] = NULL;
+        list[8] = NULL;
 
     for (;;)
     {
@@ -1474,16 +1475,6 @@ void show_advanced_menu()
 #endif
                 break;
             case 6:
-                ensure_path_mounted("/system");
-                ensure_path_mounted("/data");
-                //I hate you fixing permissions when I'm dizzy: let's confirm my touch
-                if (confirm_selection("Confirm ?", "Yes - Fix Permissions")) {
-                    ui_print("Fixing permissions...\n");
-                    __system("fix_permissions");
-                    ui_print("Done!\n");
-                }
-                break;
-            case 7:
                 if (is_data_media()) {
                     if (use_migrated_storage()) {
                         write_string_to_file("/data/media/.cwm_force_data_media", "1");
@@ -1499,17 +1490,16 @@ void show_advanced_menu()
                 }
                 else ui_print("datamedia not supported\n");
                 break;
-            case 8:
+            case 7:
                 if (can_partition("/sdcard"))
                     partition_sdcard("/sdcard");
                 break;
-            case 9:
+            case 8:
                 partition_sdcard(other_sd);
                 break;
         }
     }
 }
-
 
 void write_fstab_root(char *path, FILE *file)
 {

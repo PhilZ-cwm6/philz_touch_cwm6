@@ -61,6 +61,7 @@ extern int backup_radio;
 #define TAR_FORMAT 0
 extern int compression_value;
 extern int enable_md5sum;
+extern int show_nandroid_size_progress;
 extern int nandroid_add_preload;
 
 //option to reboot after user initiated nandroid operations

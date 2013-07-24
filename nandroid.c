@@ -106,7 +106,7 @@ static void nandroid_callback(const char* filename)
     ui_increment_frame();
 
     char size_progress[256] = "Size progress: N/A";
-    if (Backup_Size != 0) {
+    if (show_nandroid_size_progress && Backup_Size != 0) {
         sprintf(size_progress, "Done %llu/%lluMb - Free %lluMb",
                 (Used_Size - Before_Used_Size) / 1048576LLU, Backup_Size / 1048576LLU, Free_Size / 1048576LLU);
     }
@@ -155,7 +155,9 @@ static void compute_directory_stats(const char* directory)
 
 static long last_size_update = 0;
 static void update_size_progress(const char* backup_file_image) {
-    // statfs every 0.5sec interval maximum
+    if (!show_nandroid_size_progress)
+        return;
+    // statfs every 3 sec interval maximum (some sdcards and phones cannot support previous 0.5 sec)
     if (last_size_update == 0 || (gettime_now_msec() - last_size_update) > 3000) {
         Get_Size_Via_statfs(backup_file_image);
         last_size_update = gettime_now_msec();
@@ -466,6 +468,7 @@ int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
 int nandroid_add_preload = 0;
 int enable_md5sum = 1;
+int show_nandroid_size_progress = 0;
 
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
