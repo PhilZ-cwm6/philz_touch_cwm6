@@ -105,7 +105,7 @@ static void nandroid_callback(const char* filename)
     char tmp[PATH_MAX];
     strcpy(tmp, justfile);
     if (tmp[strlen(tmp) - 1] == '\n')
-        tmp[strlen(tmp) - 1] = NULL;
+        tmp[strlen(tmp) - 1] = '\0';
     tmp[ui_get_text_cols() - 1] = '\0';
 
     nandroid_files_count++;
@@ -162,7 +162,7 @@ static void compute_directory_stats(const char* directory)
 static long last_size_update = 0;
 static void update_size_progress(const char* backup_file_image) {
     // statfs every 0.5sec interval maximum
-    if (last_size_update == 0 || (now_msec() - last_size_update) > 500) {
+    if (last_size_update == 0 || (now_msec() - last_size_update) > 3000) {
         Get_Size_Via_statfs(backup_file_image);
         last_size_update = now_msec();
     }
@@ -863,6 +863,8 @@ int Generate_File_Lists(const char* Path) {
     {
         sprintf(FileName, "%s/", Path);
         strcat(FileName, de->d_name);
+        if (is_data_media() && strlen(FileName) >= 11 && strncmp(FileName, "/data/media", 11) == 0)
+            continue; // Skip /data/media
         if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
         {
             unsigned long long folder_size = Get_Folder_Size(FileName);
