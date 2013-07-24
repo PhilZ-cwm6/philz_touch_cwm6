@@ -1,8 +1,11 @@
-/* Start PhilZ Settings */
+// PhilZ Touch config file
+#define PHILZ_SETTINGS_FILE "/data/philz-touch/philz-touch_5.ini"
+#define PHILZ_SETTINGS_BAK "/sdcard/clockworkmod/philz-touch.ini.bak"
 
 // print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
 void show_philz_settings();
+void refresh_recovery_settings();
 void wipe_data_menu();
 extern int no_files_found;
 

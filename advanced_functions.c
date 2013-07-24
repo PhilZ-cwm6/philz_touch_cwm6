@@ -312,6 +312,7 @@ unsigned long long Get_Folder_Size(const char* Path) {
 /*       Start file parser        */
 /*    Original source by PhilZ    */
 /**********************************/
+// todo: parse settings file in one pass and make pairs of key:value
 //get value of key from a given config file
 static int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
     int ret = 0;
@@ -641,10 +642,8 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
     int old_compression_value = compression_value;
     compression_value = TAR_FORMAT;
-#ifdef PHILZ_TOUCH_RECOVERY
     int old_enable_md5sum = enable_md5sum;
     enable_md5sum = 1;
-#endif
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
     ignore_android_secure = 1; //disable
@@ -691,12 +690,8 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             compression_value = TAR_GZ_LOW;
             ui_print("Compression is on\n");
         } else if (value1[i] == 'M' || value1[i] == 'm') {
-#ifdef PHILZ_TOUCH_RECOVERY
             enable_md5sum = 0;
             ui_print("MD5 Generation is off\n");
-#else
-            ui_print("Skip md5 check: not supported\n");
-#endif
         }
     }
 
@@ -714,9 +709,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     twrp_backup_mode = 0;
     compression_value = old_compression_value;
     reset_custom_job_settings(0);
-#ifdef PHILZ_TOUCH_RECOVERY
     enable_md5sum = old_enable_md5sum;
-#endif
     return ret;
 }
 
@@ -813,18 +806,8 @@ int run_ors_script(const char* ors_script) {
                 }
             } else if (strcmp(command, "backup") == 0) {
                 char other_sd[20] = "";
-#ifdef PHILZ_TOUCH_RECOVERY
                 // read user set volume target
                 get_ors_backup_volume(other_sd);
-#else
-                // if possible, always prefer external storage as backup target
-                if (volume_for_path("/external_sd") != NULL && ensure_path_mounted("/external_sd") == 0)
-                    strcpy(other_sd, "/external_sd");
-                else if (volume_for_path("/sdcard") != NULL && ensure_path_mounted("/sdcard") == 0)
-                    strcpy(other_sd, "/sdcard");
-                else if (volume_for_path("/emmc") != NULL && ensure_path_mounted("/emmc") == 0)
-                    strcpy(other_sd, "/emmc");
-#endif
                 if (strcmp(other_sd, "") == 0) {
                     ret_val = 1;
                     LOGE("No valid volume found for ors backup target!\n");
@@ -832,11 +815,10 @@ int run_ors_script(const char* ors_script) {
                 }
 
                 char backup_path[PATH_MAX];
-#ifdef PHILZ_TOUCH_RECOVERY
                 // Check if ors backup is set by user to twrp mode
                 if (twrp_ors_backup_format())
                     twrp_backup_mode = 1;
-#endif
+
                 tok = strtok(value, " ");
                 strcpy(value1, tok);
                 tok = strtok(NULL, " ");
@@ -877,10 +859,8 @@ int run_ors_script(const char* ors_script) {
 
                 // custom restore settings
                 is_custom_backup = 1;
-#ifdef PHILZ_TOUCH_RECOVERY
                 int old_enable_md5sum = enable_md5sum;
                 enable_md5sum = 1;
-#endif
                 backup_boot = 0, backup_recovery = 0, backup_system = 0;
                 backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
                 ignore_android_secure = 1; //disable
@@ -929,12 +909,8 @@ int run_ors_script(const char* ors_script) {
                             backup_sdext = 1;
                             ui_print("SD-Ext\n");
                         } else if (value2[i] == 'M' || value2[i] == 'm') {
-#ifdef PHILZ_TOUCH_RECOVERY
                             enable_md5sum = 0;
                             ui_print("MD5 Check is off\n");
-#else
-                            ui_print("Skip md5 check not supported\n");
-#endif
                         }
                     }
                 } else {
@@ -956,9 +932,7 @@ int run_ors_script(const char* ors_script) {
 
                 is_custom_backup = 0, twrp_backup_mode = 0;
                 reset_custom_job_settings(0);
-#ifdef PHILZ_TOUCH_RECOVERY
                 enable_md5sum = old_enable_md5sum;
-#endif
             } else if (strcmp(command, "mount") == 0) {
                 // Mount
                 if (value[0] != '/') {
@@ -1707,9 +1681,8 @@ static void ui_print_backup_list() {
 
 void get_custom_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
-#ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
-#endif
+
     time_t t = time(NULL);
     struct tm *timeptr = localtime(&t);
     if (timeptr == NULL) {
@@ -2586,14 +2559,12 @@ void get_device_id(char *device_id) {
 
 void get_twrp_backup_path(const char* sd_path, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
-#ifdef PHILZ_TOUCH_RECOVERY
     get_rom_name(rom_name);
-#endif
-    time_t t = time(NULL);
 
     char device_id[PROPERTY_VALUE_MAX];
     get_device_id(device_id);
 
+    time_t t = time(NULL);
     struct tm *timeptr = localtime(&t);
     if (timeptr == NULL) {
         struct timeval tp;
@@ -2820,9 +2791,7 @@ void custom_backup_restore_menu() {
 #endif
                 break;
             case 5:
-#ifdef PHILZ_TOUCH_RECOVERY
                 misc_nandroid_menu();
-#endif
                 break;
         }
     }
@@ -2883,6 +2852,87 @@ void run_aroma_browser() {
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
+
+//start refresh nandroid compression
+static void refresh_nandroid_compression() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "false");
+    if (strcmp(value, "low") == 0)
+        compression_value = TAR_GZ_LOW;
+    else if (strcmp(value, "medium") == 0)
+        compression_value = TAR_GZ_MEDIUM;
+    else if (strcmp(value, "high") == 0)
+        compression_value = TAR_GZ_HIGH;
+    else
+        compression_value = TAR_FORMAT;
+}
+
+//start check nandroid preload setting
+static void check_nandroid_preload() {
+    if (volume_for_path("/preload") == NULL)
+        return; // nandroid_add_preload = 0 by default on recovery start
+
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value, "0");
+    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
+        nandroid_add_preload = 1;
+    else
+        nandroid_add_preload = 0;
+}
+
+//start check nandroid md5 sum
+static void check_nandroid_md5sum() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value, "1");
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
+        enable_md5sum = 0;
+    else
+        enable_md5sum = 1;
+}
+
+void refresh_recovery_settings() {
+    refresh_nandroid_compression();
+    check_nandroid_preload();
+    check_nandroid_md5sum();
+#ifdef PHILZ_TOUCH_RECOVERY
+    refresh_touch_gui_settings();
+#endif
+}
+
+//import / export settings
+static void import_export_settings() {
+    static char* headers[] = {  "Save / Restore Settings",
+                                "",
+                                NULL
+    };
+
+    static char* list[] = { "Save Settings to sdcard",
+                    "Load Settings from sdcard",
+                    NULL
+    };
+
+    for (;;) {
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                if (copy_a_file(PHILZ_SETTINGS_FILE, PHILZ_SETTINGS_BAK) == 0)
+                    ui_print("config file successefully backed up to %s\n", PHILZ_SETTINGS_BAK);
+                break;
+            case 1:
+                {
+                    static int ret;
+                    ret = copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
+                    refresh_recovery_settings();
+                    if (ret == 0)
+                        ui_print("settings loaded from %s\n", PHILZ_SETTINGS_BAK);
+                }
+                break;
+        }
+    }
+}
 
 void show_philz_settings()
 {
@@ -2949,18 +2999,14 @@ void show_philz_settings()
 #endif
                 break;
             case 4:
-#ifdef PHILZ_TOUCH_RECOVERY
                 import_export_settings();
-#endif
                 break;
             case 5:
-#ifdef PHILZ_TOUCH_RECOVERY
                 if (confirm_selection("Reset all recovery settings?", "Yes - Reset to Defaults")) {
                     delete_a_file(PHILZ_SETTINGS_FILE);
-                    refresh_philz_settings();
+                    refresh_recovery_settings();
                     ui_print("All settings reset to default!\n");
                 }
-#endif
                 break;
             case 6:
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
@@ -2972,7 +3018,4 @@ void show_philz_settings()
         }
     }
 }
-
-/***************************************************/
-/*      End PhilZ Menu settings and functions      */
-/***************************************************/
+//---------------- End PhilZ Menu settings and functions

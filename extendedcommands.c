@@ -193,9 +193,7 @@ void show_install_update_menu()
                 show_multi_flash_menu();
                 break;
             case ITEM_FREE_BROWSE:
-#ifdef PHILZ_TOUCH_RECOVERY
                 set_custom_zip_path();
-#endif
                 break;
             default:
                 return;
@@ -417,11 +415,9 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
 
 void show_choose_zip_menu(const char *mount_point)
 {
-#ifdef PHILZ_TOUCH_RECOVERY
     // browse for zip files up/backward including root system and have a default user set start folder
     if (show_custom_zip_menu() == 0)
         return;
-#endif
 
     if (ensure_path_mounted(mount_point) != 0) {
         LOGE ("Can't mount %s\n", mount_point);
@@ -1138,16 +1134,10 @@ static void choose_default_backup_format() {
     char **list;
     char* list_tar_default[] = { "tar (default)",
         "dup",
-#ifndef PHILZ_TOUCH_RECOVERY
-        "Toggle Compression",
-#endif
         NULL
     };
     char* list_dup_default[] = { "tar",
         "dup (default)",
-#ifndef PHILZ_TOUCH_RECOVERY
-        "Toggle Compression",
-#endif
         NULL
     };
 
@@ -1167,17 +1157,6 @@ static void choose_default_backup_format() {
             write_string_to_file(NANDROID_BACKUP_FORMAT_FILE, "dup");
             ui_print("Default backup format set to dedupe.\n");
             break;
-#ifndef PHILZ_TOUCH_RECOVERY
-        case 2:
-            if (compression_value == TAR_FORMAT) {
-                compression_value = TAR_GZ_LOW;
-                ui_print("Compression enabled until reboot\n");
-            } else if (compression_value == TAR_GZ_LOW) {
-                compression_value = TAR_FORMAT;
-                ui_print("Compression disabled\n");
-            }
-            break;
-#endif
     }
 }
 
@@ -1238,9 +1217,8 @@ void show_nandroid_menu()
                 {
                     char backup_path[PATH_MAX];
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
-#ifdef PHILZ_TOUCH_RECOVERY
                     get_rom_name(rom_name);
-#endif
+
                     time_t t = time(NULL);
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL)
@@ -1278,17 +1256,14 @@ void show_nandroid_menu()
                 choose_default_backup_format();
                 break;
             case 7:
-#ifdef PHILZ_TOUCH_RECOVERY
                 misc_nandroid_menu();
-#endif
                 break;
             case 8:
                 {
                     char backup_path[PATH_MAX];
                     char rom_name[PROPERTY_VALUE_MAX] = "noname";
-#ifdef PHILZ_TOUCH_RECOVERY
                     get_rom_name(rom_name);
-#endif
+
                     time_t t = time(NULL);
                     struct tm *timeptr = localtime(&t);
                     if (timeptr == NULL) {
