@@ -45,6 +45,7 @@
 #include "cutils/android_reboot.h"
 
 #include "extendedcommands.h"
+#include "advanced_functions.h"
 #include "nandroid.h"
 #include "mounts.h"
 

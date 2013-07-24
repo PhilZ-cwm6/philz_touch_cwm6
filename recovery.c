@@ -45,6 +45,7 @@
 #include "minadbd/adb.h"
 
 #include "extendedcommands.h"
+#include "advanced_functions.h"
 #include "flashutils/flashutils.h"
 #include "dedupe/dedupe.h"
 

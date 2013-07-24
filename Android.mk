@@ -12,6 +12,7 @@ LOCAL_SRC_FILES := \
     ui.c \
     mounts.c \
     extendedcommands.c \
+    advanced_functions.c \
     nandroid.c \
     ../../system/core/toolbox/reboot.c \
     ../../system/core/toolbox/dynarray.c \
@@ -57,7 +58,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.09.5
+PHILZ_BUILD := 5.09.6
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
