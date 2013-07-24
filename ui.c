@@ -91,7 +91,7 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
 #ifdef PHILZ_TOUCH_RECOVERY
-    { &gVirtualKeys,                    VIRTUAL_KEYS_PNG },
+    { &gVirtualKeys,                    "virtual_keys" },
 #endif
     { &gBackground,                "stitch" },
     { NULL,                             NULL },
