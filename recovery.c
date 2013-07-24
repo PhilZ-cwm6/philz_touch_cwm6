@@ -805,7 +805,7 @@ setup_adbd() {
                 check_and_fclose(file_dest, key_dest);
 
                 // Enable secure adbd
-                property_set("ro.adb.secure", "0");
+                property_set("ro.adb.secure", "1");
             }
             check_and_fclose(file_src, key_src);
         }
