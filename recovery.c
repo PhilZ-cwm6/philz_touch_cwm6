@@ -55,6 +55,7 @@ struct selabel_handle *sehandle = NULL;
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
+  { "headless", no_argument, NULL, 'h' },
   { "wipe_data", no_argument, NULL, 'w' },
   { "wipe_cache", no_argument, NULL, 'c' },
   { "show_text", no_argument, NULL, 't' },
@@ -447,7 +448,7 @@ get_menu_selection(char** headers, char** items, int menu_only,
     
     int item_count = ui_start_menu(headers, items, initial_selection);
     int selected = initial_selection;
-    int chosen_item = -1;
+    int chosen_item = -1; // NO_ACTION
 
     while (chosen_item < 0 && chosen_item != GO_BACK) {
         int key = ui_wait_key();
@@ -693,6 +694,15 @@ wipe_data(int confirm) {
     ui_print("Data wipe complete.\n");
 }
 
+static void headless_wait() {
+    ui_show_text(0);
+    char** headers = prepend_title((const char**)MENU_HEADERS);
+    for(;;) {
+        finish_recovery(NULL);
+        get_menu_selection(headers, MENU_ITEMS, 0, 0);
+    }
+}
+
 int ui_menu_level = 1;
 int ui_root_menu = 0;
 static void
@@ -901,6 +911,7 @@ main(int argc, char **argv) {
     const char *update_package = NULL;
     int wipe_data = 0, wipe_cache = 0;
     int sideload = 0;
+    int headless = 0;
 
     LOGI("Checking arguments.\n");
     int arg;
@@ -914,6 +925,11 @@ main(int argc, char **argv) {
         wipe_data = wipe_cache = 1;
 #endif
         break;
+        case 'h':
+            ui_set_background(BACKGROUND_ICON_CID);
+            ui_show_text(0);
+            headless = 1;
+            break;
         case 'c': wipe_cache = 1; break;
         case 't': ui_show_text(1); break;
         case 'l': sideload = 1; break;
@@ -978,7 +994,8 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Cache wipe failed.\n");
     } else if (sideload) {
         signature_check_enabled = 0;
-        ui_set_show_text(1);
+        if (!headless)
+            ui_set_show_text(1);
         if (0 == apply_from_adb()) {
             status = INSTALL_SUCCESS;
             ui_set_show_text(0);
@@ -991,10 +1008,13 @@ main(int argc, char **argv) {
         signature_check_enabled = 0;
         script_assert_enabled = 0;
         is_user_initiated_recovery = 1;
-        ui_set_show_text(1);
+        if (!headless) {
+            ui_set_show_text(1);
 #ifndef PHILZ_TOUCH_RECOVERY
-        ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+            ui_set_background(BACKGROUND_ICON_CLOCKWORK);
 #endif
+        }
+
         if (extendedcommand_file_exists()) {
             LOGI("Running extendedcommand...\n");
             int ret;
@@ -1027,12 +1047,15 @@ main(int argc, char **argv) {
     setup_adbd();
     write_recovery_version();
 
+    if (headless) {
+        headless_wait();
+    }
     if (status != INSTALL_SUCCESS && !is_user_initiated_recovery) {
         ui_set_show_text(1);
         ui_set_background(BACKGROUND_ICON_ERROR);
         handle_failure(1);
     }
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
+    else if (status != INSTALL_SUCCESS || ui_text_visible()) {
         prompt_and_wait();
     }
 
