@@ -1165,12 +1165,14 @@ void misc_nandroid_menu()
     char item_ors_path[MENU_MAX_COLS];
     char item_ors_format[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
+    char item_nand_progress[MENU_MAX_COLS];
     char* list[] = { item_md5,
                     item_preload,
                     item_compress,
                     item_ors_path,
                     item_ors_format,
                     item_size_progress,
+                    item_nand_progress,
                     "Default Backup Format...",
                     NULL
     };
@@ -1205,6 +1207,12 @@ void misc_nandroid_menu()
         if (show_nandroid_size_progress)
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
+
+        int hidenandprogress = 0;
+        char hidenandprogress_file[] = "/sdcard/clockworkmod/.hidenandroidprogress";
+        if (ensure_path_mounted("/sdcard") == 0 && (hidenandprogress = file_found(hidenandprogress_file)) != 0)
+            ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
+        else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
@@ -1280,6 +1288,14 @@ void misc_nandroid_menu()
                 }
                 break;
             case 6:
+                {
+                    hidenandprogress ^= 1;
+                    if (hidenandprogress)
+                        write_string_to_file(hidenandprogress_file, "1");
+                    else delete_a_file(hidenandprogress_file);
+                }
+                break;
+            case 7:
                 choose_default_backup_format();
                 break;
         }
