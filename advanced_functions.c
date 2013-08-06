@@ -242,13 +242,13 @@ int Find_Partition_Size(const char* Path) {
                 sprintf(tmpdevice, "/dev/block/");
                 strcat(tmpdevice, device);
 
-                if (volume->device != NULL && strcmp(tmpdevice, volume->device) == 0) {
+                if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
                     Total_Size = blocks * 1024ULL;
-                    //LOGI("%s(%s)=%llu\n", Path, volume->device, Total_Size); // debug
+                    //LOGI("%s(%s)=%llu\n", Path, volume->blk_device, Total_Size); // debug
                     fclose(fp);
                     return 0;
                 }
-                if (volume->device2 != NULL && strcmp(tmpdevice, volume->device2) == 0) {
+                if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
                     Total_Size = blocks * 1024ULL;
                     fclose(fp);
                     return 0;
