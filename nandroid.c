@@ -572,7 +572,7 @@ static int check_backup_size(const char* backup_path) {
             continue;
         if (strcmp(Partitions_List[i], "/datadata") == 0 && !has_datadata())
             continue;
-        
+
         vol = volume_for_path(Partitions_List[i]);
         if (vol == NULL) continue;
 
@@ -670,8 +670,8 @@ static void show_restore_stats() {
     ui_print("Restore time: %02i:%02i mn\n", minutes, seconds);
 }
 
-//custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
-//ret = 0 if success, else ret = 1
+// custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
+// ret = 0 if success, else ret = 1
 int dd_raw_backup_handler(const char* backup_path, const char* root)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
@@ -706,7 +706,7 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     return ret;
 }
 
-//custom raw restore handler
+// custom raw restore handler
 int dd_raw_restore_handler(const char* backup_path, const char* root)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
@@ -988,7 +988,7 @@ int twrp_backup(const char* backup_path) {
     refresh_default_backup_handler();
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path.\n");
-    
+
     int ret;
     struct statfs s;
 
@@ -1322,7 +1322,7 @@ int nandroid_backup(const char* backup_path)
             return print_and_error("Error while dumping WiMAX image!\n");
     }
 
-    //2 copies of efs are made: tarball and raw backup
+    // 2 copies of efs are made: tarball and dd/cat raw backup
     vol = volume_for_path("/efs");
     if (backup_efs && vol != NULL) {
         //first backup in raw format, returns 0 on success (or if skipped), else 1
@@ -1795,7 +1795,8 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
         int ret;
         const char* name = basename(root);
 
-        //fix partition could be formatted when no image to restore (exp: if md5 check disabled and empty backup folder)
+        // fix partition could be formatted when no image to restore
+        // exp: if md5 check disabled and empty backup folder
         struct stat file_check;
         if (strcmp(backup_path, "-") == 0)
             strcpy(tmp, backup_path);
@@ -2061,7 +2062,7 @@ int nandroid_main(int argc, char** argv)
     {
         if (argc != 2)
             return nandroid_usage();
-        
+
         char backup_path[PATH_MAX];
         nandroid_generate_timestamp_path(backup_path);
         return nandroid_backup(backup_path);

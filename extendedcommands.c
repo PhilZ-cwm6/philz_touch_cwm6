@@ -351,9 +351,9 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
         i++;
     }
     fixed_headers[i] = directory;
-    //let's spare some header space
-    //fixed_headers[i + 1] = "";
-    //fixed_headers[i + 2 ] = NULL;
+    // let's spare some header space
+    // fixed_headers[i + 1] = "";
+    // fixed_headers[i + 2 ] = NULL;
     fixed_headers[i + 1 ] = NULL;
 
     char** files = gather_files(directory, fileExtensionOrDirectory, &numFiles);
@@ -363,12 +363,12 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
     int total = numDirs + numFiles;
     if (total == 0)
     {
-        no_files_found = 1; //we found no valid file to select
+        no_files_found = 1; // we found no valid file to select
         ui_print("No files found.\n");
     }
     else
     {
-        no_files_found = 0; //we found a valid file to select
+        no_files_found = 0; // we found a valid file to select
         char** list = (char**) malloc((total + 1) * sizeof(char*));
         list[total] = NULL;
 
@@ -1172,12 +1172,10 @@ void show_nandroid_menu()
                         "Restore",
                         "Delete",
                         "Advanced Backup and Restore",
-                        // "Advanced Restore",
                         "Free Unused Backup Data",
                         "Misc Nandroid Settings",
                         NULL,
                         NULL,
-                        // NULL,
                         NULL,
                         NULL,
                         NULL,
@@ -1246,12 +1244,6 @@ void show_nandroid_menu()
                 custom_backup_restore_menu();
                 is_custom_backup = 0;
                 break;
-/*
-            case 4:
-                show_nandroid_advanced_restore_menu("/sdcard");
-                //write_recovery_version();
-                break;
-*/
             case 4:
                 run_dedupe_gc(other_sd);
                 break;
@@ -1283,11 +1275,6 @@ void show_nandroid_menu()
             case 7:
                 show_nandroid_restore_menu(other_sd);
                 break;
-/*
-            case 8:
-                show_nandroid_advanced_restore_menu(other_sd);
-                break;
-*/
             case 8:
                 show_nandroid_delete_menu(other_sd);
                 break;
@@ -1381,6 +1368,43 @@ int can_partition(const char* volume) {
     return 1;
 }
 
+void show_advanced_power_menu() {
+    static char* headers[] = { "Advanced power options", "", NULL };
+
+    char* list[] = { "Reboot Recovery",
+                     "Reboot to Bootloader",
+                     "Power Off",
+                     NULL
+    };
+
+    char bootloader_mode[PROPERTY_VALUE_MAX];
+#ifdef BOOTLOADER_CMD_ARG
+    // force this extra way to use BoardConfig.mk flags
+    sprintf(bootloader_mode, BOOTLOADER_CMD_ARG);
+#else
+    property_get("ro.bootloader.mode", bootloader_mode, "bootloader");
+#endif
+    if (strcmp(bootloader_mode, "download") == 0)
+        list[1] = "Reboot to Download Mode";
+
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    switch (chosen_item)
+    {
+        case 0:
+            ui_print("Rebooting recovery...\n");
+            reboot_main_system(ANDROID_RB_RESTART2, 0, "recovery");
+            break;
+        case 1:
+            ui_print("Rebooting to %s mode...\n", bootloader_mode);
+            reboot_main_system(ANDROID_RB_RESTART2, 0, bootloader_mode);
+            break;
+        case 2:
+            ui_print("Shutting down...\n");
+            reboot_main_system(ANDROID_RB_POWEROFF, 0, 0);
+            break;
+    }
+}
+
 void show_advanced_menu()
 {
     static char* headers[] = {  "Advanced Menu",
@@ -1388,9 +1412,7 @@ void show_advanced_menu()
     };
 
     char item_datamedia[35];
-    char* list[] = { "Reboot Recovery",
-                        "Reboot Bootloader",
-                        "Wipe Dalvik Cache",
+    char* list[] = {    "Wipe Dalvik Cache",
                         "Report Error",
                         "Key Test",
                         "Show log",
@@ -1403,18 +1425,18 @@ void show_advanced_menu()
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
         other_sd = "/emmc";
-        list[7] = "Partition External sdcard";
-        list[8] = "Partition Internal sdcard";
+        list[5] = "Partition External sdcard";
+        list[6] = "Partition Internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
         other_sd = "/external_sd";
-        list[7] = "Partition Internal sdcard";
-        list[8] = "Partition External sdcard";
+        list[5] = "Partition Internal sdcard";
+        list[6] = "Partition External sdcard";
     }
 
-    // do not disable list[7] for now until the bug in get_filtered_menu_selection() is fixed
+    // do not disable list[5] for now until the bug in get_filtered_menu_selection() is fixed
     if (other_sd != NULL && !can_partition(other_sd))
-        list[8] = NULL;
+        list[6] = NULL;
 
     for (;;)
     {
@@ -1431,12 +1453,6 @@ void show_advanced_menu()
         switch (chosen_item)
         {
             case 0:
-                reboot_main_system(ANDROID_RB_RESTART2, 0, "recovery");
-                break;
-            case 1:
-                reboot_main_system(ANDROID_RB_RESTART2, 0, BOOTLOADER_CMD_ARG);
-                break;
-            case 2:
                 if (0 != ensure_path_mounted("/data"))
                     break;
                 ensure_path_mounted("/sd-ext");
@@ -1449,10 +1465,10 @@ void show_advanced_menu()
                 }
                 ensure_path_unmounted("/data");
                 break;
-            case 3:
+            case 1:
                 handle_failure(1);
                 break;
-            case 4:
+            case 2:
             {
                 ui_print("Outputting key codes.\n");
                 ui_print("Go back to end debugging.\n");
@@ -1467,14 +1483,14 @@ void show_advanced_menu()
                 while (action != GO_BACK);
                 break;
             }
-            case 5:
+            case 3:
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_log_menu();
 #else
                 ui_printlogtail(12);
 #endif
                 break;
-            case 6:
+            case 4:
                 if (is_data_media()) {
                     if (use_migrated_storage()) {
                         write_string_to_file("/data/media/.cwm_force_data_media", "1");
@@ -1490,11 +1506,11 @@ void show_advanced_menu()
                 }
                 else ui_print("datamedia not supported\n");
                 break;
-            case 7:
+            case 5:
                 if (can_partition("/sdcard"))
                     partition_sdcard("/sdcard");
                 break;
-            case 8:
+            case 6:
                 partition_sdcard(other_sd);
                 break;
         }
@@ -1638,9 +1654,9 @@ void handle_failure(int ret)
     if (0 != ensure_path_mounted("/sdcard"))
         return;
     mkdir("/sdcard/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);
-    ui_print("Log copied to /sdcard/clockworkmod/philz_recovery.log\n");
-    ui_print("Send philz_recovery.log to Phil3759 @xda\n");
     __system("cp /tmp/recovery.log /sdcard/clockworkmod/philz_recovery.log");
+    ui_print("Log copied to /sdcard/clockworkmod/philz_recovery.log\n");
+    ui_print("Send file to Phil3759 @xda\n");
 }
 
 int is_path_mounted(const char* path) {
@@ -1685,15 +1701,22 @@ int verify_root_and_recovery() {
 
     int ret = 0;
     struct stat st;
-    if (0 == lstat("/system/etc/install-recovery.sh", &st)) {
-        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-            ui_show_text(1);
-            ret = 1;
-            if (confirm_selection("ROM may flash stock recovery on boot. Fix?", "Yes - Disable recovery flash")) {
-                __system("chmod -x /system/etc/install-recovery.sh");
+    // check to see if install-recovery.sh is going to clobber recovery
+    // install-recovery.sh is also used to run the su daemon on stock rom for 4.3+
+    // so verify that doesn't exist...
+    if (0 != lstat("/system/etc/.installed_su_daemon", &st)) {
+        // check install-recovery.sh exists and is executable
+        if (0 == lstat("/system/etc/install-recovery.sh", &st)) {
+            if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+                ui_show_text(1);
+                ret = 1;
+                if (confirm_selection("ROM may flash stock recovery on boot. Fix?", "Yes - Disable recovery flash")) {
+                    __system("chmod -x /system/etc/install-recovery.sh");
+                }
             }
         }
     }
+
 
     int exists = 0;
     if (0 == lstat("/system/bin/su", &st)) {
@@ -1726,9 +1749,7 @@ int verify_root_and_recovery() {
         ui_show_text(1);
         ret = 1;
         if (confirm_selection("Root access is missing. Root device?", "Yes - Root device (/system/xbin/su)")) {
-            __system("cp /sbin/su.recovery /system/xbin/su");
-            __system("chmod 6755 /system/xbin/su");
-            __system("ln -sf /system/xbin/su /system/bin/su");
+            __system("/sbin/install-su.sh");
         }
     }
 

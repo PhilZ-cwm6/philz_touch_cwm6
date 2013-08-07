@@ -313,7 +313,7 @@ unsigned long long Get_Folder_Size(const char* Path) {
 /*    Original source by PhilZ    */
 /**********************************/
 // todo: parse settings file in one pass and make pairs of key:value
-//get value of key from a given config file
+// get value of key from a given config file
 static int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
     int ret = 0;
     char line[PROPERTY_VALUE_MAX];
@@ -994,7 +994,6 @@ int run_ors_script(const char* ors_script) {
     }
     return ret_val;
 }
-//end of open recovery script file code
 
 //show menu: select ors from default path
 static int browse_for_file = 1;
@@ -1165,12 +1164,14 @@ void misc_nandroid_menu()
     char item_ors_path[MENU_MAX_COLS];
     char item_ors_format[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
+    char item_nand_progress[MENU_MAX_COLS];
     char* list[] = { item_md5,
                     item_preload,
                     item_compress,
                     item_ors_path,
                     item_ors_format,
                     item_size_progress,
+                    item_nand_progress,
                     "Default Backup Format...",
                     NULL
     };
@@ -1205,6 +1206,12 @@ void misc_nandroid_menu()
         if (show_nandroid_size_progress)
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
+
+        int hidenandprogress = 0;
+        char hidenandprogress_file[] = "/sdcard/clockworkmod/.hidenandroidprogress";
+        if (ensure_path_mounted("/sdcard") == 0 && (hidenandprogress = file_found(hidenandprogress_file)) != 0)
+            ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
+        else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
@@ -1280,6 +1287,14 @@ void misc_nandroid_menu()
                 }
                 break;
             case 6:
+                {
+                    hidenandprogress ^= 1;
+                    if (hidenandprogress)
+                        write_string_to_file(hidenandprogress_file, "1");
+                    else delete_a_file(hidenandprogress_file);
+                }
+                break;
+            case 7:
                 choose_default_backup_format();
                 break;
         }
@@ -2367,16 +2382,11 @@ static void custom_backup_menu() {
 
 
 /*****************************************/
-/*   DO NOT REMOVE THIS CREDITS HEARDER  */
-/* IF YOU MODIFY ANY PART OF THIS SOURCE */
-/*  YOU MUST AGREE TO SHARE THE CHANGES  */
-/*                                       */
 /* Part of TWRP Backup & Restore Support */
 /*    Original CWM port by PhilZ @xda    */
 /*    Original TWRP code by Dees_Troy    */
 /*         (dees_troy at yahoo)          */
 /*****************************************/
-
 int check_twrp_md5sum(const char* backup_path) {
     char tmp[PATH_MAX];
     int numFiles = 0;

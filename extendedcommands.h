@@ -19,11 +19,6 @@ do_nandroid_restore();
 void
 show_nandroid_restore_menu(const char* path);
 
-/*
-void
-show_nandroid_advanced_restore_menu(const char* path);
-*/
-
 void
 choose_default_backup_format();
 
@@ -64,6 +59,8 @@ int confirm_selection(const char* title, const char* confirm);
 int run_and_remove_extendedcommand();
 
 int verify_root_and_recovery();
+
+void show_advanced_power_menu();
 
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
 void extend_nandroid_menu(char** items, int item_count, int max_items);

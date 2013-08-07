@@ -18,6 +18,11 @@
 #define _RECOVERY_UI_H
 
 #include "common.h"
+#include "device_config.h"
+
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
+#endif
 
 // Called before UI library is initialized.  Can change things like
 // how many frames are included in various animations, etc.
@@ -107,21 +112,10 @@ set_sdcard_update_bootloader_message();
 
 extern int ui_handle_key(int key, int visible);
 
-/**************************/
-/*     PhilZ Settings     */
-/**************************/
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
-#endif
-
-#include "device_config.h"
-
-// clean reboot to main system
+// call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg);
 
 // format toggle menus to screen width
 void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
-
-//----------------------------
 
 #endif
