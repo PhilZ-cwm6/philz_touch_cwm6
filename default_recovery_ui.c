@@ -31,7 +31,7 @@ char* MENU_ITEMS[] = { "Reboot System Now",
                        "Mounts and Storage",
                        "Advanced",
                        "PhilZ Settings",
-                       "Power Off",
+                       "Power Options",
                        NULL };
 
 void device_ui_init(UIParameters* ui_parameters) {

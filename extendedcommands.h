@@ -60,6 +60,8 @@ int run_and_remove_extendedcommand();
 
 int verify_root_and_recovery();
 
+void show_advanced_power_menu();
+
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
 void extend_nandroid_menu(char** items, int item_count, int max_items);
 void handle_nandroid_menu(int item_count, int selected);

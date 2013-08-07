@@ -763,8 +763,8 @@ prompt_and_wait() {
                 break;
 
             case ITEM_POWEROFF:
-                poweroff = 1;
-                return;
+                show_advanced_power_menu();
+                break;
         }
     }
 }

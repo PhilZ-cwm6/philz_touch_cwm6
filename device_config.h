@@ -91,9 +91,3 @@
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
-
-
-// defaults
-#ifndef BOOTLOADER_CMD_ARG
-#define BOOTLOADER_CMD_ARG "bootloader"
-#endif
