@@ -1,4 +1,4 @@
-#include <ctype.h>
+F#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -1541,6 +1541,7 @@ void create_fstab()
     write_fstab_root("/datadata", file);
     write_fstab_root("/emmc", file);
     write_fstab_root("/system", file);
+    write_fstab_root("/preload", file);
     write_fstab_root("/sdcard", file);
     write_fstab_root("/sd-ext", file);
     write_fstab_root("/external_sd", file);
