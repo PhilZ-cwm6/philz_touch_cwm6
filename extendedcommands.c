@@ -1361,8 +1361,8 @@ int can_partition(const char* volume) {
         return 0;
     }
     
-    if (strcmp(vol->fs_type, "vfat") != 0) {
-        if (vol->fs_type2 == NULL || strcmp(vol->fs_type2, "vfat") != 0) {
+    if (strcmp(vol->fs_type, "vfat") != 0 && strcmp(vol->fs_type, "auto") != 0) {
+        if (vol->fs_type2 == NULL || (strcmp(vol->fs_type2, "vfat") != 0 && strcmp(vol->fs_type2, "auto") != 0)) {
             LOGI("Can't partition non-vfat: %s\n", volume);
             return 0;
         }
