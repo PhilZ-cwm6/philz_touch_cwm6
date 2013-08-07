@@ -572,7 +572,7 @@ static int check_backup_size(const char* backup_path) {
             continue;
         if (strcmp(Partitions_List[i], "/datadata") == 0 && !has_datadata())
             continue;
-        
+
         vol = volume_for_path(Partitions_List[i]);
         if (vol == NULL) continue;
 
@@ -670,8 +670,8 @@ static void show_restore_stats() {
     ui_print("Restore time: %02i:%02i mn\n", minutes, seconds);
 }
 
-//custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
-//ret = 0 if success, else ret = 1
+// custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
+// ret = 0 if success, else ret = 1
 int dd_raw_backup_handler(const char* backup_path, const char* root)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
@@ -706,7 +706,7 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     return ret;
 }
 
-//custom raw restore handler
+// custom raw restore handler
 int dd_raw_restore_handler(const char* backup_path, const char* root)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
@@ -957,8 +957,8 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 
         while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
-        if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
-            return -1;
+            if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
+                return -1;
 #endif
             tmp[PATH_MAX - 1] = NULL;
             if (callback) {
@@ -1278,11 +1278,13 @@ int nandroid_backup(const char* backup_path)
     }
 /*
     // replaced by Get_Size_Via_statfs() check
-    Volume* volume = volume_for_path(backup_path);
+    Volume* volume;
+    if (is_data_media())
+        volume = volume_for_path("/data");
+    else
+        volume = volume_for_path(backup_path);
     if (NULL == volume)
         return print_and_error("Unable to find volume for backup path.\n");
-    if (is_data_media_volume_path(volume->mount_point))
-        volume = volume_for_path("/data");
 */
     int ret;
     struct statfs s;
@@ -1322,7 +1324,7 @@ int nandroid_backup(const char* backup_path)
             return print_and_error("Error while dumping WiMAX image!\n");
     }
 
-    //2 copies of efs are made: tarball and raw backup
+    // 2 copies of efs are made: tarball and dd/cat raw backup
     vol = volume_for_path("/efs");
     if (backup_efs && vol != NULL) {
         //first backup in raw format, returns 0 on success (or if skipped), else 1
@@ -2061,7 +2063,7 @@ int nandroid_main(int argc, char** argv)
     {
         if (argc != 2)
             return nandroid_usage();
-        
+
         char backup_path[PATH_MAX];
         nandroid_generate_timestamp_path(backup_path);
         return nandroid_backup(backup_path);

@@ -131,7 +131,6 @@ void setup_data_media() {
     else sprintf(path, "/data/media");
 
     LOGI("using %s for %s\n", path, mount_point);
-    // unlink(mount_point);
     rmdir(mount_point);
     mkdir(path, 0755);
     symlink(path, mount_point);

@@ -313,7 +313,7 @@ unsigned long long Get_Folder_Size(const char* Path) {
 /*    Original source by PhilZ    */
 /**********************************/
 // todo: parse settings file in one pass and make pairs of key:value
-//get value of key from a given config file
+// get value of key from a given config file
 static int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
     int ret = 0;
     char line[PROPERTY_VALUE_MAX];
@@ -2383,16 +2383,11 @@ static void custom_backup_menu() {
 
 
 /*****************************************/
-/*   DO NOT REMOVE THIS CREDITS HEARDER  */
-/* IF YOU MODIFY ANY PART OF THIS SOURCE */
-/*  YOU MUST AGREE TO SHARE THE CHANGES  */
-/*                                       */
 /* Part of TWRP Backup & Restore Support */
 /*    Original CWM port by PhilZ @xda    */
 /*    Original TWRP code by Dees_Troy    */
 /*         (dees_troy at yahoo)          */
 /*****************************************/
-
 int check_twrp_md5sum(const char* backup_path) {
     char tmp[PATH_MAX];
     int numFiles = 0;
