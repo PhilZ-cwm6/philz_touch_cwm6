@@ -1,9 +1,35 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+
+## Check for ARM NEON
+AROMA_ARM_NEON      := false
+ifeq ($(ARCH_ARM_HAVE_NEON),true)
+    AROMA_ARM_NEON    := true
+endif
+
+##
+## Force Compiling Without ARM NEON
+##   -- Uncomment This Line --
+##
+# AROMA_ARM_NEON      := false
+#
+
+##
+## VERSIONING
+##
+AROMA_NAME    := AROMA Filemanager
+AROMA_VERSION := 1.90
+AROMA_BUILD   := $(shell date +%y%m%d%H)
+AROMA_CN      := Degung Gamelan
+
+## LOCAL PATH COPY
 AROMAFM_LOCALPATH := $(LOCAL_PATH)
+
+## binary output path
 AROMA_OUT_PATH := $(TARGET_RECOVERY_ROOT_OUT)/../../aromafm_out
 
+## ZLIB SOURCE FILES
 LOCAL_SRC_FILES := \
     libs/zlib/adler32.c \
     libs/zlib/crc32.c \
@@ -11,8 +37,14 @@ LOCAL_SRC_FILES := \
     libs/zlib/inffast.c \
     libs/zlib/inflate.c \
     libs/zlib/inftrees.c \
-    libs/zlib/zutil.c \
-    \
+    libs/zlib/zutil.c
+## ZLIB NEON SOURCE
+ifeq ($(AROMA_ARM_NEON),true)
+    LOCAL_SRC_FILES += libs/zlib/inflate_fast_copy_neon.s
+endif
+  
+## PNG SOURCE FILES
+LOCAL_SRC_FILES += \
     libs/png/png.c \
     libs/png/pngerror.c \
     libs/png/pnggccrd.c \
@@ -25,15 +57,23 @@ LOCAL_SRC_FILES := \
     libs/png/pngrutil.c \
     libs/png/pngset.c \
     libs/png/pngtrans.c \
-    libs/png/pngvcrd.c \
-    \
+    libs/png/pngvcrd.c
+## PNG NEON SOURCE
+ifeq ($(AROMA_ARM_NEON),true)
+    LOCAL_SRC_FILES += libs/png/png_read_filter_row_neon.s
+endif
+    
+## MINUTF8 & MINZIP SOURCE FILES
+LOCAL_SRC_FILES += \
     libs/minutf8/minutf8.c \
     libs/minzip/DirUtil.c \
     libs/minzip/Hash.c \
     libs/minzip/Inlines.c \
     libs/minzip/SysUtil.c \
-    libs/minzip/Zip.c \
-    \
+    libs/minzip/Zip.c
+  
+## FREETYPE SOURCE FILES
+LOCAL_SRC_FILES += \
     libs/freetype/autofit/autofit.c \
     libs/freetype/base/basepic.c \
     libs/freetype/base/ftapi.c \
@@ -53,8 +93,10 @@ LOCAL_SRC_FILES := \
     libs/freetype/sfnt/sfnt.c \
     libs/freetype/smooth/smooth.c \
     libs/freetype/truetype/truetype.c \
-    libs/freetype/base/ftlcdfil.c \
-    \
+    libs/freetype/base/ftlcdfil.c
+  
+## AROMA CONTROLS SOURCE FILES
+LOCAL_SRC_FILES += \
     src/aroma_openpty.c \
     src/controls/aroma_controls.c \
     src/controls/aroma_control_button.c \
@@ -71,7 +113,10 @@ LOCAL_SRC_FILES := \
     src/controls/aroma_control_optbox.c \
     src/controls/aroma_control_progress.c \
     src/controls/aroma_control_textbox.c \
-    src/controls/aroma_control_threads.c \
+    src/controls/aroma_control_threads.c
+  
+## AROMA LIBRARIES SOURCE FILES
+LOCAL_SRC_FILES += \
     src/libs/aroma_array.c \
     src/libs/aroma_freetype.c \
     src/libs/aroma_graph.c \
@@ -80,38 +125,43 @@ LOCAL_SRC_FILES := \
     src/libs/aroma_libs.c \
     src/libs/aroma_memory.c \
     src/libs/aroma_png.c \
-    src/libs/aroma_zip.c \
+    src/libs/aroma_zip.c
+  
+## AROMA FILEMANAGER SOURCE FILES
+LOCAL_SRC_FILES += \
     src/main/aroma.c \
     src/main/aroma_ui.c
 
-LOCAL_CFLAGS                  :=
-ifeq ($(TARGET_ARCH_VARIANT), armv7-a-neon)
-    LOCAL_SRC_FILES           += \
-        libs/zlib/inflate_fast_copy_neon.s \
-        libs/png/png_read_filter_row_neon.s
-    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
-    # -mfloat-abi=softfp -mfpu=neon will define __ARM_NEON__ in the compiler
-
-endif
-
+## MODULE SETTINGS
 LOCAL_MODULE                  := aroma_filemanager
 LOCAL_MODULE_TAGS             := eng
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 
+## INCLUDES & OUTPUT PATH
 LOCAL_C_INCLUDES              := $(AROMAFM_LOCALPATH)/include
-# LOCAL_MODULE_CLASS          := RECOVERY_EXECUTABLES
-# LOCAL_MODULE_CLASS          := UTILITY_EXECUTABLES
-# LOCAL_MODULE_PATH           := $(AROMAFM_LOCALPATH)/out
 LOCAL_MODULE_PATH             := $(AROMA_OUT_PATH)
-LOCAL_STATIC_LIBRARIES        := libm libc
 
-LOCAL_CFLAGS                  += -O2
+## COMPILER FLAGS
+LOCAL_CFLAGS                  := -O2
 LOCAL_CFLAGS                  += -DFT2_BUILD_LIBRARY=1 -DDARWIN_NO_CARBON
 LOCAL_CFLAGS                  += -fdata-sections -ffunction-sections
 LOCAL_CFLAGS                  += -Wl,--gc-sections -fPIC -DPIC
 LOCAL_CFLAGS                  += -D_AROMA_NODEBUG
 
-# Create zip installer
+## SET VERSION
+LOCAL_CFLAGS                  += -DAROMA_NAME="\"$(AROMA_NAME)\""
+LOCAL_CFLAGS                  += -DAROMA_VERSION="\"$(AROMA_VERSION)\""
+LOCAL_CFLAGS                  += -DAROMA_BUILD="\"$(AROMA_BUILD)\""
+LOCAL_CFLAGS                  += -DAROMA_BUILD_CN="\"$(AROMA_CN)\""
+  
+ifeq ($(AROMA_ARM_NEON),true)
+    LOCAL_CFLAGS              += -mfloat-abi=softfp -mfpu=neon -D__ARM_HAVE_NEON
+endif
+  
+## INCLUDED LIBRARIES
+LOCAL_STATIC_LIBRARIES        := libm libc
+
+## Create zip installer
 AROMA_DEVICE_NAME   := $(shell echo $(TARGET_PRODUCT) | cut -d _ -f 2)
 AROMA_ZIP_FILE      := $(AROMA_OUT_PATH)/aromafm_$(AROMA_DEVICE_NAME).zip
 $(AROMA_ZIP_FILE): aroma_filemanager
