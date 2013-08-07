@@ -1175,12 +1175,10 @@ void show_nandroid_menu()
                         "Restore",
                         "Delete",
                         "Advanced Backup and Restore",
-                        // "Advanced Restore",
                         "Free Unused Backup Data",
                         "Misc Nandroid Settings",
                         NULL,
                         NULL,
-                        // NULL,
                         NULL,
                         NULL,
                         NULL,
@@ -1249,12 +1247,6 @@ void show_nandroid_menu()
                 custom_backup_restore_menu();
                 is_custom_backup = 0;
                 break;
-/*
-            case 4:
-                show_nandroid_advanced_restore_menu("/sdcard");
-                //write_recovery_version();
-                break;
-*/
             case 4:
                 run_dedupe_gc(other_sd);
                 break;
@@ -1286,11 +1278,6 @@ void show_nandroid_menu()
             case 7:
                 show_nandroid_restore_menu(other_sd);
                 break;
-/*
-            case 8:
-                show_nandroid_advanced_restore_menu(other_sd);
-                break;
-*/
             case 8:
                 show_nandroid_delete_menu(other_sd);
                 break;
