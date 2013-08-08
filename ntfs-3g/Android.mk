@@ -88,3 +88,27 @@ LOCAL_MODULE_TAGS := eng
 LOCAL_STATIC_LIBRARIES := libc libfuse-lite.recovery libntfs-3g.recovery
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 include $(BUILD_EXECUTABLE)
+
+# ntfsprogs - mkntfs
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := \
+    ../../../external/ntfs-3g/ntfsprogs/attrdef.c \
+    ../../../external/ntfs-3g/ntfsprogs/boot.c \
+    ../../../external/ntfs-3g/ntfsprogs/sd.c \
+    ../../../external/ntfs-3g/ntfsprogs/mkntfs.c \
+    ../../../external/ntfs-3g/ntfsprogs/utils.c
+LOCAL_C_INCLUDES := \
+    external/ntfs-3g \
+    external/ntfs-3g/include/fuse-lite \
+    external/ntfs-3g/include/ntfs-3g \
+    external/ntfs-3g/androidglue/include \
+    external/ntfs-3g/ntfsprogs \
+    external/e2fsprogs/lib
+LOCAL_CFLAGS := -O2 -g -W -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHAVE_CONFIG_H
+LOCAL_MODULE := mk_ntfs
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+LOCAL_MODULE_TAGS := eng
+LOCAL_STATIC_LIBRARIES := libc libfuse-lite.recovery libntfs-3g.recovery
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+include $(BUILD_EXECUTABLE)
