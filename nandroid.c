@@ -1641,8 +1641,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         char *filesystem;
         int i = 0;
         while ((filesystem = filesystems[i]) != NULL) {
-            if (twrp_backup_mode)
-            {
+            if (twrp_backup_mode) {
                 if (strstr(name, "android_secure") != NULL)
                     strcpy(name, "and-sec");
 
