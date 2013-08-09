@@ -16,7 +16,6 @@ LOCAL_SRC_FILES := \
     ../../../../external/exfat/mkfs/uct.c \
     ../../../../external/exfat/mkfs/uctc.c \
     ../../../../external/exfat/mkfs/vbr.c
-
 LOCAL_C_INCLUDES += \
     external/exfat/mkfs \
     external/exfat/libexfat \

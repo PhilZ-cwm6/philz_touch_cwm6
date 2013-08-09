@@ -325,9 +325,8 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
             sprintf(mount_cmd, "mount %s", v->mount_point);
 
         if ((result = __system(mount_cmd)) != 0) {
-            // on volumes with vfat/auto fs_type, try exfat-fuse if it exists, else ntfs-3g
-            if (strcmp(v->fs_type, "vfat") == 0 || strcmp(v->fs_type, "auto") == 0 ||
-                    (v->fs_type2 != NULL && (strcmp(v->fs_type2, "vfat") == 0 || strcmp(v->fs_type2, "auto") == 0))) {
+            // on volumes with auto fs_type, try exfat-fuse if it exists, else ntfs-3g
+            if (strcmp(v->fs_type, "auto") == 0) {
                 struct stat s;
                 if (stat("/sbin/mount.exfat-fuse", &s) == 0) {
                     sprintf(mount_cmd, "/sbin/mount.exfat-fuse -o big_writes,max_read=131072,max_write=131072 %s %s", v->device, mount_point);
