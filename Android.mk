@@ -378,7 +378,8 @@ include $(commands_recovery_local_path)/device_images/Android.mk
 include $(commands_recovery_local_path)/dosfstools/Android.mk
 
 ifneq ($(BOARD_USE_EXFAT_FUSE),false)
-    include $(commands_recovery_local_path)/exfat/Android.mk
+include $(commands_recovery_local_path)/fuse/Android.mk \
+        $(commands_recovery_local_path)/exfat/Android.mk
 endif
 
 ifneq ($(BOARD_USE_NTFS_3G),false)
