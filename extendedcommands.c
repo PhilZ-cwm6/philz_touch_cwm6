@@ -964,16 +964,7 @@ void show_partition_menu()
 
             options[mountable_volumes+i] = e->txt;
         }
-/*
-        if (!is_data_media()) {
-          options[mountable_volumes + formatable_volumes] = "mount USB storage";
-          options[mountable_volumes + formatable_volumes + 1] = NULL;
-        }
-        else {
-          options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
-          options[mountable_volumes + formatable_volumes + 1] = NULL;
-        }
-*/
+
         //Mount usb storage support for /data/media devices, by PhilZ (part 1/2)
         if (!is_data_media()) {
             options[mountable_volumes + formatable_volumes] = "mount USB storage";
@@ -984,7 +975,7 @@ void show_partition_menu()
             options[mountable_volumes + formatable_volumes + 2] = NULL;
         }
         //end PhilZ support for mount usb storage on /data/media (part 1/2)
-        
+
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
         if (chosen_item == GO_BACK)
             break;
