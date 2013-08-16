@@ -41,7 +41,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-CWM_BASE_VERSION := v6.0.3.6
+CWM_BASE_VERSION := v6.0.3.7
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 RECOVERY_VERSION := $(RECOVERY_NAME) $(CWM_BASE_VERSION)
 
@@ -60,7 +60,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.10.8
+PHILZ_BUILD := 5.11.0
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -106,6 +106,8 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_D2TMO
 #Galaxy S4 International - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
 TARGET_COMMON_NAME := i9500
+BOARD_USE_FB2PNG := false
+BOARD_USE_NTFS_3G := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 
 #Galaxy S4 - i9505, jfltexx
@@ -113,7 +115,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
 TARGET_COMMON_NAME := i9505
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 LOCAL_CFLAGS += -DBOARD_HAS_SLOW_STORAGE
-#USE_EXFAT_FUSE_BIN := true
 
 #Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
@@ -154,6 +155,8 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_FIREBALL
 else ifeq ($(TARGET_PRODUCT), cm_pico)
 TARGET_COMMON_NAME := HTC_Explorer
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
+BOARD_USE_NTFS_3G := false
+BOARD_USE_EXFAT_FUSE := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
 
 #HTC One - m7ul / m7spr / m7tmo
@@ -164,6 +167,7 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_ONE
 #HTC One X - endeavoru
 else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
 TARGET_COMMON_NAME := HTC_One_X
+BOARD_USE_NTFS_3G := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_ENDEAVORU
 
 #HTC One XL - evita
@@ -373,9 +377,12 @@ include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/su/Android.mk
 include $(commands_recovery_local_path)/pigz/Android.mk
-include $(commands_recovery_local_path)/fb2png/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
 include $(commands_recovery_local_path)/dosfstools/Android.mk
+
+ifneq ($(BOARD_USE_FB2PNG),false)
+    include $(commands_recovery_local_path)/fb2png/Android.mk
+endif
 
 ifneq ($(BOARD_USE_EXFAT_FUSE),false)
 include $(commands_recovery_local_path)/fuse/Android.mk \

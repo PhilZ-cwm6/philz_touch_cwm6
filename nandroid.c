@@ -1279,7 +1279,7 @@ int nandroid_backup(const char* backup_path)
 /*
     // replaced by Get_Size_Via_statfs() check
     Volume* volume;
-    if (is_data_media())
+    if (is_data_media_volume_path(backup_path))
         volume = volume_for_path("/data");
     else
         volume = volume_for_path(backup_path);
