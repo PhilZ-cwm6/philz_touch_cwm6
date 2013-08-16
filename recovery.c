@@ -801,13 +801,15 @@ setup_adbd() {
             check_and_fclose(file_src, key_src);
         }
     }
+    ignore_data_media_workaround(1);
     ensure_path_unmounted("/data");
+    ignore_data_media_workaround(0);
 
     // Trigger (re)start of adb daemon
     property_set("service.adb.root", "1");
 }
 
-// call a clean reboot to main system
+// call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg) {
 #ifdef PHILZ_TOUCH_RECOVERY
     verify_settings_file();
@@ -886,8 +888,6 @@ main(int argc, char **argv) {
 
     device_ui_init(&ui_parameters);
     ui_init();
-    //ui_print(EXPAND(RECOVERY_VERSION)"\n");
-
     ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
     ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
     LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
@@ -978,7 +978,9 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Installation aborted.\n");
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
+        ignore_data_media_workaround(1);
         if (erase_volume("/data")) status = INSTALL_ERROR;
+        ignore_data_media_workaround(0);
         if (has_datadata() && erase_volume("/datadata")) status = INSTALL_ERROR;
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) ui_print("Data wipe failed.\n");

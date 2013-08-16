@@ -345,9 +345,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     return -1;
 }
 
+static int ignore_data_media = 0;
+
 int ensure_path_unmounted(const char* path) {
     // if we are using /data/media, do not ever unmount volumes /data or /sdcard
-    if (strstr(path, "/data") == path && is_data_media()) {
+    if (strstr(path, "/data") == path && is_data_media() && !ignore_data_media) {
         return 0;
     }
 
@@ -382,23 +384,30 @@ int ensure_path_unmounted(const char* path) {
 }
 
 extern struct selabel_handle *sehandle;
-static int handle_data_media = 0;
 
 int format_volume(const char* volume) {
     Volume* v = volume_for_path(volume);
     if (v == NULL) {
         // silent failure for sd-ext
-        if (strcmp(volume, "/sd-ext") == 0)
-            return -1;
-        LOGE("unknown volume \"%s\"\n", volume);
+        if (strcmp(volume, "/sd-ext") != 0)
+            LOGE("unknown volume \"%s\"\n", volume);
         return -1;
     }
+    // silent failure to format non existing sd-ext when defined in recovery.fstab
+    if (strcmp(volume, "/sd-ext") == 0) {
+        struct stat s;
+        if (0 != stat(v->device, &s)) {
+            LOGI("Skipping format of sd-ext\n");
+            return -1;
+        }
+    }
+
     if (is_data_media_volume_path(volume)) {
         return format_unknown_device(NULL, volume, NULL);
     }
     // check to see if /data is being formatted, and if it is /data/media
     // Note: the /sdcard check is redundant probably, just being safe.
-    if (strstr(volume, "/data") == volume && is_data_media() && !handle_data_media) {
+    if (strstr(volume, "/data") == volume && is_data_media() && !ignore_data_media) {
         return format_unknown_device(NULL, volume, NULL);
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
@@ -417,15 +426,6 @@ int format_volume(const char* volume) {
     if (ensure_path_unmounted(volume) != 0) {
         LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
         return -1;
-    }
-
-    // silent failure to format non existing sd-ext when defined in recovery.fstab
-    if (strcmp(volume, "/sd-ext") == 0) {
-        struct stat s;
-        if (0 != stat(v->device, &s)) {
-            LOGI("Skipping format of sd-ext\n");
-            return -1;
-        }
     }
 
     if (strcmp(v->fs_type, "yaffs2") == 0 || strcmp(v->fs_type, "mtd") == 0) {
@@ -474,6 +474,6 @@ int format_volume(const char* volume) {
     return format_unknown_device(v->device, volume, v->fs_type);
 }
 
-void handle_data_media_format(int handle) {
-  handle_data_media = handle;
+void ignore_data_media_workaround(int ignore) {
+  ignore_data_media = ignore;
 }

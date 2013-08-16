@@ -962,7 +962,6 @@ void show_partition_menu()
             options[mountable_volumes+i] = e->txt;
         }
 
-        //Mount usb storage support for /data/media devices, by PhilZ (part 1/2)
         if (!is_data_media()) {
             options[mountable_volumes + formatable_volumes] = "mount USB storage";
             options[mountable_volumes + formatable_volumes + 1] = NULL;
@@ -971,8 +970,7 @@ void show_partition_menu()
             options[mountable_volumes + formatable_volumes + 1] = "mount USB storage";
             options[mountable_volumes + formatable_volumes + 2] = NULL;
         }
-        //end PhilZ support for mount usb storage on /data/media (part 1/2)
-        
+
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
         if (chosen_item == GO_BACK)
             break;
@@ -983,20 +981,18 @@ void show_partition_menu()
             else {
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
                     continue;
-                handle_data_media_format(1);
+                ignore_data_media_workaround(1);
                 ui_print("Formatting /data...\n");
                 if (0 != format_volume("/data"))
                     ui_print("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
-                handle_data_media_format(0);  
+                ignore_data_media_workaround(0);
             }
         }
-        //Mount usb storage support for /data/media devices, by PhilZ (part 2/2)
         else if (is_data_media() && chosen_item == (mountable_volumes+formatable_volumes+1)) {
             show_mount_usb_storage_menu();
         }
-        //end PhilZ support for mount usb storage on /data/media
         else if (chosen_item < mountable_volumes) {
             MountMenuEntry* e = &mount_menu[chosen_item];
             Volume* v = e->v;
