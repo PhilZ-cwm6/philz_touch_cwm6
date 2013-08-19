@@ -1039,8 +1039,8 @@ main(int argc, char **argv) {
         }
     }
 
-    setup_adbd();
-    write_recovery_version();
+    write_recovery_version(); // this will mount /data
+    setup_adbd(); // this will unmount /data properly on datamedia devices
 
     if (headless) {
         headless_wait();
