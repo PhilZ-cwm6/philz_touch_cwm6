@@ -94,6 +94,7 @@ void write_string_to_file(const char* filename, const char* string) {
 
 void write_recovery_version() {
     struct stat st;
+    ensure_path_mounted("/data");
     if (is_data_media()) {
         if (0 == lstat("/data/media/0", &st))
             write_string_to_file("/data/media/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
@@ -180,7 +181,6 @@ void show_install_update_menu()
             }
             case ITEM_CHOOSE_ZIP:
                 show_choose_zip_menu("/sdcard/");
-                //write_recovery_version();
                 break;
             case ITEM_APPLY_SIDELOAD:
                 apply_from_adb();
@@ -1224,16 +1224,13 @@ void show_nandroid_menu()
                         sprintf(backup_path, "%s_%s",tmp, rom_name);
                     }
                     nandroid_backup(backup_path);
-                    //write_recovery_version();
                 }
                 break;
             case 1:
                 show_nandroid_restore_menu("/sdcard");
-                //write_recovery_version();
                 break;
             case 2:
                 show_nandroid_delete_menu("/sdcard");
-                //write_recovery_version();
                 break;
             case 3:
                 is_custom_backup = 1;
