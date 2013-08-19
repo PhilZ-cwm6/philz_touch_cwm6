@@ -2940,6 +2940,9 @@ void refresh_recovery_settings() {
 #ifdef PHILZ_TOUCH_RECOVERY
     refresh_touch_gui_settings();
 #endif
+    ignore_data_media_workaround(1);
+    ensure_path_unmounted(PHILZ_SETTINGS_FILE);
+    ignore_data_media_workaround(0);
 }
 
 //import / export settings
