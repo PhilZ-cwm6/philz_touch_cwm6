@@ -58,7 +58,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.11.2
+PHILZ_BUILD := 5.11.3
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -158,7 +158,7 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
 
 #HTC One - m7ul / m7spr / m7tmo
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo),)
-TARGET_COMMON_NAME := HTC_One_$(TARGET_PRODUCT)
+TARGET_COMMON_NAME := HTC_One-$(TARGET_PRODUCT)
 LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_ONE
 
 #HTC One X - endeavoru
@@ -182,9 +182,9 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
 TARGET_COMMON_NAME := Nexus_4
 LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
 
-#ASUS Nexus 7 - tilapia
-else ifeq ($(TARGET_PRODUCT), cm_tilapia)
-TARGET_COMMON_NAME := ASUS_Nexus_7
+#ASUS Nexus 7 (Wifi) - tilapia (grouper)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
+TARGET_COMMON_NAME := ASUS_Nexus_7-$(TARGET_PRODUCT)
 LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
 
 #Samsung Nexus 10 - manta
@@ -193,8 +193,8 @@ TARGET_COMMON_NAME := Samsung_Nexus_10
 LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
 
 #Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
-else ifeq ($(TARGET_PRODUCT), cm_maguro)
-TARGET_COMMON_NAME := Samsung_Galaxy_Nexus
+else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
+TARGET_COMMON_NAME := Samsung_Galaxy_Nexus-$(TARGET_PRODUCT)
 LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
 
 #Samsung Nexus S - crespo
