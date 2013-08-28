@@ -937,6 +937,8 @@ main(int argc, char **argv) {
             return vold_main(argc, argv);
         if (strstr(argv[0], "vdc"))
             return vdc_main(argc, argv, true);
+        if (strstr(argv[0], "sdcard"))
+            return sdcard_main(argc, argv);
         return busybox_driver(argc, argv);
     }
     __system("/sbin/postrecoveryboot.sh");
@@ -957,7 +959,8 @@ main(int argc, char **argv) {
 
     load_volume_table();
     process_volumes();
-    vold_client_start(&v_callbacks, 1);
+    vold_client_start(&v_callbacks, 0);
+    vold_set_automount(1);
     setup_legacy_storage_paths();
     LOGI("Processing arguments.\n");
     ensure_path_mounted(LAST_LOG_FILE);
