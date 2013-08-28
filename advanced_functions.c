@@ -1635,7 +1635,7 @@ static void delete_custom_backups(const char* backup_path)
   this is done by setting ignore_android_secure to 1
 - ignore_android_secure is by default 0 ad will be reset to 0 by reset_custom_job_settings()
 */
-int get_android_secure_path(char *and_sec_path) {
+int set_android_secure_path(char *and_sec_path) {
     if (ignore_android_secure)
         return android_secure_ext = 0;
 
@@ -2069,7 +2069,7 @@ static void custom_restore_menu(const char* backup_path) {
         if (backup_data) ui_format_gui_menu(item_data, "Restore data", "(x)");
         else ui_format_gui_menu(item_data, "Restore data", "( )");
 
-        get_android_secure_path(tmp);
+        set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Restore and-sec", dirname(tmp));
         else ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
@@ -2268,7 +2268,7 @@ static void custom_backup_menu() {
         if (backup_data) ui_format_gui_menu(item_data, "Backup data", "(x)");
         else ui_format_gui_menu(item_data, "Backup data", "( )");
 
-        get_android_secure_path(tmp);
+        set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Backup and-sec", dirname(tmp));
         else ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");

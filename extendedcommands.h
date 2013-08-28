@@ -20,16 +20,16 @@ void
 show_nandroid_restore_menu(const char* path);
 
 void
+show_nandroid_advanced_restore_menu(const char* path);
+
+void
 choose_default_backup_format();
 
-void
+int
 show_nandroid_menu();
 
-void
+int
 show_partition_menu();
-
-void
-show_choose_zip_menu();
 
 int
 install_zip(const char* packagefilepath);
@@ -37,7 +37,7 @@ install_zip(const char* packagefilepath);
 int
 __system(const char *command);
 
-void
+int
 show_advanced_menu();
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
@@ -52,13 +52,19 @@ void process_volumes();
 
 int extendedcommand_file_exists();
 
-void show_install_update_menu();
+int show_install_update_menu();
 
 int confirm_selection(const char* title, const char* confirm);
 
 int run_and_remove_extendedcommand();
 
 int verify_root_and_recovery();
+
+void free_string_array(char** array);
+
+int can_partition(const char* volume);
+
+static int is_path_mounted(const char* path);
 
 void show_advanced_power_menu();
 

@@ -174,7 +174,7 @@ static int check_backup_size(const char* backup_path) {
     }
 
     char tmp[PATH_MAX];
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         unsigned long long andsec_size;
         andsec_size = Get_Folder_Size(tmp);
@@ -611,7 +611,7 @@ int twrp_backup(const char* backup_path) {
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, tmp, 0)))
             return ret;
@@ -804,7 +804,7 @@ int twrp_restore(const char* backup_path)
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_restore_partition_extended(backup_path, tmp, 0)))
             return ret;

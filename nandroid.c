@@ -292,7 +292,7 @@ static void refresh_default_backup_handler() {
         strcpy(fmt, forced_backup_format);
     }
     else {
-        ensure_path_mounted("/sdcard");
+        ensure_path_mounted(get_primary_storage_path());
         FILE* f = fopen(NANDROID_BACKUP_FORMAT_FILE, "r");
         if (NULL == f) {
             default_backup_handler = tar_compress_wrapper;
@@ -347,6 +347,7 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
 int nandroid_backup_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
     int ret = 0;
     char name[PATH_MAX];
+    char tmp[PATH_MAX];
     strcpy(name, basename(mount_point));
 
     struct stat file_info;
@@ -359,7 +360,6 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     }
 
     compute_directory_stats(mount_point);
-    char tmp[PATH_MAX];
     scan_mounted_volumes();
     Volume *v = volume_for_path(mount_point);
     MountedVolume *mv = NULL;
@@ -506,7 +506,7 @@ int nandroid_backup(const char* backup_path)
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, tmp, 0)))
             return ret;
@@ -798,14 +798,14 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     ui_print("\n>> Restoring %s...\n", mount_point);
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/%s.img", backup_path, name);
-    struct statfs file_info;
+    struct stat file_info;
     if (strcmp(backup_path, "-") == 0) {
         if (vol)
             backup_filesystem = vol->fs_type;
         restore_handler = tar_extract_wrapper;
         strcpy(tmp, "/proc/self/fd/0");
     }
-    else if (twrp_backup_mode || 0 != (ret = statfs(tmp, &file_info))) {
+    else if (twrp_backup_mode || 0 != (ret = stat(tmp, &file_info))) {
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
         printf("couldn't find old .img format\n");
@@ -817,44 +817,44 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
                     strcpy(name, "and-sec");
 
                 sprintf(tmp, "%s/%s.%s.win", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.win000", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     break;
                 }
                 sprintf(tmp, "%s/%s.auto.win", backup_path, name);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     break;
                 }
                 sprintf(tmp, "%s/%s.auto.win000", backup_path, name);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     break;
                 }
             } else {
                 sprintf(tmp, "%s/%s.%s.img", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = unyaffs_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.tar", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = tar_extract_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.tar.gz", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = tar_extract_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.dup", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = dedupe_extract_wrapper;
                     break;
@@ -898,7 +898,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    int callback = statfs("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
     if (!twrp_backup_mode) compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
@@ -1115,8 +1115,8 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
-    if (backup_data && android_secure_ext) {
+    set_android_secure_path(tmp);
+    if (restore_data && android_secure_ext) {
         if (0 != (ret = nandroid_restore_partition_extended(backup_path, tmp, 0)))
             return ret;
     }

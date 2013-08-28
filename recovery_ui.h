@@ -76,9 +76,10 @@ int device_wipe_data();
 #define HIGHLIGHT_DOWN      -3
 #define SELECT_ITEM         -4
 #define GO_BACK             -5
+#define REFRESH             -6
 #ifdef PHILZ_TOUCH_RECOVERY
-#define HIGHLIGHT_ON_TOUCH  -6
-#define GESTURE_ACTIONS     -7
+#define HIGHLIGHT_ON_TOUCH  -7
+#define GESTURE_ACTIONS     -8
 #endif
 
 #define ITEM_REBOOT          0
@@ -105,7 +106,7 @@ extern char* MENU_ITEMS[];
 extern int ui_root_menu;
 
 int
-get_menu_selection(char** headers, char** items, int menu_only, int initial_selection);
+get_menu_selection(const char** headers, char** items, int menu_only, int initial_selection);
 
 void
 set_sdcard_update_bootloader_message();

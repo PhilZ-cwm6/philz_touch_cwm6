@@ -33,6 +33,7 @@
 #include <cutils/properties.h>
 #include "minui/minui.h"
 #include "recovery_ui.h"
+#include "voldclient/voldclient.h"
 
 extern int __system(const char *command);
 
@@ -941,27 +942,35 @@ void ui_cancel_wait_key() {
     pthread_mutex_unlock(&key_queue_mutex);
 }
 
+extern int volumes_changed();
+
 int ui_wait_key()
 {
     if (boardEnableKeyRepeat) return ui_wait_key_with_repeat();
     pthread_mutex_lock(&key_queue_mutex);
+    int timeouts = UI_WAIT_KEY_TIMEOUT_SEC;
 
-    // Time out after UI_WAIT_KEY_TIMEOUT_SEC, unless a USB cable is
-    // plugged in.
+    // Time out after 1 second to catch volume changes, and loop for
+    // UI_WAIT_KEY_TIMEOUT_SEC to restart a device not connected to USB
     do {
         struct timeval now;
         struct timespec timeout;
         gettimeofday(&now, NULL);
         timeout.tv_sec = now.tv_sec;
         timeout.tv_nsec = now.tv_usec * 1000;
-        timeout.tv_sec += UI_WAIT_KEY_TIMEOUT_SEC;
+        timeout.tv_sec += 1;
 
         int rc = 0;
         while (key_queue_len == 0 && rc != ETIMEDOUT) {
             rc = pthread_cond_timedwait(&key_queue_cond, &key_queue_mutex,
                                         &timeout);
+            if (volumes_changed()) {
+                pthread_mutex_unlock(&key_queue_mutex);
+                return REFRESH;
+            }
         }
-    } while (usb_connected() && key_queue_len == 0);
+        timeouts--;
+    } while ((timeouts || usb_connected()) && key_queue_len == 0);
 
     int key = -1;
     if (key_queue_len > 0) {
@@ -1005,7 +1014,7 @@ int ui_wait_key_with_repeat()
                                         &timeout);
         }
         pthread_mutex_unlock(&key_queue_mutex);
-        if (rc == ETIMEDOUT && !usb_connected()) {
+        if (rc == ETIMEDOUT && !usb_connected() && !volumes_changed()) {
             return -1;
         }
 
