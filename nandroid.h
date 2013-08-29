@@ -60,6 +60,9 @@ extern int backup_radio;
 #define TAR_GZ_MEDIUM 6
 #define TAR_GZ_HIGH 9
 extern int compression_value;
+
+void set_override_yaffs2_wrapper(int set);
+
 extern int enable_md5sum;
 extern int show_nandroid_size_progress;
 extern int nandroid_add_preload;

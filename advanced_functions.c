@@ -645,6 +645,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
     ignore_android_secure = 1; //disable
+    set_override_yaffs2_wrapper(0);
     nandroid_force_backup_format("tar");
 
     ui_print("Setting backup options:\n");
@@ -705,6 +706,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 0;
     twrp_backup_mode = 0;
     nandroid_force_backup_format("");
+    set_override_yaffs2_wrapper(1);
     reset_custom_job_settings(0);
     enable_md5sum = old_enable_md5sum;
     return ret;

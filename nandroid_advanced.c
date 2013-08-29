@@ -500,7 +500,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
             sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
         else
-            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
+            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
 

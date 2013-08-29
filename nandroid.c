@@ -328,6 +328,11 @@ unsigned nandroid_get_default_backup_format() {
     }
 }
 
+static int override_yaffs2_wrapper = 1;
+void set_override_yaffs2_wrapper(int set) {
+    override_yaffs2_wrapper = set;
+}
+
 static nandroid_backup_handler get_backup_handler(const char *backup_path) {
     Volume *v = volume_for_path(backup_path);
     if (v == NULL) {
@@ -344,7 +349,7 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
         return default_backup_handler;
     }
 
-    if (strlen(forced_backup_format) > 0)
+    if (override_yaffs2_wrapper && strlen(forced_backup_format) > 0)
         return default_backup_handler;
 
     // cwr5, we prefer dedupe for everything except yaffs2
