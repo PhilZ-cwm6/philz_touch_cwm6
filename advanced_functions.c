@@ -640,13 +640,12 @@ static int twrp_ors_backup_format() {
 // Stock CWM as of v6.x, doesn't support backup options
 static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
-    int old_compression_value = compression_value;
-    compression_value = TAR_FORMAT;
     int old_enable_md5sum = enable_md5sum;
     enable_md5sum = 1;
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
     ignore_android_secure = 1; //disable
+    nandroid_force_backup_format("tar");
 
     ui_print("Setting backup options:\n");
     char value1[SCRIPT_COMMAND_SIZE];
@@ -687,7 +686,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             backup_sdext = 1;
             ui_print("SD-Ext\n");
         } else if (value1[i] == 'O' || value1[i] == 'o') {
-            compression_value = TAR_GZ_LOW;
+            nandroid_force_backup_format("tgz");
             ui_print("Compression is on\n");
         } else if (value1[i] == 'M' || value1[i] == 'm') {
             enable_md5sum = 0;
@@ -698,8 +697,6 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     int ret = -1;
     if (file_found(backup_path)) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
-    } else if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR) {
-        LOGE("Default backup format must be tar!\n");
     } else if (twrp_backup_mode) {
         ret = twrp_backup(backup_path);
     } else {
@@ -707,7 +704,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     }
     is_custom_backup = 0;
     twrp_backup_mode = 0;
-    compression_value = old_compression_value;
+    nandroid_force_backup_format("");
     reset_custom_job_settings(0);
     enable_md5sum = old_enable_md5sum;
     return ret;
@@ -1152,6 +1149,64 @@ void get_rom_name(char *rom_name) {
 /**********************************/
 /*   Misc Nandroid Settings Menu  */
 /**********************************/
+static void regenerate_md5_sum_menu() {
+    if (!confirm_selection("This is not recommended!!", "Yes - Recreate New md5 Sum"))
+        return;
+
+    static char* headers[] = {"Regenerating md5 sum", "Select a backup to regenerate", NULL};
+
+    char* list[] = {"Select from Internal sdcard",
+                    NULL,
+                    NULL};
+
+    char *int_sd = "/sdcard";
+    char *ext_sd = NULL;
+    if (volume_for_path("/emmc") != NULL) {
+        int_sd = "/emmc";
+        ext_sd = "/sdcard";
+    } else if (volume_for_path("/external_sd") != NULL)
+        ext_sd = "/external_sd";
+
+    if (ext_sd != NULL)
+        list[1] = "Select from External sdcard";
+
+    char backup_path[PATH_MAX];
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    switch (chosen_item)
+    {
+        case 0:
+            sprintf(backup_path, "%s", int_sd);
+            break;
+        case 1:
+            sprintf(backup_path, "%s", ext_sd);
+            break;
+        default:
+            return;
+    }
+
+    // select backup set and regenerate md5 sum
+    strcat(backup_path, "/clockworkmod/backup/");
+    if (ensure_path_mounted(backup_path) != 0)
+        return;
+
+    char* file = choose_file_menu(backup_path, "", headers);
+    if (file == NULL) return;
+
+    char tmp[PATH_MAX];
+    char *backup_source;
+    backup_source = dirname(file);
+    sprintf(tmp, "Process %s", basename(backup_source));
+    if (!confirm_selection("Regenerate md5 sum?", tmp))
+        return;
+
+    ui_print("Generating md5 sum...\n");
+    // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
+    sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
+    if (0 != __system(tmp))
+        ui_print("Error while generating md5 sum!\n");
+    else ui_print("Done generating md5 sum.\n");
+}
+
 void misc_nandroid_menu()
 {
     static char* headers[] = {  "Misc Nandroid Settings",
@@ -1174,9 +1229,11 @@ void misc_nandroid_menu()
                     item_size_progress,
                     item_nand_progress,
                     "Default Backup Format...",
+                    "Regenerate md5 Sum",
                     NULL
     };
 
+    int fmt;
     for (;;) {
         if (enable_md5sum) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
         else ui_format_gui_menu(item_md5, "MD5 checksum", "( )");
@@ -1186,13 +1243,14 @@ void misc_nandroid_menu()
         else if (nandroid_add_preload) ui_format_gui_menu(item_preload, "Include /preload", "(x)");
         else ui_format_gui_menu(item_preload, "Include /preload", "( )");
 
-        if (compression_value == TAR_GZ_LOW)
-            ui_format_gui_menu(item_compress, "Compression", "Low");
+        fmt = nandroid_get_default_backup_format();
+        if (fmt != NANDROID_BACKUP_FORMAT_TGZ)
+            ui_format_gui_menu(item_compress, "Compression", "No (tar)");
         else if (compression_value == TAR_GZ_MEDIUM)
             ui_format_gui_menu(item_compress, "Compression", "Med");
         else if (compression_value == TAR_GZ_HIGH)
             ui_format_gui_menu(item_compress, "Compression", "Max");
-        else ui_format_gui_menu(item_compress, "Compression", "( )");
+        else ui_format_gui_menu(item_compress, "Compression", "Low");
 
         char other_sd[20] = "";
         get_ors_backup_volume(other_sd);
@@ -1240,20 +1298,22 @@ void misc_nandroid_menu()
                 break;
             case 2:
                 {
-                    //switch pigz [-0, 3, 6, 9] compression level
-                    char value[8];
-                    compression_value += 3;
-                    if (compression_value == TAR_GZ_LOW)
-                        sprintf(value, "low");
-                    else if (compression_value == TAR_GZ_MEDIUM)
-                        sprintf(value, "medium");
-                    else if (compression_value == TAR_GZ_HIGH)
-                        sprintf(value, "high");
-                    else {
-                        compression_value = TAR_FORMAT;
-                        sprintf(value, "false");
+                    if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
+                        ui_print("First set backup format to tar.gz\n");
+                    } else {
+                        //switch pigz -[3, 6, 9] compression level
+                        char value[8];
+                        compression_value += 3;
+                        if (compression_value == TAR_GZ_MEDIUM)
+                            sprintf(value, "medium");
+                        else if (compression_value == TAR_GZ_HIGH)
+                            sprintf(value, "high");
+                        else {
+                            compression_value == TAR_GZ_LOW
+                            sprintf(value, "low");
+                        }
+                        write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                     }
-                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                 }
                 break;
             case 3:
@@ -1297,6 +1357,9 @@ void misc_nandroid_menu()
                 break;
             case 7:
                 choose_default_backup_format();
+                break;
+            case 8:
+                regenerate_md5_sum_menu();
                 break;
         }
     }
@@ -1995,8 +2058,9 @@ static void validate_backup_job(const char* backup_path) {
     else
     {
         // it is a backup job to validate
-        if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR)
-            LOGE("Default backup format must be tar!\n");
+        int fmt = nandroid_get_default_backup_format();
+        if (fmt != NANDROID_BACKUP_FORMAT_TAR || fmt != NANDROID_BACKUP_FORMAT_TGZ)
+            LOGE("Backup format must be tar(.gz)!\n");
         else if (twrp_backup_mode)
             twrp_backup_handler();
         else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
@@ -2718,64 +2782,6 @@ static void twrp_backup_restore_menu() {
 
     twrp_backup_mode = 0;
 }
-
-static void regenerate_md5_sum_menu() {
-    if (!confirm_selection("This is not recommended!!", "Yes - Recreate New md5 Sum"))
-        return;
-
-    static char* headers[] = {"Regenerating md5 sum", "Select a backup to regenerate", NULL};
-
-    char* list[] = {"Select from Internal sdcard",
-                    NULL,
-                    NULL};
-
-    char *int_sd = "/sdcard";
-    char *ext_sd = NULL;
-    if (volume_for_path("/emmc") != NULL) {
-        int_sd = "/emmc";
-        ext_sd = "/sdcard";
-    } else if (volume_for_path("/external_sd") != NULL)
-        ext_sd = "/external_sd";
-
-    if (ext_sd != NULL)
-        list[1] = "Select from External sdcard";
-
-    char backup_path[PATH_MAX];
-    int chosen_item = get_menu_selection(headers, list, 0, 0);
-    switch (chosen_item)
-    {
-        case 0:
-            sprintf(backup_path, "%s", int_sd);
-            break;
-        case 1:
-            sprintf(backup_path, "%s", ext_sd);
-            break;
-        default:
-            return;
-    }
-
-    // select backup set and regenerate md5 sum
-    strcat(backup_path, "/clockworkmod/backup/");
-    if (ensure_path_mounted(backup_path) != 0)
-        return;
-
-    char* file = choose_file_menu(backup_path, "", headers);
-    if (file == NULL) return;
-
-    char tmp[PATH_MAX];
-    char *backup_source;
-    backup_source = dirname(file);
-    sprintf(tmp, "Process %s", basename(backup_source));
-    if (!confirm_selection("Regenerate md5 sum?", tmp))
-        return;
-
-    ui_print("Generating md5 sum...\n");
-    // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
-    sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
-    if (0 != __system(tmp))
-        ui_print("Error while generating md5 sum!\n");
-    else ui_print("Done generating md5 sum.\n");
-}
 //-------- End TWRP Backup and Restore Options
 
 
@@ -2789,7 +2795,6 @@ void custom_backup_restore_menu() {
     static char* list[] = { "Custom Backup Job",
                     "Custom Restore Job",
                     "TWRP Backup & Restore",
-                    "Regenerate md5 Sum",
                     "Clone ROM to update.zip",
                     "Misc Nandroid Settings",
                     NULL
@@ -2801,7 +2806,6 @@ void custom_backup_restore_menu() {
             break;
         switch (chosen_item)
         {
-
             case 0:
                 custom_backup_menu();
                 break;
@@ -2812,14 +2816,11 @@ void custom_backup_restore_menu() {
                 twrp_backup_restore_menu();
                 break;
             case 3:
-                regenerate_md5_sum_menu();
-                break;
-            case 4:
 #ifdef PHILZ_TOUCH_RECOVERY
                 custom_rom_menu();
 #endif
                 break;
-            case 5:
+            case 4:
                 misc_nandroid_menu();
                 break;
         }
@@ -2886,14 +2887,11 @@ void run_aroma_browser() {
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "false");
-    if (strcmp(value, "low") == 0)
-        compression_value = TAR_GZ_LOW;
-    else if (strcmp(value, "medium") == 0)
+    if (strcmp(value, "medium") == 0)
         compression_value = TAR_GZ_MEDIUM;
     else if (strcmp(value, "high") == 0)
         compression_value = TAR_GZ_HIGH;
-    else
-        compression_value = TAR_FORMAT;
+    else compression_value = TAR_GZ_LOW;;
 }
 
 //start check nandroid preload setting
