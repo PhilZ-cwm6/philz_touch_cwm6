@@ -132,7 +132,7 @@ char** get_extra_storage_paths() {
 static char* android_secure_path = NULL;
 char* get_android_secure_path() {
     if (android_secure_path == NULL) {
-        android_secure_path = malloc((17 + strlen(get_primary_storage_path())) * sizeof(char *));
+        android_secure_path = malloc(sizeof("/.android_secure") + strlen(get_primary_storage_path()) + 1);
         sprintf(android_secure_path, "%s/.android_secure", primary_storage_path);
     }
     return android_secure_path;
@@ -361,7 +361,7 @@ int format_volume(const char* volume) {
         }
     }
 
-    if (fs_mgr_is_voldmanaged(v)) {
+    if (fs_mgr_is_voldmanaged(v) && strcmp(volume, v->mount_point) == 0) {
         if (ensure_path_unmounted(volume) != 0) {
             LOGE("format_volume failed to unmount %s", v->mount_point);
         }
