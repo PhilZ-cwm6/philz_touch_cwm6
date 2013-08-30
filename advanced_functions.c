@@ -1705,15 +1705,17 @@ int set_android_secure_path(char *and_sec_path) {
         return android_secure_ext = 0;
 
     android_secure_ext = 1;
+    char primary_andsec_path[PATH_MAX];
+    sprintf(primary_andsec_path, "%s", get_android_secure_path());
     struct stat st;
     if (volume_for_path("/external_sd") != NULL &&
                 ensure_path_mounted("/external_sd") == 0 &&
                 stat("/external_sd/.android_secure", &st) == 0) {
         strcpy(and_sec_path, "/external_sd/.android_secure");
     }
-    else if (!is_data_media() && ensure_path_mounted("/sdcard") == 0 && 
-                stat("/sdcard/.android_secure", &st) == 0) {
-        strcpy(and_sec_path, "/sdcard/.android_secure");
+    else if (!is_data_media() && ensure_path_mounted(primary_andsec_path) == 0 && 
+                stat(primary_andsec_path, &st) == 0) {
+        strcpy(and_sec_path, primary_andsec_path);
     }
     else if (volume_for_path("/emmc") != NULL &&
                 ensure_path_mounted("/emmc") == 0 &&

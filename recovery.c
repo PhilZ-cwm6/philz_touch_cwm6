@@ -688,7 +688,13 @@ wipe_data(int confirm) {
         erase_volume("/datadata");
     }
     erase_volume("/sd-ext");
+    // erase .android_secure from /sdcard or /storage/sdcard0
     erase_volume(get_android_secure_path());
+    // erase .android_secure from secondary storage: no need to parse all vold managed volumes here as it is always in /external_sd or /emmc
+    if (volume_for_path("/external_sd") != NULL)
+        erase_volume("/external_sd/.android_secure");
+    else if (volume_for_path("/emmc") != NULL)
+        erase_volume("/emmc/.android_secure");
     ui_print("Data wipe complete.\n");
 }
 
