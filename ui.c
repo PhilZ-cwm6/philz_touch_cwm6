@@ -272,7 +272,7 @@ static void draw_screen_locked(void)
         int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
         int j = 0;
-        int row = 0;            // current row that we are drawing on
+        int row = 0; // current row that we are drawing on
         if (show_menu) {
 #ifndef BOARD_TOUCH_RECOVERY
             gr_color(MENU_TEXT_COLOR);
@@ -801,7 +801,7 @@ void ui_printlogtail(int nb_lines) {
 #define MENU_ITEM_HEADER_LENGTH strlen(MENU_ITEM_HEADER)
 #endif
 
-int ui_start_menu(char** headers, char** items, int initial_selection) {
+int ui_start_menu(const char** headers, char** items, int initial_selection) {
     int i;
     pthread_mutex_lock(&gUpdateMutex);
     if (text_rows > 0 && text_cols > 0) {
