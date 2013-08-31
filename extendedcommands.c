@@ -1655,11 +1655,15 @@ void handle_failure(int ret)
 {
     if (ret == 0)
         return;
-    if (0 != ensure_path_mounted(get_primary_storage_path()))
+    char* primary_path = get_primary_storage_path();
+    char cmd[PATH_MAX];
+    if (0 != ensure_path_mounted(primary_path))
         return;
-    mkdir("/sdcard/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);
-    __system("cp /tmp/recovery.log /sdcard/clockworkmod/philz_recovery.log");
-    ui_print("Log copied to /sdcard/clockworkmod/philz_recovery.log\n");
+    sprintf(cmd, "%s/clockworkmod", primary_path);
+    mkdir(cmd, S_IRWXU | S_IRWXG | S_IRWXO);
+    sprintf(cmd, "cp /tmp/recovery.log %s/clockworkmod/philz_recovery.log", primary_path);
+    __system(cmd);
+    ui_print("Log copied to %s/clockworkmod/philz_recovery.log\n", primary_path);
     ui_print("Send file to Phil3759 @xda\n");
 }
 

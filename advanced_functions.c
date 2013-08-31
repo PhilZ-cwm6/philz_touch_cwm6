@@ -91,12 +91,6 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         LOGE("Cannot open /tmp/custom_tail.log\n");
 }
 
-// is there a second storage (/sdcard is always present in fstab)
-int has_second_storage() {
-    return (volume_for_path("/external_sd") != NULL
-                || volume_for_path("/emmc") != NULL);
-}
-
 // delete a file
 void delete_a_file(const char* filename) {
     ensure_path_mounted(filename);
@@ -1311,7 +1305,7 @@ void misc_nandroid_menu()
                         else if (compression_value == TAR_GZ_HIGH)
                             sprintf(value, "high");
                         else {
-                            compression_value == TAR_GZ_LOW
+                            compression_value == TAR_GZ_LOW;
                             sprintf(value, "low");
                         }
                         write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
@@ -2212,7 +2206,7 @@ static void custom_restore_menu(const char* backup_path) {
                 break;
             case 5:
                 ignore_android_secure ^= 1;
-                if (!ignore_android_secure && has_second_storage())
+                if (!ignore_android_secure && get_num_extra_volumes() != 0)
                     ui_print("To force restore to 2nd storage, keep only one .android_secure folder\n");
                 break;
             case 6:
@@ -2404,7 +2398,7 @@ static void custom_backup_menu() {
                 break;
             case 5:
                 ignore_android_secure ^= 1;
-                if (!ignore_android_secure && has_second_storage())
+                if (!ignore_android_secure && get_num_extra_volumes() != 0)
                     ui_print("To force backup from 2nd storage, keep only one .android_secure folder\n");
                 break;
             case 6:

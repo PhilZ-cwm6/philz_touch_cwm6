@@ -156,8 +156,6 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_FIREBALL
 else ifeq ($(TARGET_PRODUCT), cm_pico)
 TARGET_COMMON_NAME := HTC_Explorer
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
-BOARD_USE_NTFS_3G := false
-BOARD_USE_EXFAT_FUSE := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
 
 #HTC One - m7ul / m7spr / m7tmo
@@ -168,7 +166,6 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_ONE
 #HTC One X - endeavoru
 else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
 TARGET_COMMON_NAME := HTC_One_X
-BOARD_USE_NTFS_3G := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_ENDEAVORU
 
 #HTC One XL - evita
@@ -382,18 +379,18 @@ include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/su/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
-include $(commands_recovery_local_path)/dosfstools/Android.mk
+# include $(commands_recovery_local_path)/dosfstools/Android.mk
 
 ifneq ($(BOARD_USE_FB2PNG),false)
     include $(commands_recovery_local_path)/fb2png/Android.mk
 endif
 
-ifneq ($(BOARD_USE_EXFAT_FUSE),false)
+ifneq ($(BOARD_USE_EXFAT_FUSE),)
 include $(commands_recovery_local_path)/fuse/Android.mk \
         $(commands_recovery_local_path)/exfat/Android.mk
 endif
 
-ifneq ($(BOARD_USE_NTFS_3G),false)
+ifneq ($(BOARD_USE_NTFS_3G),)
     include $(commands_recovery_local_path)/ntfs-3g/Android.mk
 endif
 
