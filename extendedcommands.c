@@ -93,10 +93,10 @@ void write_string_to_file(const char* filename, const char* string) {
 
 void write_recovery_version() {
     char path[PATH_MAX];
-    struct stat st;
     ensure_path_mounted("/data");
-    sprintf(path, "%s%sclockworkmod/.recovery_version", get_primary_storage_path(), (is_data_media() && (lstat("/data/media/0", &st) == 0) ? "/0/" : "/"));
+    sprintf(path, "%s/clockworkmod/.recovery_version", get_primary_storage_path());
     write_string_to_file(path,EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    // force unmount /data as we call this on recovery start
     ignore_data_media_workaround(1);
     ensure_path_unmounted("/data");
     ignore_data_media_workaround(0);
