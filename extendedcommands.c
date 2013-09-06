@@ -1423,8 +1423,9 @@ int show_advanced_menu()
         else list[4] = "Storage set to /data/media";
     } else list[4] = "Datamedia Not Supported";
 
+    char list_prefix[] = "Partition ";
     if (can_partition(primary_path)) {
-        sprintf(buf, "Partition %s", primary_path);
+        sprintf(buf, "%s%s", list_prefix, primary_path);
         list[5] = strdup(buf);
         j++;
     }
@@ -1432,7 +1433,7 @@ int show_advanced_menu()
     if (extra_paths != NULL) {
         for (i = 0; i < num_extra_volumes; i++) {
             if (can_partition(extra_paths[i])) {
-                sprintf(buf, "Partition %s", extra_paths[i]);
+                sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
                 list[5 + j] = strdup(buf);
                 j++;
             }
@@ -1505,7 +1506,7 @@ int show_advanced_menu()
                 break;
             default:
                 if (chosen_item >= 8) {
-                    partition_sdcard(list[chosen_item] + 10);
+                    partition_sdcard(list[chosen_item] + strlen(list_prefix));
                 }
                 break;
         }

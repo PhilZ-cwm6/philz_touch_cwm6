@@ -455,41 +455,42 @@ void show_multi_flash_menu() {
     };
 
     //browse sdcards until a valid multi_flash folder is found
-    char *other_sd = NULL;
-    if (volume_for_path("/emmc") != NULL)
-        other_sd = "/emmc";
-    else if (volume_for_path("/external_sd") != NULL)
-        other_sd = "/external_sd";
-    
     char tmp[PATH_MAX];
     char* zip_folder = NULL;
-
+    char* primary_path = get_primary_storage_path();
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+    
     //look for MULTI_ZIP_FOLDER in /sdcard
     struct stat st;
-    ensure_path_mounted("/sdcard");
-    sprintf(tmp, "/sdcard/%s/", MULTI_ZIP_FOLDER);
+    ensure_path_mounted(primary_path);
+    sprintf(tmp, "%s/%s/", primary_path, MULTI_ZIP_FOLDER);
     stat(tmp, &st);
     if (S_ISDIR(st.st_mode)) {
         zip_folder = choose_file_menu(tmp, NULL, headers_dir);
         // zip_folder = NULL if no subfolders found or user chose Go Back
         if (no_files_found) {
             ui_print("At least one subfolder with zip files must be created under %s\n", tmp);
-            ui_print("Looking in other sd...\n");
+            ui_print("Looking in other storage...\n");
         }
     } else
-        LOGI("%s not found. Searching other sd...\n", tmp);
+        LOGI("%s not found. Searching other storage...\n", tmp);
 
-    // case MULTI_ZIP_FOLDER not found, or no subfolders or user selected Go Back:
-    // search for MULTI_ZIP_FOLDER in other_sd
+    // case MULTI_ZIP_FOLDER not found, or no subfolders or user selected Go Back (zip_folder == NULL)
+    // search for MULTI_ZIP_FOLDER in other storage paths if they exist (extra_paths != NULL)
+    int i = 0;
     struct stat s;
-    if (other_sd != NULL) {
-        ensure_path_mounted(other_sd);
-        sprintf(tmp, "%s/%s/", other_sd, MULTI_ZIP_FOLDER);
-        stat(tmp, &s);
-        if (zip_folder == NULL && S_ISDIR(s.st_mode)) {
-            zip_folder = choose_file_menu(tmp, NULL, headers_dir);
-            if (no_files_found)
-                ui_print("At least one subfolder with zip files must be created under %s\n", tmp);
+    if (extra_paths != NULL) {
+        while (zip_folder == NULL && i < num_extra_volumes) {
+            ensure_path_mounted(extra_paths[i]);
+            sprintf(tmp, "%s/%s/", extra_paths[i], MULTI_ZIP_FOLDER);
+            stat(tmp, &s);
+            if (S_ISDIR(s.st_mode)) {
+                zip_folder = choose_file_menu(tmp, NULL, headers_dir);
+                if (no_files_found)
+                    ui_print("At least one subfolder with zip files must be created under %s\n", tmp);
+            }
+            i++;
         }
     }
 
@@ -599,24 +600,47 @@ int check_for_script_file(const char* ors_boot_script) {
 }
 
 // sets the default backup volume for ors backup command
-static void get_ors_backup_volume(char *other_sd) {
+static void get_ors_backup_volume(char *volume) {
     char value[PROPERTY_VALUE_MAX];
-    char value_def[15];
-
-    // favor external storage as default
-    if (volume_for_path("/external_sd") != NULL && ensure_path_mounted("/external_sd") == 0)
-        sprintf(value_def, "/external_sd");
-    else if (volume_for_path("/sdcard") != NULL && ensure_path_mounted("/sdcard") == 0)
-        sprintf(value_def, "/sdcard");
-    else if (volume_for_path("/emmc") != NULL && ensure_path_mounted("/emmc") == 0)
-        sprintf(value_def, "/emmc");
-    else
-        return;
-
+    char value_def[PATH_MAX];
+    sprintf(value_def, "%s", get_primary_storage_path());
     read_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", value, value_def);
-    if (strcmp(value, "/external_sd") == 0 || strcmp(value, "/sdcard") == 0 || strcmp(value, "/emmc") == 0) {
-        if (volume_for_path(value) != NULL && ensure_path_mounted(value) == 0)
-            strcpy(other_sd, value);
+    if (volume_for_path(value) != NULL && ensure_path_mounted(value) == 0)
+        strcpy(volume, value);
+    else strcpy(volume, value_def);
+}
+
+static void choose_ors_volume() {
+    char* primary_path = get_primary_storage_path();
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+
+    static const char* headers[] = {  "Save ors backups to:",
+                                NULL
+    };
+
+    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    list[0] = strdup(primary_path);
+
+    char buf[80];
+    int i;
+    if (extra_paths != NULL) {
+        for(i = 0; i < num_extra_volumes; i++) {
+            sprintf(buf, "%s", extra_paths[i]);
+            list[i + 1] = strdup(buf);
+        }
+    }
+    list[num_extra_volumes + 1] = NULL;
+
+    int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+    if (chosen_item != GO_BACK && chosen_item != REFRESH)
+        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", list[chosen_item]);
+
+    free(list[0]);
+    if (extra_paths != NULL) {
+        for(i = 0; i < num_extra_volumes; i++)
+            free(list[i + 1]);
     }
 }
 
@@ -749,11 +773,7 @@ int run_ors_script(const char* ors_script) {
             if (strcmp(command, "install") == 0) {
                 // Install zip
                 ui_print("Installing zip file '%s'\n", value);
-                ensure_path_mounted("/sdcard");
-                if (volume_for_path("/external_sd") != NULL)
-                    ensure_path_mounted("/external_sd");
-                if (volume_for_path("/emmc") != NULL)
-                    ensure_path_mounted("/emmc");
+                ensure_path_mounted(value);
                 ret_val = install_zip(value);
                 if (ret_val != INSTALL_SUCCESS) {
                     LOGE("Error installing zip file '%s'\n", value);
@@ -798,10 +818,10 @@ int run_ors_script(const char* ors_script) {
                     ret_val = 1;
                 }
             } else if (strcmp(command, "backup") == 0) {
-                char other_sd[20] = "";
+                char backup_volume[PATH_MAX] = "";
                 // read user set volume target
-                get_ors_backup_volume(other_sd);
-                if (strcmp(other_sd, "") == 0) {
+                get_ors_backup_volume(backup_volume);
+                if (strcmp(backup_volume, "") == 0) {
                     ret_val = 1;
                     LOGE("No valid volume found for ors backup target!\n");
                     continue;
@@ -833,14 +853,14 @@ int run_ors_script(const char* ors_script) {
                     if (twrp_backup_mode) {
                         char device_id[PROPERTY_VALUE_MAX];
                         get_device_id(device_id);
-                        sprintf(backup_path, "%s/%s/%s/%s", other_sd, TWRP_BACKUP_PATH, device_id, value2);
+                        sprintf(backup_path, "%s/%s/%s/%s", backup_volume, TWRP_BACKUP_PATH, device_id, value2);
                     } else {
-                        sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
+                        sprintf(backup_path, "%s/clockworkmod/backup/%s", backup_volume, value2);
                     }
                 } else if (twrp_backup_mode) {
-                    get_twrp_backup_path(other_sd, backup_path);
+                    get_twrp_backup_path(backup_volume, backup_path);
                 } else {
-                    get_custom_backup_path(other_sd, backup_path);
+                    get_custom_backup_path(backup_volume, backup_path);
                 }
                 if (0 != (ret_val = ors_backup_command(backup_path, value1)))
                     ui_print("Backup failed !!\n");
@@ -967,11 +987,6 @@ int run_ors_script(const char* ors_script) {
             } else if (strcmp(command, "sideload") == 0) {
                 // Install zip from sideload
                 ui_print("Waiting for sideload...\n");
-                ensure_path_mounted("/sdcard");
-                if (volume_for_path("/external_sd") != NULL)
-                    ensure_path_mounted("/external_sd");
-                if (volume_for_path("/emmc") != NULL)
-                    ensure_path_mounted("/emmc");
                 if (0 != (ret_val = apply_from_adb()))
                     LOGE("Error installing from sideload\n");
             } else {
@@ -1058,38 +1073,44 @@ static void choose_custom_ors_menu(const char* ors_path)
 
 //show menu: select sdcard volume to search for custom ors file
 static void show_custom_ors_menu() {
-    static char* headers[] = {  "Search .ors script to run",
+    char* primary_path = get_primary_storage_path();
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+
+    static const char* headers[] = {  "Search .ors script to run",
                                 "",
                                 NULL
     };
 
-    char* list[] = { "Search sdcard",
-                            NULL,
-                            NULL
-    };
+    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    char list_prefix[] = "Search ";
+    char buf[256];
+    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    sprintf(buf, "%s%s", list_prefix, primary_path);
+    list[0] = strdup(buf);
 
-    char *other_sd = NULL;
-    if (volume_for_path("/emmc") != NULL) {
-        other_sd = "/emmc/";
-        list[1] = "Search Internal sdcard";
-    } else if (volume_for_path("/external_sd") != NULL) {
-        other_sd = "/external_sd/";
-        list[1] = "Search External sdcard";
+    int i;
+    if (extra_paths != NULL) {
+        for(i = 0; i < num_extra_volumes; i++) {
+            sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
+            list[i + 1] = strdup(buf);
+        }
+    }
+    list[num_extra_volumes + 1] = NULL;
+
+    int chosen_item;
+    for (;;)
+    {
+        chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        if (chosen_item == GO_BACK || chosen_item == REFRESH)
+            break;
+        choose_custom_ors_menu(list[chosen_item] + strlen(list_prefix));
     }
 
-    for (;;) {
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
-        if (chosen_item == GO_BACK)
-            break;
-        switch (chosen_item)
-        {
-            case 0:
-                choose_custom_ors_menu("/sdcard/");
-                break;
-            case 1:
-                choose_custom_ors_menu(other_sd);
-                break;
-        }
+    free(list[0]);
+    if (extra_paths != NULL) {
+        for(i = 0; i < num_extra_volumes; i++)
+            free(list[i + 1]);
     }
 }
 //----------end open recovery script support
@@ -1248,10 +1269,10 @@ void misc_nandroid_menu()
             ui_format_gui_menu(item_compress, "Compression", "Max");
         else ui_format_gui_menu(item_compress, "Compression", "Low");
 
-        char other_sd[20] = "";
-        get_ors_backup_volume(other_sd);
-        if (strcmp(other_sd, "") != 0)
-            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", other_sd);
+        char ors_volume[PATH_MAX] = "";
+        get_ors_backup_volume(ors_volume);
+        if (strcmp(ors_volume, "") != 0)
+            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
         else ui_format_gui_menu(item_ors_path,  "ORS Backup Target", "N/A");
 
         if (twrp_ors_backup_format())
@@ -1314,17 +1335,7 @@ void misc_nandroid_menu()
                 break;
             case 3:
                 {
-                    if (volume_for_path("/external_sd") != NULL)
-                        sprintf(other_sd, "/external_sd");
-                    else if (volume_for_path("/emmc") != NULL)
-                        sprintf(other_sd, "/emmc");
-                    else
-                        sprintf(other_sd, "");
-
-                    if (strstr(item_ors_path, "/sdcard") != NULL)
-                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", other_sd);
-                    else if (strstr(item_ors_path, "N/A") == NULL)
-                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", "/sdcard");                        
+                    choose_ors_volume();
                 }
                 break;
             case 4:
@@ -3001,31 +3012,27 @@ void show_philz_settings()
         {
             case 0:
                 {
-                    //search in default ors path
-                    choose_default_ors_menu("/sdcard");
-                    if (browse_for_file == 0) {
-                        //we found .ors scripts in /sdcard default location
-                        break;
-                    }
+                    //search in default ors paths
+                    char* primary_path = get_primary_storage_path();
+                    char** extra_paths = get_extra_storage_paths();
+                    int num_extra_volumes = get_num_extra_volumes();
+                    int i = 0;
 
-                    char *other_sd = NULL;
-                    if (volume_for_path("/emmc") != NULL) {
-                        other_sd = "/emmc";
-                    } else if (volume_for_path("/external_sd") != NULL) {
-                        other_sd = "/external_sd";
-                    }
-                    if (other_sd != NULL) {
-                        choose_default_ors_menu(other_sd);
-                        //we search for .ors files in second sd under default location
-                        if (browse_for_file == 0) {
-                            //.ors files found
-                            break;
+                    choose_default_ors_menu(primary_path);
+                    if (extra_paths != NULL) {
+                        while (browse_for_file && i < num_extra_volumes) {
+                            // while we did not find an ors script in default location, continue searching in other volumes
+                            choose_default_ors_menu(extra_paths[i])
+                            i++;
                         }
                     }
-                    //no files found in default locations, let's search manually for a custom ors
-                    ui_print("No .ors files under clockworkmod/ors in sdcards\n");
-                    ui_print("Manually search .ors file...\n");
-                    show_custom_ors_menu();
+
+                    if (browse_for_file) {
+                        //no files found in default locations, let's search manually for a custom ors
+                        ui_print("No .ors files under clockworkmod/ors in default storage paths\n");
+                        ui_print("Manually search .ors files...\n");
+                        show_custom_ors_menu();
+                    }
                 }
                 break;
             case 1:
