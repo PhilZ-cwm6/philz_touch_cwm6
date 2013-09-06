@@ -62,7 +62,7 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.12.4
+PHILZ_BUILD := 5.12.9
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -379,18 +379,12 @@ include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/su/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
-# include $(commands_recovery_local_path)/dosfstools/Android.mk
 
 ifneq ($(BOARD_USE_FB2PNG),false)
     include $(commands_recovery_local_path)/fb2png/Android.mk
 endif
 
-ifneq ($(BOARD_USE_EXFAT_FUSE),)
-include $(commands_recovery_local_path)/fuse/Android.mk \
-        $(commands_recovery_local_path)/exfat/Android.mk
-endif
-
-ifneq ($(BOARD_USE_NTFS_3G),)
+ifneq ($(BOARD_USE_NTFS_3G),false)
     include $(commands_recovery_local_path)/ntfs-3g/Android.mk
 endif
 

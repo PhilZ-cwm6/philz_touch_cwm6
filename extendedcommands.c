@@ -772,6 +772,7 @@ typedef struct {
 typedef struct {
     char txt[255];
     char path[PATH_MAX];
+    char type[255];
 } FormatMenuEntry;
 
 int is_safe_to_format(char* name)
@@ -837,7 +838,7 @@ int show_partition_menu()
             if (is_safe_to_format(v->mount_point)) {
                 sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
                 sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
-                // sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
+                sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
                 ++formatable_volumes;
             }
         }
@@ -845,7 +846,7 @@ int show_partition_menu()
         {
             sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
             sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
-            // sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
+            sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
             ++formatable_volumes;
         }
     }
@@ -918,15 +919,14 @@ int show_partition_menu()
             FormatMenuEntry* e = &format_menu[chosen_item];
 
             sprintf(confirm_string, "%s - %s", e->path, confirm_format);
-/*
+
             // support user choice fstype when formatting external storage
             // ensure fstype==auto because some devices with internal vfat storage cannot be formatted to other types
-            // to do : add type[255] to struct FormatMenuEntry and uncomment above 2 lines in function
             if (strcmp(e->type, "auto") == 0) {
                 format_sdcard(e->path);
                 continue;
             }
-*/
+
             if (!confirm_selection(confirm_string, confirm))
                 continue;
             ui_print("Formatting %s...\n", e->path);
@@ -1222,13 +1222,13 @@ void format_sdcard(const char* volume) {
                             "vfat",
                             "exfat",
                             "ntfs",
-                            "ext2",
-                            "ext3",
                             "ext4",
+                            "ext3",
+                            "ext2",
                             NULL
     };
 
-    int ret = 1;
+    int ret = -1;
     char cmd[PATH_MAX];
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     if (chosen_item == GO_BACK)
@@ -1246,31 +1246,29 @@ void format_sdcard(const char* volume) {
             ret = format_volume(v->mount_point);
             break;
         case 1:
-            if (file_found("/sbin/mkdosfs")) {
-                sprintf(cmd, "/sbin/mkdosfs %s", v->blk_device);
-                ret = __system(cmd);
-            }
-            break;
         case 2:
-            if (file_found("/sbin/mkexfatfs")) {
-                sprintf(cmd, "/sbin/mkexfatfs %s", v->blk_device);
-                ret = __system(cmd);
-            }
-            break;
         case 3:
-            if (file_found("/sbin/mk_ntfs")) {
-                sprintf(cmd, "/sbin/mk_ntfs -f %s", v->blk_device);
-                ret = __system(cmd);
-            }
-            break;
         case 4:
-            ret = format_unknown_device(v->blk_device, v->mount_point, "ext2");
+            if (fs_mgr_is_voldmanaged(v)) {
+                ret = vold_custom_format_volume(v->mount_point, list[chosen_item], 1) == CommandOkay ? 0 : -1;
+            } else if (strcmp(list[chosen_item], "vfat") == 0) {
+                sprintf(cmd, "/sbin/newfs_msdos -F 32 -O android -c 8 %s", v->blk_device);
+                ret = __system(cmd);
+            } else if (strcmp(list[chosen_item], "exfat") == 0) {
+                sprintf(cmd, "/sbin/mkfs.exfat %s", v->blk_device);
+                ret = __system(cmd);
+            } else if (strcmp(list[chosen_item], "ntfs") == 0) {
+                sprintf(cmd, "/sbin/mkntfs -f %s", v->blk_device);
+                ret = __system(cmd);
+            } else if (strcmp(list[chosen_item], "ext4") == 0) {
+                ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+            }
             break;
         case 5:
-            ret = format_unknown_device(v->blk_device, v->mount_point, "ext3");
-            break;
         case 6:
-            ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+            // for now, this calls prebuilt mke2fs which won't run on vold managed path
+            // either use different way, or we implement blk_device2 to recovery
+            ret = format_unknown_device(v->blk_device, v->mount_point, list[chosen_item]);
             break;
     }
 

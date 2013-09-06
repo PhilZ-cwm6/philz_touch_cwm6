@@ -82,6 +82,9 @@ LOCAL_C_INCLUDES := \
     external/ntfs-3g/src
 LOCAL_CFLAGS := -O2 -g -W -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHAVE_CONFIG_H
 LOCAL_MODULE := mount.ntfs-3g
+# need unique moduel name, but binary name should be same as in vold
+# https://github.com/CyanogenMod/android_system_vold
+LOCAL_MODULE_STEM := ntfs-3g
 LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
 LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
 LOCAL_MODULE_TAGS := eng
@@ -105,7 +108,10 @@ LOCAL_C_INCLUDES := \
     external/ntfs-3g/ntfsprogs \
     external/e2fsprogs/lib
 LOCAL_CFLAGS := -O2 -g -W -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHAVE_CONFIG_H
-LOCAL_MODULE := mk_ntfs
+LOCAL_MODULE := mkntfs.recovery
+# need unique moduel name, but binary name should be same as in vold
+# https://github.com/CyanogenMod/android_system_vold
+LOCAL_MODULE_STEM := mkntfs
 LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
 LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
 LOCAL_MODULE_TAGS := eng
