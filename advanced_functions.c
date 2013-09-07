@@ -1705,8 +1705,8 @@ static void delete_custom_backups(const char* backup_path)
 }
 
 /*
-- get_android_secure_path() should be called each time we want to backup/restore .android_secure
-- it will always favor external storage
+- set_android_secure_path() should be called each time we want to backup/restore .android_secure
+- it will always favour external storage
 - it will format path to retained android_secure location and set android_secure_ext to 1 or 0
 - android_secure_ext = 1, will allow nandroid processing of android_secure partition
 - to force other storage, user must keep only one .android_secure folder in one of the sdcards
@@ -1718,27 +1718,36 @@ static void delete_custom_backups(const char* backup_path)
 int set_android_secure_path(char *and_sec_path) {
     if (ignore_android_secure)
         return android_secure_ext = 0;
-
     android_secure_ext = 1;
-    char primary_andsec_path[PATH_MAX];
-    sprintf(primary_andsec_path, "%s", get_android_secure_path());
+
     struct stat st;
-    if (volume_for_path("/external_sd") != NULL &&
-                ensure_path_mounted("/external_sd") == 0 &&
-                stat("/external_sd/.android_secure", &st) == 0) {
-        strcpy(and_sec_path, "/external_sd/.android_secure");
+    char buf[80];
+    char* path = NULL;
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+
+    // search second storage path for .android_secure (favour external storage)
+    int i = 0;
+    if (extra_paths != NULL) {
+        while (i < num_extra_volumes && path == NULL) {
+            sprintf(buf, "%s/.android_secure", extra_paths[i]);
+            if (ensure_path_mounted(buf) == 0 && lstat(buf, &st) == 0)
+                path = buf;
+            i++;
+        }
     }
-    else if (!is_data_media() && ensure_path_mounted(primary_andsec_path) == 0 && 
-                stat(primary_andsec_path, &st) == 0) {
-        strcpy(and_sec_path, primary_andsec_path);
+
+    // assign primary storage (/sdcard) only if not datamedia and we did not find .android_secure in external storage
+    if (path == NULL && !is_data_media()) {
+        path = get_android_secure_path();
+        if (ensure_path_mounted(path) != 0 || lstat(path, &st) != 0)
+            path = NULL;
     }
-    else if (volume_for_path("/emmc") != NULL &&
-                ensure_path_mounted("/emmc") == 0 &&
-                stat("/emmc/.android_secure", &st) == 0) {
-        strcpy(and_sec_path, "/emmc/.android_secure");
-    }
-    else android_secure_ext = 0;
-    
+
+    if (path == NULL)
+        android_secure_ext = 0;
+    else strcpy(and_sec_path, path);
+
     return android_secure_ext;
 }
 
