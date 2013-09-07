@@ -3022,7 +3022,7 @@ void show_philz_settings()
                     if (extra_paths != NULL) {
                         while (browse_for_file && i < num_extra_volumes) {
                             // while we did not find an ors script in default location, continue searching in other volumes
-                            choose_default_ors_menu(extra_paths[i])
+                            choose_default_ors_menu(extra_paths[i]);
                             i++;
                         }
                     }
