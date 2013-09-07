@@ -1180,7 +1180,7 @@ static void regenerate_md5_sum_menu() {
     static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
     sprintf(buf, "%s%s", list_prefix, primary_path);
-    list[0] = strdup(primary_path);
+    list[0] = strdup(buf);
 
     int i;
     if (extra_paths != NULL) {
