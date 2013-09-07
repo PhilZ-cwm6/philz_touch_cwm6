@@ -527,7 +527,7 @@ void show_multi_flash_menu() {
         for (;;)
         {
             chosen_item = get_menu_selection(headers, list, 0, 0);
-            if (chosen_item == GO_BACK)
+            if (chosen_item == GO_BACK || chosen_item == REFRESH)
                 break;
             if (chosen_item == 1)
                 break;
@@ -1290,7 +1290,7 @@ void misc_nandroid_menu()
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2188,7 +2188,7 @@ static void custom_restore_menu(const char* backup_path) {
         }
 
 
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2380,7 +2380,7 @@ static void custom_backup_menu() {
             list[14] = item_wimax;
         }
 
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2757,7 +2757,7 @@ static void twrp_backup_restore_menu() {
     twrp_backup_mode = 1;
 
     for (;;) {
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2801,7 +2801,7 @@ void custom_backup_restore_menu() {
     };
 
     for (;;) {
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2949,7 +2949,7 @@ static void import_export_settings() {
     };
 
     for (;;) {
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
@@ -2988,7 +2988,7 @@ void show_philz_settings()
     };
 
     for (;;) {
-        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)

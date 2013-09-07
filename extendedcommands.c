@@ -1216,7 +1216,7 @@ void format_sdcard(const char* volume) {
     if (!can_partition(volume) || is_data_media_volume_path(volume))
         return;
 
-    char* headers[] = {"Format device:", volume, "", NULL };
+    const char* headers[] = {"Format device:", volume, "", NULL };
 
     static char* list[] = { "default",
                             "vfat",
@@ -1361,7 +1361,7 @@ int can_partition(const char* volume) {
 }
 
 void show_advanced_power_menu() {
-    static char* headers[] = { "Advanced power options", "", NULL };
+    static const char* headers[] = { "Advanced power options", "", NULL };
 
     char* list[] = { "Reboot Recovery",
                      "Reboot to Bootloader",
