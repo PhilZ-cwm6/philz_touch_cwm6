@@ -50,8 +50,7 @@ int signature_check_enabled = 1;
 int script_assert_enabled = 1;
 static const char *SDCARD_UPDATE_FILE = "update.zip";
 
-int
-get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
+int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
     int offset = 0;
     int* translate_table = (int*)malloc(sizeof(int) * items_count);
@@ -1397,11 +1396,12 @@ void show_advanced_power_menu() {
     }
 }
 
+#define FIXED_ADVANCED_MENU_ENTRIES 5
 int show_advanced_menu()
 {
     char buf[80];
     int i = 0, j = 0, chosen_item = 0;
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 9];
+    static char* list[MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_MENU_ENTRIES + 1];
 
     char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
@@ -1411,22 +1411,18 @@ int show_advanced_menu()
                                 NULL
     };
 
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 9);
+    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_MENU_ENTRIES + 1);
 
     list[0] = "Wipe Dalvik Cache";
     list[1] = "Report Error";
     list[2] = "Key Test";
     list[3] = "Show log";
-    if (is_data_media()) {
-        if (use_migrated_storage())
-            list[4] = "Storage set to /data/media/0";
-        else list[4] = "Storage set to /data/media";
-    } else list[4] = "Datamedia Not Supported";
+    // list[4] initialised below
 
     char list_prefix[] = "Partition ";
     if (can_partition(primary_path)) {
         sprintf(buf, "%s%s", list_prefix, primary_path);
-        list[5] = strdup(buf);
+        list[FIXED_ADVANCED_MENU_ENTRIES] = strdup(buf);
         j++;
     }
 
@@ -1434,14 +1430,22 @@ int show_advanced_menu()
         for (i = 0; i < num_extra_volumes; i++) {
             if (can_partition(extra_paths[i])) {
                 sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
-                list[5 + j] = strdup(buf);
+                list[FIXED_ADVANCED_MENU_ENTRIES + j] = strdup(buf);
                 j++;
             }
         }
     }
+    list[FIXED_ADVANCED_MENU_ENTRIES + j] = NULL;
 
     for (;;)
     {
+        if (is_data_media()) {
+            ensure_path_mounted("/data");
+            if (use_migrated_storage())
+                list[4] = strdup("Storage set to /data/media/0");
+            else list[4] = strdup("Storage set to /data/media");
+        } else list[4] = strdup("Datamedia Not Supported");
+
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
@@ -1501,20 +1505,15 @@ int show_advanced_menu()
                 }
                 else ui_print("datamedia not supported\n");
                 break;
-            case 5:
-                partition_sdcard(primary_path);
-                break;
             default:
-                if (chosen_item >= 8) {
-                    partition_sdcard(list[chosen_item] + strlen(list_prefix));
-                }
+                partition_sdcard(list[chosen_item] + strlen(list_prefix));
                 break;
         }
     }
-    free(list[5]);
-    if (extra_paths != NULL) {
-        for (; j >= 0; --j)
-            free(list[6 + j]);
+
+    free(list[4]);
+    for(; j > 0; --j) {
+        free(list[FIXED_ADVANCED_MENU_ENTRIES + j - 1]);
     }
     return chosen_item;
 }
