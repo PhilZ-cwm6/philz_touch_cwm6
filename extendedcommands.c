@@ -1498,6 +1498,7 @@ void show_advanced_menu()
     for (;;)
     {
         if (is_data_media()) {
+            ensure_path_mounted("/data");
             if (use_migrated_storage())
                 sprintf(item_datamedia, "Storage set to /data/media/0");
             else sprintf(item_datamedia, "Storage set to /data/media");
