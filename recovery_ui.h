@@ -21,7 +21,7 @@
 #include "device_config.h"
 
 #ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_cm-10.1.h"
 #endif
 
 // Called before UI library is initialized.  Can change things like

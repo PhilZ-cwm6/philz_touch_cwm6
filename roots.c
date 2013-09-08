@@ -341,7 +341,6 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         return result;
     }
 
-    LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, mount_point);
     return -1;
 }
 

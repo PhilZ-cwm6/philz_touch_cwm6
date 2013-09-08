@@ -43,7 +43,7 @@
 
 
 #ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_nandroid_gui.c"
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_nandroid_gui_cm-10.1.c"
 #endif
 
 // time in msec when nandroid job starts: used for dim timeout and total backup time

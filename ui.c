@@ -236,7 +236,7 @@ static void draw_progress_locked()
 }
 
 #ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_defines.c"
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch_defines_cm-10.1.c"
 #else
 
 static void draw_text_line(int row, const char* t) {

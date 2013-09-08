@@ -2882,7 +2882,7 @@ void run_aroma_browser() {
 /*                                 */
 /***********************************/
 #ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
+#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings_cm-10.1.c"
 #endif
 
 //start refresh nandroid compression
