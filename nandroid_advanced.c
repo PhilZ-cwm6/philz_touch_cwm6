@@ -174,7 +174,7 @@ static int check_backup_size(const char* backup_path) {
     }
 
     char tmp[PATH_MAX];
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         unsigned long long andsec_size;
         andsec_size = Get_Folder_Size(tmp);
@@ -273,7 +273,9 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
 
     // make sure we  have a valid image file name
     const char *raw_image_format[] = { ".img", ".bin", NULL };
-    char* image_file = basename(backup_path);
+    char tmp[PATH_MAX];
+    sprintf(tmp, "%s", backup_path);
+    char* image_file = basename(tmp);
     int i = 0;
     while (raw_image_format[i] != NULL) {
         if (strlen(image_file) > strlen(raw_image_format[i]) &&
@@ -297,7 +299,6 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
 
     //restore raw image
     int ret = 0;
-    char tmp[PATH_MAX];
     ui_print("Restoring %s to %s\n", image_file, root);
 
     if (vol->device[0] == '/')
@@ -313,7 +314,8 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
         ui_print("Failed raw restore of %s to %s\n", image_file, root);
     //log
     finish_nandroid_job();
-    char *logfile = dirname(backup_path);
+    sprintf(tmp, "%s", backup_path);
+    char *logfile = dirname(tmp);
     sprintf(tmp, "%s/log.txt", logfile);
     ui_print_custom_logtail(tmp, 3);
     return ret;
@@ -400,8 +402,13 @@ int Generate_File_Lists(const char* Path) {
     struct stat st;
     char FileName[PATH_MAX];
 
+    // Skip /data/media
     if (is_data_media() && strlen(Path) >= 11 && strncmp(Path, "/data/media", 11) == 0)
-        return 0; // Skip /data/media
+        return 0;
+
+    // Skip google cached music
+    if (strstr(Path, "data/data/com.google.android.music/files") != NULL)
+        return 0;
 
     d = opendir(Path);
     if (d == NULL)
@@ -475,6 +482,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     }
 
     // Always use split format (simpler code) - Build lists of files to backup
+    char tmp[PATH_MAX];
     int backup_count;
     ui_print("Breaking backup file into multiple archives...\nGenerating file lists\n");
     backup_count = Make_File_List(backup_path);
@@ -484,12 +492,12 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     }
     struct stat st;
     if (0 != stat("/tmp/list/filelist000", &st)) {
-        ui_print("Nothing to backup. Skipping %s\n", basename(backup_path));
+        sprintf(tmp, "%s", backup_path);
+        ui_print("Nothing to backup. Skipping %s\n", basename(tmp));
         return 0;
     }
 
-    unsigned long long total_bsize = 0, file_size;
-    char tmp[PATH_MAX];
+    unsigned long long total_bsize = 0, file_size = 0;
     int index;
     int nand_starts = 1;
     last_size_update = 0;
@@ -499,10 +507,9 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         if (compression_value == TAR_FORMAT)
             sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
         else
-            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
+            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
-
         FILE *fp = __popen(tmp, "r");
         if (fp == NULL) {
             ui_print("Unable to execute tar.\n");
@@ -611,7 +618,7 @@ int twrp_backup(const char* backup_path) {
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, tmp, 0)))
             return ret;
@@ -804,7 +811,7 @@ int twrp_restore(const char* backup_path)
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_restore_partition_extended(backup_path, tmp, 0)))
             return ret;

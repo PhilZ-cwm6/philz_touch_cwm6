@@ -51,8 +51,7 @@ int signature_check_enabled = 1;
 int script_assert_enabled = 1;
 static const char *SDCARD_UPDATE_FILE = "/sdcard/update.zip";
 
-int
-get_filtered_menu_selection(char** headers, char** items, int menu_only, int initial_selection, int items_count) {
+int get_filtered_menu_selection(char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
     int offset = 0;
     int* translate_table = (int*)malloc(sizeof(int) * items_count);
@@ -1288,13 +1287,13 @@ void format_sdcard(const char* volume) {
                             "vfat",
                             "exfat",
                             "ntfs",
-                            "ext2",
-                            "ext3",
                             "ext4",
+                            "ext3",
+                            "ext2",
                             NULL
     };
 
-    int ret = 1;
+    int ret = -1;
     char cmd[PATH_MAX];
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     if (chosen_item == GO_BACK)
@@ -1330,13 +1329,13 @@ void format_sdcard(const char* volume) {
             }
             break;
         case 4:
-            ret = format_unknown_device(v->device, v->mount_point, "ext2");
+            ret = make_ext4fs(v->device, v->length, volume, sehandle);
             break;
         case 5:
             ret = format_unknown_device(v->device, v->mount_point, "ext3");
             break;
         case 6:
-            ret = make_ext4fs(v->device, v->length, volume, sehandle);
+            ret = format_unknown_device(v->device, v->mount_point, "ext2");
             break;
     }
 
@@ -1418,7 +1417,7 @@ int can_partition(const char* volume) {
     }
 
     if (strcmp(vol->fs_type, "auto") != 0) {
-        LOGI("Can't partition non-vfat: %s\n", volume);
+        LOGI("Can't partition non-vfat: %s (%s)\n", volume, vol->fs_type);
         return 0;
     }
 

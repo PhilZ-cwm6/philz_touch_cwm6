@@ -72,7 +72,7 @@ extern int reboot_after_nandroid;
 
 // support .android_secure on external storage
 extern int android_secure_ext;
-int get_android_secure_path(char *and_sec_path);
+int set_android_secure_path(char *and_sec_path);
 
 unsigned long long Backup_Size;
 unsigned long long Before_Used_Size;

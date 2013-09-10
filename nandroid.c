@@ -184,16 +184,13 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
     return __pclose(fp);
 }
 
-//enable or toggle it at your wish, just give credit @PhilZ
 int compression_value = TAR_FORMAT;
 static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
     if (compression_value == TAR_FORMAT)
-        sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
+        sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
     else
-        sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; (tar cv %s $(basename %s) | pigz -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value, backup_file_image);
-    // users expect a nandroid backup to be like a raw image, should give choice to skip data...
-    //sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
+        sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value, backup_file_image);
 
     FILE *fp = __popen(tmp, "r");
     if (fp == NULL) {
@@ -511,7 +508,7 @@ int nandroid_backup(const char* backup_path)
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, tmp, 0)))
             return ret;
@@ -803,14 +800,14 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
     ui_print("\n>> Restoring %s...\n", mount_point);
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/%s.img", backup_path, name);
-    struct statfs file_info;
+    struct stat file_info;
     if (strcmp(backup_path, "-") == 0) {
         if (vol)
             backup_filesystem = vol->fs_type;
         restore_handler = tar_extract_wrapper;
         strcpy(tmp, "/proc/self/fd/0");
     }
-    else if (twrp_backup_mode || 0 != (ret = statfs(tmp, &file_info))) {
+    else if (twrp_backup_mode || 0 != (ret = stat(tmp, &file_info))) {
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
         printf("couldn't find old .img format\n");
@@ -822,44 +819,44 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
                     strcpy(name, "and-sec");
 
                 sprintf(tmp, "%s/%s.%s.win", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.win000", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     break;
                 }
                 sprintf(tmp, "%s/%s.auto.win", backup_path, name);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     break;
                 }
                 sprintf(tmp, "%s/%s.auto.win000", backup_path, name);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     break;
                 }
             } else {
                 sprintf(tmp, "%s/%s.%s.img", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = unyaffs_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.tar", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = tar_extract_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.tar.gz", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = tar_extract_wrapper;
                     break;
                 }
                 sprintf(tmp, "%s/%s.%s.dup", backup_path, name, filesystem);
-                if (0 == (ret = statfs(tmp, &file_info))) {
+                if (0 == (ret = stat(tmp, &file_info))) {
                     backup_filesystem = filesystem;
                     restore_handler = dedupe_extract_wrapper;
                     break;
@@ -903,7 +900,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    int callback = statfs("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
     if (!twrp_backup_mode) compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
@@ -1121,7 +1118,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     }
 
     // handle .android_secure on external and internal storage
-    get_android_secure_path(tmp);
+    set_android_secure_path(tmp);
     if (restore_data && android_secure_ext) {
         if (0 != (ret = nandroid_restore_partition_extended(backup_path, tmp, 0)))
             return ret;
