@@ -37,6 +37,28 @@ void finish_nandroid_job() {
     ui_reset_progress();
 }
 
+static int is_gzip_file(const char* file_archive) {
+    if (!file_found(file_archive)) {
+        LOGE("Couldn't find archive file %s\n", file_archive);
+        return -1;    
+    }
+
+    FILE *fp = fopen(file_archive, "rb");
+    if (fp == NULL) {
+        LOGE("Failed to open archive file %s\n", file_archive);
+        return -1;
+    }
+    char buff[3];
+    fread(buff, 1, 2, fp);
+    static char magic_num[2] = {0x1F, 0x8B};
+    int i;
+    for(i = 0; i < 2; i++) {
+        if (buff[i] != magic_num[i])
+            return 0;
+    }
+    return 1;
+}
+
 static int Is_File_System(const char* root) {
     Volume *vol = volume_for_path(root);
     if (vol == NULL || vol->fs_type == NULL)
@@ -68,8 +90,8 @@ static int Is_Image(const char* root) {
 }
 
 
-unsigned long long Backup_Size;
-unsigned long long Before_Used_Size;
+unsigned long long Backup_Size = 0;
+unsigned long long Before_Used_Size = 0;
 static int check_backup_size(const char* backup_path) {
     int total_mb = (int)(Total_Size / 1048576LLU);
     int used_mb = (int)(Used_Size / 1048576LLU);
@@ -199,6 +221,44 @@ static int check_backup_size(const char* backup_path) {
     return 0;
 }
 
+static void check_restore_size(const char* backup_file_image, const char* backup_path)
+{
+    if (Get_Size_Via_statfs(backup_path) != 0) {
+        Backup_Size = 0;
+        return;
+    }
+    Before_Used_Size = Used_Size;
+
+    char tmp[PATH_MAX];
+    char *dir;
+    char** files;
+    int numFiles = 0;
+
+    strcpy(tmp, backup_file_image);
+    dir = dirname(tmp);
+    strcpy(tmp, dir);
+    strcat(tmp, "/");
+    files = gather_files(tmp, "", &numFiles);
+
+    if (strlen(backup_file_image) > strlen("win000") && strcmp(backup_file_image + strlen(backup_file_image) - strlen("win000"), "win000") == 0)
+        snprintf(tmp, strlen(backup_file_image) - 3, "%s", backup_file_image);
+    else
+        strcpy(tmp, backup_file_image);
+
+    int i;
+    unsigned long fsize;
+    for(i = 0; i < numFiles; i++) {
+        if (strstr(files[i], basename(tmp)) != NULL) {
+            fsize = Get_File_Size(files[i]);
+            if (is_gzip_file(files[i]))
+                fsize += (fsize * 40) / 100;
+            Backup_Size += fsize;
+        }
+    }
+
+    free_string_array(files);
+}
+
 static void show_backup_stats(const char* backup_path) {
     long total_msec = gettime_now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
@@ -274,7 +334,9 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
 
     // make sure we  have a valid image file name
     const char *raw_image_format[] = { ".img", ".bin", NULL };
-    char* image_file = basename(backup_path);
+    char tmp[PATH_MAX];
+    sprintf(tmp, "%s", backup_path);
+    char* image_file = basename(tmp);
     int i = 0;
     while (raw_image_format[i] != NULL) {
         if (strlen(image_file) > strlen(raw_image_format[i]) &&
@@ -298,7 +360,6 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
 
     //restore raw image
     int ret = 0;
-    char tmp[PATH_MAX];
     ui_print("Restoring %s to %s\n", image_file, root);
 
     if (vol->blk_device[0] == '/')
@@ -314,7 +375,8 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
         ui_print("Failed raw restore of %s to %s\n", image_file, root);
     //log
     finish_nandroid_job();
-    char *logfile = dirname(backup_path);
+    sprintf(tmp, "%s", backup_path);
+    char *logfile = dirname(tmp);
     sprintf(tmp, "%s/log.txt", logfile);
     ui_print_custom_logtail(tmp, 3);
     return ret;
@@ -401,8 +463,13 @@ int Generate_File_Lists(const char* Path) {
     struct stat st;
     char FileName[PATH_MAX];
 
+    // Skip /data/media
     if (is_data_media() && strlen(Path) >= 11 && strncmp(Path, "/data/media", 11) == 0)
-        return 0; // Skip /data/media
+        return 0;
+
+    // Skip google cached music
+    if (strstr(Path, "data/data/com.google.android.music/files") != NULL)
+        return 0;
 
     d = opendir(Path);
     if (d == NULL)
@@ -476,6 +543,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     }
 
     // Always use split format (simpler code) - Build lists of files to backup
+    char tmp[PATH_MAX];
     int backup_count;
     ui_print("Breaking backup file into multiple archives...\nGenerating file lists\n");
     backup_count = Make_File_List(backup_path);
@@ -485,12 +553,12 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     }
     struct stat st;
     if (0 != stat("/tmp/list/filelist000", &st)) {
-        ui_print("Nothing to backup. Skipping %s\n", basename(backup_path));
+        sprintf(tmp, "%s", backup_path);
+        ui_print("Nothing to backup. Skipping %s\n", basename(tmp));
         return 0;
     }
 
-    unsigned long long total_bsize = 0, file_size;
-    char tmp[PATH_MAX];
+    unsigned long long total_bsize = 0, file_size = 0;
     int index;
     int nand_starts = 1;
     last_size_update = 0;
@@ -503,7 +571,6 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
             sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
-
         FILE *fp = __popen(tmp, "r");
         if (fp == NULL) {
             ui_print("Unable to execute tar.\n");
@@ -652,29 +719,7 @@ int twrp_backup(const char* backup_path) {
     return 0;
 }
 
-static int is_gzip_file(const char* file_archive) {
-    if (!file_found(file_archive)) {
-        LOGE("Couldn't find archive file %s\n", file_archive);
-        return -1;    
-    }
-
-    FILE *fp = fopen(file_archive, "rb");
-    if (fp == NULL) {
-        LOGE("Failed to open archive file %s\n", file_archive);
-        return -1;
-    }
-    char buff[3];
-    fread(buff, 1, 2, fp);
-    static char magic_num[2] = {0x1F, 0x8B};
-    int i;
-    for(i = 0; i < 2; i++) {
-        if (buff[i] != magic_num[i])
-            return 0;
-    }
-    return 1;
-}
-
-int twrp_tar_extract_wrapper(const char* popen_command, int callback) {
+int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
     strcpy(tmp, popen_command);
     FILE *fp = __popen(tmp, "r");
@@ -684,14 +729,17 @@ int twrp_tar_extract_wrapper(const char* popen_command, int callback) {
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
             return -1;
 #endif
         tmp[PATH_MAX - 1] = NULL;
-        if (callback)
+        if (callback) {
+            update_size_progress(backup_path);
             nandroid_callback(tmp);
+        }
     }
 
     return __pclose(fp);
@@ -710,6 +758,7 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
     else
         sprintf(tar_args, "-xzvf");
 
+    check_restore_size(backup_file_image, backup_path);
     if (strlen(backup_file_image) > strlen("win000") && strcmp(backup_file_image + strlen(backup_file_image) - strlen("win000"), "win000") == 0) {
         // multiple volume archive detected
         char main_filename[PATH_MAX];
@@ -718,30 +767,29 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
         int index = 0;
         sprintf(tmp, "%s%03i", main_filename, index);
         while(file_found(tmp)) {
-            compute_archive_stats(tmp);
             ui_print("  * Restoring archive %d\n", index + 1);
             sprintf(cmd, "cd /; tar %s '%s'; exit $?", tar_args, tmp);
-            if (0 != (ret = twrp_tar_extract_wrapper(cmd, callback)))
+            if (0 != (ret = twrp_tar_extract_wrapper(cmd, backup_path, callback)))
                 return ret;
             index++;
             sprintf(tmp, "%s%03i", main_filename, index);
         }
     } else {
         //single volume archive
-        compute_archive_stats(backup_file_image);
         sprintf(cmd, "cd %s; tar %s '%s'; exit $?", backup_path, tar_args, backup_file_image);
-        ui_print("Restoring archive %s\n", basename(backup_file_image));
-        ret = twrp_tar_extract_wrapper(cmd, callback);
+        sprintf(tmp, "%s", backup_file_image);
+        ui_print("Restoring archive %s\n", basename(tmp));
+        ret = twrp_tar_extract_wrapper(cmd, backup_path, callback);
     }
     return ret;
 }
 
 int twrp_restore(const char* backup_path)
 {
-    ensure_path_mounted("/sdcard");
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
+    nandroid_files_total = 0;
     nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = gettime_now_msec();

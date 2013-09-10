@@ -145,12 +145,12 @@ static void compute_directory_stats(const char* directory)
 }
 
 static long last_size_update = 0;
-static void update_size_progress(const char* backup_file_image) {
-    if (!show_nandroid_size_progress)
+static void update_size_progress(const char* Path) {
+    if (!show_nandroid_size_progress || Backup_Size == 0)
         return;
-    // statfs every 3 sec interval maximum (some sdcards and phones cannot support previous 0.5 sec)
-    if (last_size_update == 0 || (gettime_now_msec() - last_size_update) > 3000) {
-        Get_Size_Via_statfs(backup_file_image);
+    // statfs every 5 sec interval maximum (some sdcards and phones cannot support previous 0.5 sec)
+    if (last_size_update == 0 || (gettime_now_msec() - last_size_update) > 5000) {
+        Get_Size_Via_statfs(Path);
         last_size_update = gettime_now_msec();
     }
 }
@@ -367,6 +367,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     strcpy(name, basename(mount_point));
 
     struct stat file_info;
+    ensure_path_mounted(get_primary_storage_path());
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
 
     ui_print("\n>> Backing up %s...\n", mount_point);
@@ -659,50 +660,24 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
+    check_restore_size(backup_file_image, backup_path);
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
             return -1;
 #endif
         tmp[PATH_MAX - 1] = '\0';
-        if (callback)
+        if (callback) {
+            update_size_progress(backup_path);
             nandroid_callback(tmp);
+        }
     }
 
     return __pclose(fp);
 }
 
-void compute_archive_stats(const char* archive_file)
-{
-    char tmp[PATH_MAX];
-    if (twrp_backup_mode) {
-        if (1 == is_gzip_file(archive_file))
-            sprintf(tmp, "tar -tzf '%s' | wc -l > /tmp/archivecount", archive_file);
-        else
-            sprintf(tmp, "tar -tf '%s' | wc -l > /tmp/archivecount", archive_file);
-    }
-    else if (strlen(archive_file) > strlen(".tar") && strcmp(archive_file + strlen(archive_file) - strlen(".tar"), ".tar") == 0)
-        sprintf(tmp, "cat %s* | tar -t | wc -l > /tmp/archivecount", archive_file);
-    else if (strlen(archive_file) > strlen(".tar.gz") && strcmp(archive_file + strlen(archive_file) - strlen(".tar.gz"), ".tar.gz") == 0)
-        sprintf(tmp, "cat %s* | tar -tz | wc -l > /tmp/archivecount", archive_file);
-
-    ui_print("Computing archive stats for %s\n", basename(archive_file));
-    if (0 != __system(tmp)) {
-        nandroid_files_total = 0;
-        LOGE("Failed computing archive stats for %s\n", archive_file);
-        return;
-    }
-    char count_text[100];
-    FILE* f = fopen("/tmp/archivecount", "r");
-    fread(count_text, 1, sizeof(count_text), f);
-    fclose(f);
-    nandroid_files_count = 0;
-    nandroid_files_total = atoi(count_text);
-    ui_reset_progress();
-    ui_show_progress(1, 0);
-}
-
-static int do_tar_extract(char* command, int callback) {
+static int do_tar_extract(char* command, const char* backup_file_image, const char* backup_path, int callback) {
     char buf[PATH_MAX];
 
     FILE *fp = __popen(command, "r");
@@ -712,14 +687,18 @@ static int do_tar_extract(char* command, int callback) {
     }
 
     int nand_starts = 1;
+    last_size_update = 0;
+    check_restore_size(backup_file_image, backup_path);
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
             return -1;
 #endif
         buf[PATH_MAX - 1] = '\0';
-        if (callback)
+        if (callback) {
+            update_size_progress(backup_path);
             nandroid_callback(buf);
+        }
     }
 
     return __pclose(fp);
@@ -729,14 +708,14 @@ static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* b
     char tmp[PATH_MAX];
     sprintf(tmp, "cd $(dirname %s) ; pigz -d -c %s* | tar xv ; exit $?", backup_path, backup_file_image);
 
-    return do_tar_extract(tmp, callback);
+    return do_tar_extract(tmp, backup_file_image, backup_path, callback);
 }
 
 static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
     sprintf(tmp, "cd $(dirname %s) ; cat %s* | tar xv ; exit $?", backup_path, backup_file_image);
 
-    return do_tar_extract(tmp, callback);
+    return do_tar_extract(tmp, backup_file_image, backup_path, callback);
 }
 
 static int dedupe_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
@@ -924,8 +903,8 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
+    ensure_path_mounted(get_primary_storage_path());
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
-    if (!twrp_backup_mode) compute_archive_stats(tmp);
 
     ui_print("Restoring %s...\n", name);
     if (backup_filesystem == NULL) {
@@ -1025,10 +1004,10 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
 
 int nandroid_restore(const char* backup_path, int restore_boot, int restore_system, int restore_data, int restore_cache, int restore_sdext, int restore_wimax)
 {
-    ensure_path_mounted("/sdcard"); // to be able to stat .hidenandroidprogress in nandroid_restore_partition_extended()
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
+    nandroid_files_total = 0;
     nandroid_start_msec = gettime_now_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = gettime_now_msec();

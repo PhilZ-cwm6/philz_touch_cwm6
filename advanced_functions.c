@@ -187,9 +187,9 @@ unsigned long Get_File_Size(const char* Path) {
 }
 
 // get partition size info (adapted from Dees_Troy - TWRP)
-unsigned long long Total_Size; // Overall size of the partition
-unsigned long long Used_Size; // Overall used space
-unsigned long long Free_Size; // Overall free space
+unsigned long long Total_Size = 0; // Overall size of the partition
+unsigned long long Used_Size = 0; // Overall used space
+unsigned long long Free_Size = 0; // Overall free space
 
 int Get_Size_Via_statfs(const char* Path) {
     struct statfs st;
