@@ -203,9 +203,10 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
             return -1;
 #endif
         buf[PATH_MAX - 1] = '\0';
-        if (callback)
+        if (callback) {
             update_size_progress(backup_file_image);
             nandroid_callback(buf);
+        }
     }
 
     return __pclose(fp);
