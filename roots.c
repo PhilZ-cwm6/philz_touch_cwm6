@@ -332,8 +332,8 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
                     sprintf(mount_cmd, "/sbin/mount.exfat-fuse -o big_writes,max_read=131072,max_write=131072 %s %s", v->device, mount_point);
                     result = __system(mount_cmd);
                 }
-                if (result != 0 && stat("/sbin/mount.ntfs-3g", &s) == 0) {
-                    sprintf(mount_cmd, "/sbin/mount.ntfs-3g -o rw,umask=0 %s %s", v->device, mount_point);
+                if (result != 0 && stat("/sbin/ntfs-3g", &s) == 0) {
+                    sprintf(mount_cmd, "/sbin/ntfs-3g -o rw,umask=0 %s %s", v->device, mount_point);
                     result = __system(mount_cmd);
                 }
             }
@@ -451,17 +451,10 @@ int format_volume(const char* volume) {
     }
 
     if (strcmp(v->fs_type, "ext4") == 0) {
-#ifdef USE_MKE2FS_FIX
-        char ext4_cmd[PATH_MAX];
-        sprintf(ext4_cmd, "/sbin/mke2fs -T ext4 -b 4096 -m 0 -F %s", v->device);
-        if (0 != __system(ext4_cmd))
-#endif
-        {
-            int result = make_ext4fs(v->device, v->length, volume, sehandle);
-            if (result != 0) {
-                LOGE("format_volume: make_extf4fs failed on %s\n", v->device);
-                return -1;
-            }
+        int result = make_ext4fs(v->device, v->length, volume, sehandle);
+        if (result != 0) {
+            LOGE("format_volume: make_extf4fs failed on %s\n", v->device);
+            return -1;
         }
         return 0;
     }

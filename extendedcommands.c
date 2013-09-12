@@ -756,18 +756,11 @@ int format_device(const char *device, const char *path, const char *fs_type) {
             // Our desired filesystem matches the one in fstab, respect v->length
             length = v->length;
         }
-#ifdef USE_MKE2FS_FIX
-        char ext4_cmd[PATH_MAX];
-        sprintf(ext4_cmd, "/sbin/mke2fs -T ext4 -b 4096 -m 0 -F %s", device);
-        if (0 != __system(ext4_cmd))
-#endif
-        {
-            reset_ext4fs_info();
-            int result = make_ext4fs(device, length, v->mount_point, sehandle);
-            if (result != 0) {
-                LOGE("format_volume: make_ext4fs failed on %s\n", device);
-                return -1;
-            }
+        reset_ext4fs_info();
+        int result = make_ext4fs(device, length, v->mount_point, sehandle);
+        if (result != 0) {
+            LOGE("format_volume: make_ext4fs failed on %s\n", device);
+            return -1;
         }
         return 0;
     }
@@ -1323,8 +1316,8 @@ void format_sdcard(const char* volume) {
             }
             break;
         case 3:
-            if (file_found("/sbin/mk_ntfs")) {
-                sprintf(cmd, "/sbin/mk_ntfs -f %s", v->device);
+            if (file_found("/sbin/mkntfs")) {
+                sprintf(cmd, "/sbin/mkntfs -f %s", v->device);
                 ret = __system(cmd);
             }
             break;

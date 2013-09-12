@@ -110,6 +110,7 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
 #Galaxy S4 - i9505, jfltexx
 else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
 TARGET_COMMON_NAME := i9505
+BOARD_USE_FB2PNG := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 LOCAL_CFLAGS += -DBOARD_HAS_SLOW_STORAGE
 
