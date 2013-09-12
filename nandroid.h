@@ -54,6 +54,7 @@ extern int backup_efs;
 extern int backup_misc;
 extern int backup_modem;
 extern int backup_radio;
+extern int backup_data_media;
 
 //toggle nandroid compression ratio
 #define TAR_GZ_FAST 1
