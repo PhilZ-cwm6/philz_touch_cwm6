@@ -454,8 +454,6 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     return nandroid_backup_partition_extended(backup_path, root, 1);
 }
 
-#include "nandroid_advanced.c"
-
 int nandroid_backup(const char* backup_path)
 {
     nandroid_backup_bitfield = 0; // for dedupe mode
@@ -595,6 +593,9 @@ int nandroid_backup(const char* backup_path)
         if (0 != (ret = nandroid_backup_partition(backup_path, "/radio")))
             return ret;
     }
+
+    if (backup_data_media && 0 != (ret = nandroid_backup_datamedia(backup_path)))
+        return ret;
 
     if (enable_md5sum) {
         ui_print("Generating md5 sum...\n");
@@ -786,6 +787,8 @@ static nandroid_restore_handler get_restore_handler(const char *backup_path) {
 
     return tar_extract_wrapper;
 }
+
+#include "nandroid_advanced.c"
 
 int nandroid_restore_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
     int ret = 0;
@@ -1130,6 +1133,9 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return ret;
 
     if (restore_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
+        return ret;
+
+    if (backup_data_media && 0 != (ret = nandroid_restore_datamedia(backup_path)))
         return ret;
 
     finish_nandroid_job();

@@ -1742,6 +1742,7 @@ void reset_custom_job_settings(int custom_job) {
     backup_radio = 0;
     backup_efs = 0;
     backup_misc = 0;
+    backup_data_media = 0;
     ignore_android_secure = 0;
     reboot_after_nandroid = 0;
 }
@@ -1772,6 +1773,8 @@ static void ui_print_backup_list() {
         ui_print(" - efs");
     if (backup_misc)
         ui_print(" - misc");
+    if (backup_data_media)
+        ui_print(" - data/media");
     ui_print("!\n");
 }
 
@@ -1826,8 +1829,6 @@ static void custom_backup_handler() {
                     char backup_path[PATH_MAX] = "";
                     get_custom_backup_path(int_sd, backup_path);
                     nandroid_backup(backup_path);
-                } else {
-                    ui_print("Couldn't mount %s\n", int_sd);
                 }
             }
             break;
@@ -1837,8 +1838,6 @@ static void custom_backup_handler() {
                     char backup_path[PATH_MAX] = "";
                     get_custom_backup_path(ext_sd, backup_path);
                     nandroid_backup(backup_path);
-                } else {
-                    ui_print("Couldn't mount %s\n", ext_sd);
                 }
             }
             break;
@@ -2024,7 +2023,7 @@ static void browse_backup_folders(const char* backup_path)
 */
 static void validate_backup_job(const char* backup_path) {
     int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data +
-                backup_cache + backup_sdext + backup_wimax + backup_misc;
+                backup_cache + backup_sdext + backup_wimax + backup_misc + backup_data_media;
     if (0 == (sum + backup_efs + backup_modem + backup_radio)) {
         ui_print("Select at least one partition to restore!\n");
         return;
@@ -2087,6 +2086,7 @@ static void custom_restore_menu(const char* backup_path) {
     char item_radio[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
+    char item_datamedia[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
@@ -2101,6 +2101,7 @@ static void custom_restore_menu(const char* backup_path) {
                 item_radio,
                 item_efs,
                 item_misc,
+                item_datamedia,
                 ">> Start Custom Restore Job <<",
                 item_reboot,
                 NULL,
@@ -2110,7 +2111,7 @@ static void custom_restore_menu(const char* backup_path) {
     char tmp[PATH_MAX];
     if (0 == get_partition_device("wimax", tmp)) {
         // show wimax restore option
-        list[14] = "show wimax menu";
+        list[15] = "show wimax menu";
     }
 
     reset_custom_job_settings(1);
@@ -2172,14 +2173,18 @@ static void custom_restore_menu(const char* backup_path) {
         else if (backup_misc) ui_format_gui_menu(item_misc, "Restore misc", "(x)");
         else ui_format_gui_menu(item_misc, "Restore misc", "( )");
 
+        if (backup_data_media)
+            ui_format_gui_menu(item_datamedia, "Restore /data/media", "(x)");
+        else ui_format_gui_menu(item_datamedia, "Restore /data/media", "( )");
+
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[14]) {
+        if (NULL != list[15]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
-            list[14] = item_wimax;
+            list[15] = item_wimax;
         }
 
 
@@ -2255,12 +2260,16 @@ static void custom_restore_menu(const char* backup_path) {
                 else backup_misc ^= 1;
                 break;
             case 12:
-                validate_backup_job(backup_path);
+                if (is_data_media() && !twrp_backup_mode)
+                    backup_data_media ^= 1;
                 break;
             case 13:
-                reboot_after_nandroid ^= 1;
+                validate_backup_job(backup_path);
                 break;
             case 14:
+                reboot_after_nandroid ^= 1;
+                break;
+            case 15:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;
@@ -2286,6 +2295,7 @@ static void custom_backup_menu() {
     char item_radio[MENU_MAX_COLS];
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
+    char item_datamedia[MENU_MAX_COLS];
     char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
     char* list[] = { item_boot,
@@ -2300,6 +2310,7 @@ static void custom_backup_menu() {
                 item_radio,
                 item_efs,
                 item_misc,
+                item_datamedia,
                 ">> Start Custom Backup Job <<",
                 item_reboot,
                 NULL,
@@ -2309,7 +2320,7 @@ static void custom_backup_menu() {
     char tmp[PATH_MAX];
     if (volume_for_path("/wimax") != NULL) {
         // show wimax backup option
-        list[14] = "show wimax menu";
+        list[15] = "show wimax menu";
     }
 
     reset_custom_job_settings(1);
@@ -2365,14 +2376,18 @@ static void custom_backup_menu() {
         else if (backup_misc) ui_format_gui_menu(item_misc, "Backup misc", "(x)");
         else ui_format_gui_menu(item_misc, "Backup misc", "( )");
 
+        if (backup_data_media)
+            ui_format_gui_menu(item_datamedia, "Backup /data/media", "(x)");
+        else ui_format_gui_menu(item_datamedia, "Backup /data/media", "( )");
+
         if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
         else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
 
-        if (NULL != list[14]) {
+        if (NULL != list[15]) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
-            list[14] = item_wimax;
+            list[15] = item_wimax;
         }
 
         int chosen_item = get_menu_selection(headers, list, 0, 0);
@@ -2429,12 +2444,16 @@ static void custom_backup_menu() {
                 else backup_misc ^= 1;
                 break;
             case 12:
-                validate_backup_job(NULL);
+                if (is_data_media() && !twrp_backup_mode)
+                    backup_data_media ^= 1;
                 break;
             case 13:
-                reboot_after_nandroid ^= 1;
+                validate_backup_job(NULL);
                 break;
             case 14:
+                reboot_after_nandroid ^= 1;
+                break;
+            case 15:
                 if (twrp_backup_mode) backup_wimax = 0;
                 else backup_wimax ^= 1;
                 break;

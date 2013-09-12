@@ -15,6 +15,7 @@
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
 int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0, backup_radio = 0;
+int backup_data_media = 0;
 int is_custom_backup = 0;
 int twrp_backup_mode = 0;
 int reboot_after_nandroid = 0;
@@ -92,7 +93,7 @@ static int Is_Image(const char* root) {
 
 unsigned long long Backup_Size = 0;
 unsigned long long Before_Used_Size = 0;
-static int check_backup_size(const char* backup_path) {
+int check_backup_size(const char* backup_path) {
     int total_mb = (int)(Total_Size / 1048576LLU);
     int used_mb = (int)(Used_Size / 1048576LLU);
     int free_mb = (int)(Free_Size / 1048576LLU);
@@ -180,11 +181,13 @@ static int check_backup_size(const char* backup_path) {
         }
     }
 
+    unsigned long long data_backup_size = 0;
+    unsigned long long data_used_bytes = 0;
+    unsigned long long data_media_size = 0;
     if (backup_data && is_data_media()) {
         if (0 == ensure_path_mounted("/data") && 0 == Get_Size_Via_statfs("/data")) {
-            unsigned long long data_backup_size;
-            unsigned long long data_media_size = Get_Folder_Size("/data/media");
-            unsigned long long data_used_bytes = Get_Folder_Size("/data");
+            data_media_size = Get_Folder_Size("/data/media");
+            data_used_bytes = Get_Folder_Size("/data");
             data_backup_size = data_used_bytes - data_media_size;
             Backup_Size += data_backup_size;
             LOGI("/data: tot size=%lluMb, free=%lluMb, backup size=%lluMb, used=%lluMb, media=%lluMb\n",
@@ -194,6 +197,12 @@ static int check_backup_size(const char* backup_path) {
             ret++;
             strcat(skipped_parts, " - /data");
         }
+    }
+
+    // check if we are also backing up /data/media
+    if (backup_data_media && !is_data_media_volume_path(backup_path)) {
+        Backup_Size += data_media_size;
+        LOGI("included /data/media size\n"); // debug
     }
 
     char tmp[PATH_MAX];
@@ -213,7 +222,7 @@ static int check_backup_size(const char* backup_path) {
     if (ret)
         ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped_parts);
 
-    if (free_percent < 3 || (default_backup_handler == tar_compress_wrapper && free_mb < backup_size_mb)) {
+    if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb)) {
         if (!confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
             return -1;
     }
@@ -221,7 +230,7 @@ static int check_backup_size(const char* backup_path) {
     return 0;
 }
 
-static void check_restore_size(const char* backup_file_image, const char* backup_path)
+void check_restore_size(const char* backup_file_image, const char* backup_path)
 {
     // refresh target partition size
     if (Get_Size_Via_statfs(backup_path) != 0) {
@@ -260,7 +269,7 @@ static void check_restore_size(const char* backup_file_image, const char* backup
     free_string_array(files);
 }
 
-static void show_backup_stats(const char* backup_path) {
+void show_backup_stats(const char* backup_path) {
     long total_msec = gettime_now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
     int seconds = (total_msec % 60000) / 1000;
@@ -274,11 +283,11 @@ static void show_backup_stats(const char* backup_path) {
     ui_print("\nBackup complete!\n");
     ui_print("Backup time: %02i:%02i mn\n", minutes, seconds);
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
-    if (default_backup_handler == tar_compress_wrapper)
+    if (default_backup_handler != dedupe_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
 }
 
-static void show_restore_stats() {
+void show_restore_stats() {
     long total_msec = gettime_now_msec() - nandroid_start_msec;
     int minutes = total_msec / 60000;
     int seconds = (total_msec % 60000) / 1000;
@@ -873,3 +882,115 @@ int twrp_restore(const char* backup_path)
     return 0;
 }
 //------------------------ end twrp backup and restore functions
+
+
+// backup /data/media support
+int nandroid_backup_datamedia(const char* backup_path)
+{
+    ui_print("\n>> Backing up /data/media...\n");
+    if (is_data_media_volume_path(backup_path)) {
+        // non fatal failure
+        LOGE("  - can't backup folder to its self, skipping...\n");
+        return 0;
+    }
+
+    if (0 != ensure_path_mounted("/data"))
+        return -1;
+
+    ensure_path_mounted("/sdcard");
+    struct stat s;
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &s) != 0;
+
+    compute_directory_stats("/data/media");
+    Volume *v = volume_for_path("/data");
+    if (v == NULL)
+        return -1;
+
+    char backup_file_image[PATH_MAX];
+    sprintf(backup_file_image, "%s/datamedia.%s", backup_path, v->fs_type == NULL ? "auto" : v->fs_type);
+
+    char cmd[PATH_MAX];
+    int fmt;
+    fmt = nandroid_get_default_backup_format();
+    if (fm == NANDROID_BACKUP_FORMAT_TAR) {
+        sprintf(cmd, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+                backup_file_image, backup_file_image);
+    }
+    else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
+        sprintf(cmd, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+                backup_file_image, compression_value, backup_file_image);
+    }
+    else {
+        // non fatal failure
+        LOGE("  - backup format must be tar(.gz), skipping...\n");
+        return 0;
+    }
+
+    int ret;
+    ret = do_tar_compress(cmd, callback, backup_file_image);
+
+    ensure_path_unmounted("/data");
+
+    if (0 != ret)
+        return print_and_error("Failed to backup /data/media!\n");
+
+    ui_print("Backup of /data/media completed.\n");
+    return 0;
+}
+
+int nandroid_restore_datamedia(const char* backup_path)
+{
+    ui_print("\n>> Restoring /data/media...\n");
+    if (is_data_media_volume_path(backup_path)) {
+        // non fatal failure
+        LOGE("  - can't restore folder to its self, skipping...\n");
+        return 0;
+    }
+
+    Volume *v = volume_for_path("/data");
+    if (v == NULL)
+        return -1;
+
+    ensure_path_mounted("/sdcard");
+    struct stat s;
+    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &s) != 0;
+
+    char backup_file_image[PATH_MAX];
+    char cmd[PATH_MAX];
+    const char *filesystems[] = { "yaffs2", "ext2", "ext3", "ext4", "vfat", "exfat", "rfs", "auto", NULL };
+    char *filesystem = NULL;
+    int i = 0;
+    nandroid_restore_handler restore_handler = NULL;
+    while ((filesystem = filesystems[i]) != NULL) {
+        sprintf(backup_file_image, "%s/datamedia.%s.tar", backup_path, filesystem);
+        if (0 == stat(backup_file_image, &s)) {
+            restore_handler = tar_extract_wrapper;
+            sprintf(cmd, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
+            break;
+        }
+        sprintf(backup_file_image, "%s/datamedia.%s.tar.gz", backup_path, filesystem);
+        if (0 == stat(backup_file_image, &s)) {
+            restore_handler = tar_gzip_extract_wrapper;
+            sprintf(cmd, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
+            break;
+        }
+    }
+
+    if (filesystem == NULL || restore_handler == NULL) {
+        LOGE("No backup found, skipping...\n");
+        return 0;
+    }
+
+    if (0 != format_unknown_device(NULL, "/data/media", NULL))
+        return print_and_error("Error while erasing /data/media\n");
+
+    // data can be unmounted by format_unknown_device()
+    if (0 != ensure_path_mounted("/data"))
+        return -1;
+
+    if (0 != do_tar_extract(cmd, backup_file_image, "/data", callback))
+        return print_and_error("Failed to restore /data/media!\n");
+
+    ui_print("Restore of /data/media completed.\n");
+    return 0;
+}
