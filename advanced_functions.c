@@ -1262,13 +1262,14 @@ void misc_nandroid_menu()
         else ui_format_gui_menu(item_preload, "Include /preload", "( )");
 
         fmt = nandroid_get_default_backup_format();
-        if (fmt != NANDROID_BACKUP_FORMAT_TGZ)
-            ui_format_gui_menu(item_compress, "Compression", "No (tar)");
-        else if (compression_value == TAR_GZ_MEDIUM)
-            ui_format_gui_menu(item_compress, "Compression", "Med");
-        else if (compression_value == TAR_GZ_HIGH)
-            ui_format_gui_menu(item_compress, "Compression", "Max");
-        else ui_format_gui_menu(item_compress, "Compression", "Low");
+        if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
+            if (compression_value == TAR_GZ_MEDIUM)
+                ui_format_gui_menu(item_compress, "Compression", "Med");
+            else if (compression_value == TAR_GZ_HIGH)
+                ui_format_gui_menu(item_compress, "Compression", "Max");
+            else ui_format_gui_menu(item_compress, "Compression", "Low");
+        } else
+            ui_format_gui_menu(item_compress, "Compression", "No");
 
         char ors_volume[PATH_MAX] = "";
         get_ors_backup_volume(ors_volume);
@@ -1319,16 +1320,18 @@ void misc_nandroid_menu()
                     if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
                         ui_print("First set backup format to tar.gz\n");
                     } else {
-                        //switch pigz -[3, 6, 9] compression level
+                        // switch pigz -[ fast(1), low(3), medium(5), high(7) ] compression level
                         char value[8];
-                        compression_value += 3;
-                        if (compression_value == TAR_GZ_MEDIUM)
+                        compression_value += 2;
+                        if (compression_value == TAR_GZ_LOW)
+                            sprintf(value, "low");
+                        else if (compression_value == TAR_GZ_MEDIUM)
                             sprintf(value, "medium");
                         else if (compression_value == TAR_GZ_HIGH)
                             sprintf(value, "high");
                         else {
-                            compression_value == TAR_GZ_LOW;
-                            sprintf(value, "low");
+                            compression_value == TAR_GZ_FAST;
+                            sprintf(value, "fast");
                         }
                         write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                     }
@@ -2887,12 +2890,14 @@ void run_aroma_browser() {
 //start refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "false");
-    if (strcmp(value, "medium") == 0)
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "fast");
+    if (strcmp(value, "low") == 0)
+        compression_value = TAR_GZ_LOW;
+    else if (strcmp(value, "medium") == 0)
         compression_value = TAR_GZ_MEDIUM;
     else if (strcmp(value, "high") == 0)
         compression_value = TAR_GZ_HIGH;
-    else compression_value = TAR_GZ_LOW;;
+    else compression_value = TAR_GZ_FAST;
 }
 
 //start check nandroid preload setting

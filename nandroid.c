@@ -707,7 +707,7 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
 
 static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
-    sprintf(tmp, "cd $(dirname %s) ; pigz -d -c %s* | tar xv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_path, backup_file_image);
 
     return do_tar_extract(tmp, backup_file_image, backup_path, callback);
 }

@@ -55,10 +55,11 @@ extern int backup_misc;
 extern int backup_modem;
 extern int backup_radio;
 
-//toggle nandroid compression
+//toggle nandroid compression ratio
+#define TAR_GZ_FAST 1
 #define TAR_GZ_LOW 3
-#define TAR_GZ_MEDIUM 6
-#define TAR_GZ_HIGH 9
+#define TAR_GZ_MEDIUM 5
+#define TAR_GZ_HIGH 7
 extern int compression_value;
 
 void set_override_yaffs2_wrapper(int set);
