@@ -1263,11 +1263,13 @@ void misc_nandroid_menu()
 
         fmt = nandroid_get_default_backup_format();
         if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
-            if (compression_value == TAR_GZ_MEDIUM)
+            if (compression_value == TAR_GZ_LOW)
+                ui_format_gui_menu(item_compress, "Compression", "Low");
+            else if (compression_value == TAR_GZ_MEDIUM)
                 ui_format_gui_menu(item_compress, "Compression", "Med");
             else if (compression_value == TAR_GZ_HIGH)
-                ui_format_gui_menu(item_compress, "Compression", "Max");
-            else ui_format_gui_menu(item_compress, "Compression", "Low");
+                ui_format_gui_menu(item_compress, "Compression", "High");
+            else ui_format_gui_menu(item_compress, "Compression", "Fast");
         } else
             ui_format_gui_menu(item_compress, "Compression", "No");
 
