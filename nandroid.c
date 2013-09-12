@@ -57,7 +57,7 @@ void nandroid_generate_timestamp_path(const char* backup_path)
     {
         struct timeval tp;
         gettimeofday(&tp, NULL);
-        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+        sprintf(backup_path, "/sdcard/clockworkmod/backup/%ld", tp.tv_sec);
     }
     else
     {
@@ -174,7 +174,7 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
             return -1;
 #endif
-        tmp[PATH_MAX - 1] = NULL;
+        tmp[PATH_MAX - 1] = '\0';
         if (callback) {
             update_size_progress(backup_file_image);
             nandroid_callback(tmp);
@@ -268,7 +268,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
             return -1;
 #endif
-        tmp[PATH_MAX - 1] = NULL;
+        tmp[PATH_MAX - 1] = '\0';
         if (callback) {
             update_size_progress(backup_file_image);
             nandroid_callback(tmp);
@@ -298,7 +298,7 @@ static void refresh_default_backup_handler() {
         fread(fmt, 1, sizeof(fmt), f);
         fclose(f);
     }
-    fmt[3] = NULL;
+    fmt[3] = '\0';
     if (0 == strcmp(fmt, "dup"))
         default_backup_handler = dedupe_compress_wrapper;
     else
@@ -349,6 +349,7 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
 int nandroid_backup_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
     int ret = 0;
     char name[PATH_MAX];
+    char tmp[PATH_MAX];
     strcpy(name, basename(mount_point));
 
     struct stat file_info;
@@ -362,7 +363,6 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     }
 
     compute_directory_stats(mount_point);
-    char tmp[PATH_MAX];
     scan_mounted_volumes();
     Volume *v = volume_for_path(mount_point);
     MountedVolume *mv = NULL;
@@ -653,7 +653,7 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
         if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
             return -1;
 #endif
-        tmp[PATH_MAX - 1] = NULL;
+        tmp[PATH_MAX - 1] = '\0';
         if (callback) {
             update_size_progress(backup_path);
             nandroid_callback(tmp);
@@ -1207,6 +1207,7 @@ int bu_main(int argc, char** argv) {
 int nandroid_main(int argc, char** argv)
 {
     load_volume_table();
+    char backup_path[PATH_MAX];
 
     if (argc > 3 || argc < 2)
         return nandroid_usage();
@@ -1216,7 +1217,6 @@ int nandroid_main(int argc, char** argv)
         if (argc != 2)
             return nandroid_usage();
 
-        char backup_path[PATH_MAX];
         nandroid_generate_timestamp_path(backup_path);
         return nandroid_backup(backup_path);
     }

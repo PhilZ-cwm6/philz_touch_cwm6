@@ -805,10 +805,10 @@ int run_ors_script(const char* ors_script) {
                     ret_val = 1;
                 }
             } else if (strcmp(command, "backup") == 0) {
-                char other_sd[20] = "";
+                char backup_volume[PATH_MAX] = "";
                 // read user set volume target
-                get_ors_backup_volume(other_sd);
-                if (strcmp(other_sd, "") == 0) {
+                get_ors_backup_volume(backup_volume);
+                if (strcmp(backup_volume, "") == 0) {
                     ret_val = 1;
                     LOGE("No valid volume found for ors backup target!\n");
                     continue;
@@ -840,14 +840,14 @@ int run_ors_script(const char* ors_script) {
                     if (twrp_backup_mode) {
                         char device_id[PROPERTY_VALUE_MAX];
                         get_device_id(device_id);
-                        sprintf(backup_path, "%s/%s/%s/%s", other_sd, TWRP_BACKUP_PATH, device_id, value2);
+                        sprintf(backup_path, "%s/%s/%s/%s", backup_volume, TWRP_BACKUP_PATH, device_id, value2);
                     } else {
-                        sprintf(backup_path, "%s/clockworkmod/backup/%s", other_sd, value2);
+                        sprintf(backup_path, "%s/clockworkmod/backup/%s", backup_volume, value2);
                     }
                 } else if (twrp_backup_mode) {
-                    get_twrp_backup_path(other_sd, backup_path);
+                    get_twrp_backup_path(backup_volume, backup_path);
                 } else {
-                    get_custom_backup_path(other_sd, backup_path);
+                    get_custom_backup_path(backup_volume, backup_path);
                 }
                 if (0 != (ret_val = ors_backup_command(backup_path, value1)))
                     ui_print("Backup failed !!\n");
@@ -1167,29 +1167,28 @@ static void regenerate_md5_sum_menu() {
     if (ext_sd != NULL)
         list[1] = "Select from External sdcard";
 
-    char backup_path[PATH_MAX];
+    char tmp[PATH_MAX];
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item)
     {
         case 0:
-            sprintf(backup_path, "%s", int_sd);
+            sprintf(tmp, "%s", int_sd);
             break;
         case 1:
-            sprintf(backup_path, "%s", ext_sd);
+            sprintf(tmp, "%s", ext_sd);
             break;
         default:
             return;
     }
 
     // select backup set and regenerate md5 sum
-    strcat(backup_path, "/clockworkmod/backup/");
-    if (ensure_path_mounted(backup_path) != 0)
+    strcat(tmp, "/clockworkmod/backup/");
+    if (ensure_path_mounted(tmp) != 0)
         return;
 
-    char* file = choose_file_menu(backup_path, "", headers);
+    char* file = choose_file_menu(tmp, "", headers);
     if (file == NULL) return;
 
-    char tmp[PATH_MAX];
     char *backup_source;
     backup_source = dirname(file);
     sprintf(tmp, "Process %s", basename(backup_source));
@@ -3023,8 +3022,8 @@ void show_philz_settings()
                         }
                     }
                     //no files found in default locations, let's search manually for a custom ors
-                    ui_print("No .ors files under clockworkmod/ors in sdcards\n");
-                    ui_print("Manually search .ors file...\n");
+                    ui_print("No .ors files under clockworkmod/ors in default storage paths\n");
+                    ui_print("Manually search .ors files...\n");
                     show_custom_ors_menu();
                 }
                 break;

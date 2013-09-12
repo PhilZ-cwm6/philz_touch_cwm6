@@ -233,7 +233,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
         return NULL;
     }
 
-    int extension_length = 0;
+    unsigned int extension_length = 0;
     if (fileExtensionOrDirectory != NULL)
         extension_length = strlen(fileExtensionOrDirectory);
 
@@ -328,7 +328,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
 
 // pass in NULL for fileExtensionOrDirectory and you will get a directory chooser
 int no_files_found = 0;
-char* choose_file_menu(const char* directory, const char* fileExtensionOrDirectory, const char* headers[])
+char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[])
 {
     char path[PATH_MAX] = "";
     DIR *dir;
@@ -337,7 +337,16 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
     int numDirs = 0;
     int i;
     char* return_value = NULL;
-    int dir_len = strlen(directory);
+    char directory[PATH_MAX];
+    int dir_len = strlen(basedir);
+
+    strcpy(directory, basedir);
+
+    // Append a trailng slash if necessary
+    if (directory[dir_len - 1] != '/') {
+        strcat(directory, "/");
+        dir_len++;
+    }
 
     i = 0;
     while (headers[i]) {
@@ -1384,7 +1393,7 @@ static void partition_sdcard(const char* volume) {
     Volume *vol = volume_for_path(volume);
     strcpy(sddevice, vol->device);
     // we only want the mmcblk, not the partition
-    sddevice[strlen("/dev/block/mmcblkX")] = NULL;
+    sddevice[strlen("/dev/block/mmcblkX")] = '\0';
     char cmd[PATH_MAX];
     setenv("SDPATH", sddevice, 1);
     sprintf(cmd, "sdparted -es %s -ss %s -efs %s -s", ext_sizes[ext_size], swap_sizes[swap_size], partition_types[partition_type]);
@@ -1396,6 +1405,9 @@ static void partition_sdcard(const char* volume) {
 }
 
 int can_partition(const char* volume) {
+    if (is_data_media_volume_path(volume))
+        return 0;
+
     Volume *vol = volume_for_path(volume);
     if (vol == NULL) {
         LOGI("Can't format unknown volume: %s\n", volume);
@@ -1720,9 +1732,7 @@ int is_path_mounted(const char* path) {
         return 1;
     }
 
-    int result;
-    result = scan_mounted_volumes();
-    if (result < 0) {
+    if (scan_mounted_volumes() < 0) {
         LOGE("failed to scan mounted volumes\n");
         return 0;
     }
