@@ -640,8 +640,6 @@ static int twrp_ors_backup_format() {
 // Stock CWM as of v6.x, doesn't support backup options
 static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
-    int old_compression_value = compression_value;
-    compression_value = TAR_FORMAT;
     int old_enable_md5sum = enable_md5sum;
     enable_md5sum = 1;
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
@@ -689,7 +687,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             backup_sdext = 1;
             ui_print("SD-Ext\n");
         } else if (value1[i] == 'O' || value1[i] == 'o') {
-            compression_value = TAR_GZ_LOW;
+            nandroid_force_backup_format("tgz");
             ui_print("Compression is on\n");
         } else if (value1[i] == 'M' || value1[i] == 'm') {
             enable_md5sum = 0;
@@ -700,8 +698,6 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     int ret = -1;
     if (file_found(backup_path)) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
-    } else if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR) {
-        LOGE("Default backup format must be tar!\n");
     } else if (twrp_backup_mode) {
         ret = twrp_backup(backup_path);
     } else {
@@ -709,7 +705,6 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     }
     is_custom_backup = 0;
     twrp_backup_mode = 0;
-    compression_value = old_compression_value;
     nandroid_force_backup_format("");
     set_override_yaffs2_wrapper(1);
     reset_custom_job_settings(0);
@@ -1229,6 +1224,7 @@ void misc_nandroid_menu()
                     NULL
     };
 
+    int fmt;
     for (;;) {
         if (enable_md5sum) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
         else ui_format_gui_menu(item_md5, "MD5 checksum", "( )");
@@ -1238,18 +1234,22 @@ void misc_nandroid_menu()
         else if (nandroid_add_preload) ui_format_gui_menu(item_preload, "Include /preload", "(x)");
         else ui_format_gui_menu(item_preload, "Include /preload", "( )");
 
-        if (compression_value == TAR_GZ_LOW)
-            ui_format_gui_menu(item_compress, "Compression", "Low");
-        else if (compression_value == TAR_GZ_MEDIUM)
-            ui_format_gui_menu(item_compress, "Compression", "Med");
-        else if (compression_value == TAR_GZ_HIGH)
-            ui_format_gui_menu(item_compress, "Compression", "Max");
-        else ui_format_gui_menu(item_compress, "Compression", "( )");
+        fmt = nandroid_get_default_backup_format();
+        if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
+            if (compression_value == TAR_GZ_LOW)
+                ui_format_gui_menu(item_compress, "Compression", "Low");
+            else if (compression_value == TAR_GZ_MEDIUM)
+                ui_format_gui_menu(item_compress, "Compression", "Med");
+            else if (compression_value == TAR_GZ_HIGH)
+                ui_format_gui_menu(item_compress, "Compression", "High");
+            else ui_format_gui_menu(item_compress, "Compression", "Fast");
+        } else
+            ui_format_gui_menu(item_compress, "Compression", "No");
 
-        char other_sd[20] = "";
-        get_ors_backup_volume(other_sd);
-        if (strcmp(other_sd, "") != 0)
-            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", other_sd);
+        char ors_volume[PATH_MAX] = "";
+        get_ors_backup_volume(ors_volume);
+        if (strcmp(ors_volume, "") != 0)
+            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
         else ui_format_gui_menu(item_ors_path,  "ORS Backup Target", "N/A");
 
         if (twrp_ors_backup_format())
@@ -1292,20 +1292,24 @@ void misc_nandroid_menu()
                 break;
             case 2:
                 {
-                    //switch pigz [-0, 3, 6, 9] compression level
-                    char value[8];
-                    compression_value += 3;
-                    if (compression_value == TAR_GZ_LOW)
-                        sprintf(value, "low");
-                    else if (compression_value == TAR_GZ_MEDIUM)
-                        sprintf(value, "medium");
-                    else if (compression_value == TAR_GZ_HIGH)
-                        sprintf(value, "high");
-                    else {
-                        compression_value = TAR_FORMAT;
-                        sprintf(value, "false");
+                    if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
+                        ui_print("First set backup format to tar.gz\n");
+                    } else {
+                        // switch pigz -[ fast(1), low(3), medium(5), high(7) ] compression level
+                        char value[8];
+                        compression_value += 2;
+                        if (compression_value == TAR_GZ_LOW)
+                            sprintf(value, "low");
+                        else if (compression_value == TAR_GZ_MEDIUM)
+                            sprintf(value, "medium");
+                        else if (compression_value == TAR_GZ_HIGH)
+                            sprintf(value, "high");
+                        else {
+                            compression_value == TAR_GZ_FAST;
+                            sprintf(value, "fast");
+                        }
+                        write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                     }
-                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                 }
                 break;
             case 3:
@@ -2053,8 +2057,9 @@ static void validate_backup_job(const char* backup_path) {
     else
     {
         // it is a backup job to validate
-        if (nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TAR)
-            LOGE("Default backup format must be tar!\n");
+        int fmt = nandroid_get_default_backup_format();
+        if (fmt != NANDROID_BACKUP_FORMAT_TAR || fmt != NANDROID_BACKUP_FORMAT_TGZ)
+            LOGE("Backup format must be tar(.gz)!\n");
         else if (twrp_backup_mode)
             twrp_backup_handler();
         else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
@@ -2880,15 +2885,14 @@ void run_aroma_browser() {
 //start refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "false");
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "fast");
     if (strcmp(value, "low") == 0)
         compression_value = TAR_GZ_LOW;
     else if (strcmp(value, "medium") == 0)
         compression_value = TAR_GZ_MEDIUM;
     else if (strcmp(value, "high") == 0)
         compression_value = TAR_GZ_HIGH;
-    else
-        compression_value = TAR_FORMAT;
+    else compression_value = TAR_GZ_FAST;
 }
 
 //start check nandroid preload setting

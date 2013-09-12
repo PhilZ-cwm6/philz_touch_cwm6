@@ -22,6 +22,7 @@ int android_secure_ext = 0;
 int nandroid_add_preload = 0;
 int enable_md5sum = 1;
 int show_nandroid_size_progress = 0;
+int compression_value = TAR_GZ_FAST;
 
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
@@ -266,7 +267,7 @@ static void show_backup_stats(const char* backup_path) {
 
     unsigned long long final_size = Get_Folder_Size(backup_path);
     long double compression;
-    if (Backup_Size == 0 || final_size == 0 || compression_value == TAR_FORMAT)
+    if (Backup_Size == 0 || final_size == 0 || nandroid_get_default_backup_format() != NANDROID_BACKUP_FORMAT_TGZ)
         compression = 0;
     else compression = 1 - ((long double)(final_size) / (long double)(Backup_Size));
 
@@ -565,7 +566,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     for (index=0; index<backup_count; index++)
     {
         compute_twrp_backup_stats(index);
-        if (compression_value == TAR_FORMAT)
+        if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
             sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
         else
             sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);

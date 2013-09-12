@@ -14,6 +14,7 @@ unsigned nandroid_get_default_backup_format();
 #define NANDROID_BACKUP_FORMAT_FILE "/sdcard/clockworkmod/.default_backup_format"
 #define NANDROID_BACKUP_FORMAT_TAR 0
 #define NANDROID_BACKUP_FORMAT_DUP 1
+#define NANDROID_BACKUP_FORMAT_TGZ 2
 
 
 /**********************************/
@@ -54,11 +55,11 @@ extern int backup_misc;
 extern int backup_modem;
 extern int backup_radio;
 
-//toggle nandroid compression
+//toggle nandroid compression ratio
+#define TAR_GZ_FAST 1
 #define TAR_GZ_LOW 3
-#define TAR_GZ_MEDIUM 6
-#define TAR_GZ_HIGH 9
-#define TAR_FORMAT 0
+#define TAR_GZ_MEDIUM 5
+#define TAR_GZ_HIGH 7
 extern int compression_value;
 
 void set_override_yaffs2_wrapper(int set);
