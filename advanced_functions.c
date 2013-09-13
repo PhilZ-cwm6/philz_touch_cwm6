@@ -1315,14 +1315,14 @@ void misc_nandroid_menu()
             case 3:
                 {
                     if (volume_for_path("/external_sd") != NULL)
-                        sprintf(other_sd, "/external_sd");
+                        sprintf(ors_volume, "/external_sd");
                     else if (volume_for_path("/emmc") != NULL)
-                        sprintf(other_sd, "/emmc");
+                        sprintf(ors_volume, "/emmc");
                     else
-                        sprintf(other_sd, "");
+                        sprintf(ors_volume, "");
 
                     if (strstr(item_ors_path, "/sdcard") != NULL)
-                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", other_sd);
+                        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", ors_volume);
                     else if (strstr(item_ors_path, "N/A") == NULL)
                         write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", "/sdcard");                        
                 }

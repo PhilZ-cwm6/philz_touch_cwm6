@@ -912,7 +912,7 @@ int nandroid_backup_datamedia(const char* backup_path)
     char cmd[PATH_MAX];
     int fmt;
     fmt = nandroid_get_default_backup_format();
-    if (fm == NANDROID_BACKUP_FORMAT_TAR) {
+    if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
         sprintf(cmd, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
     }
