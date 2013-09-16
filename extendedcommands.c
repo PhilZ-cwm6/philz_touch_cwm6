@@ -1492,7 +1492,7 @@ void show_advanced_menu()
                         "Key Test",
                         "Show log",
                         item_datamedia,
-                        NULL,
+                        "Partition sdcard",
                         NULL,
                         NULL
     };
@@ -1510,7 +1510,7 @@ void show_advanced_menu()
     }
 
     // do not disable list[5] for now until the bug in get_filtered_menu_selection() is fixed
-    if (other_sd != NULL && !can_partition(other_sd))
+    if (other_sd == NULL || !can_partition(other_sd))
         list[6] = NULL;
 
     for (;;)
