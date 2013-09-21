@@ -472,7 +472,7 @@ get_menu_selection(const char** headers, char** items, int menu_only,
     int selected = initial_selection;
     int chosen_item = -1; // NO_ACTION
 
-    while (chosen_item < 0 && chosen_item != GO_BACK && chosen_item != REFRESH) {
+    while (chosen_item < 0 && chosen_item != GO_BACK) {
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
@@ -485,10 +485,10 @@ get_menu_selection(const char** headers, char** items, int menu_only,
                 return ITEM_REBOOT;
             }
         }
-        else if (key == -2) {
+        else if (key == -2) {   // we are returning from ui_cancel_wait_key(): trigger a GO_BACK
             return GO_BACK;
         }
-        else if (key == -6) {
+        else if (key == -3) {   // an USB device was plugged in (returning from ui_wait_key())
             return REFRESH;
         }
 
@@ -524,9 +524,6 @@ get_menu_selection(const char** headers, char** items, int menu_only,
                     break;
                 case GO_BACK:
                     chosen_item = GO_BACK;
-                    break;
-                case REFRESH:
-                    chosen_item = REFRESH;
                     break;
 #ifdef PHILZ_TOUCH_RECOVERY
                 case GESTURE_ACTIONS:

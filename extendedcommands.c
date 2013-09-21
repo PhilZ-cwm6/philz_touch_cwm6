@@ -48,7 +48,6 @@
 
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
-static const char *SDCARD_UPDATE_FILE = "update.zip";
 
 int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
@@ -1121,11 +1120,11 @@ int show_nandroid_menu()
         }
     }
 
+    list[offset] = "Custom Backup and Restore";
+    offset++;
     list[offset] = "Free Unused Backup Data";
     offset++;
     list[offset] = "Misc Nandroid Settings";
-    offset++;
-    list[offset] = "Advanced Backup and Restore";
     offset++;
 
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
@@ -1141,13 +1140,13 @@ int show_nandroid_menu()
             break;
         int chosen_subitem = chosen_item % 4;
         if (chosen_item == max_backup_index) {
-            run_dedupe_gc();
-        } else if (chosen_item == (max_backup_index + 1)) {
-            misc_nandroid_menu();
-        } else if (chosen_item == (max_backup_index + 2)) {
             is_custom_backup = 1;
             custom_backup_restore_menu();
-            is_custom_backup = 0;
+            is_custom_backup = 0;            
+        } else if (chosen_item == (max_backup_index + 1)) {
+            run_dedupe_gc();
+        } else if (chosen_item == (max_backup_index + 2)) {
+            misc_nandroid_menu();
         } else if (chosen_item < max_backup_index){
             if (chosen_item < 4) {
                 chosen_path = primary_path;
@@ -1204,8 +1203,8 @@ out:
 }
 
 void format_sdcard(const char* volume) {
-    // datamedia check is probably useless, but added for extra care
-    if (!can_partition(volume) || is_data_media_volume_path(volume))
+    // this will also ensure it is not /data/media
+    if (!can_partition(volume))
         return;
 
     const char* headers[] = {"Format device:", volume, "", NULL };
@@ -1223,7 +1222,7 @@ void format_sdcard(const char* volume) {
     int ret = -1;
     char cmd[PATH_MAX];
     int chosen_item = get_menu_selection(headers, list, 0, 0);
-    if (chosen_item == GO_BACK)
+    if (chosen_item < 0) // REFRESH or GO_BACK
         return;
     if (!confirm_selection( "Confirm formatting?", "Yes - Format device"))
         return;
@@ -1301,15 +1300,15 @@ static void partition_sdcard(const char* volume) {
     static const char* fstype_headers[] = {"Partition Type", "", NULL };
 
     int ext_size = get_menu_selection(ext_headers, ext_sizes, 0, 0);
-    if (ext_size == GO_BACK)
+    if (ext_size < 0)
         return;
 
     int swap_size = get_menu_selection(swap_headers, swap_sizes, 0, 0);
-    if (swap_size == GO_BACK)
+    if (swap_size < 0)
         return;
 
     int partition_type = get_menu_selection(fstype_headers, partition_types, 0, 0);
-    if (partition_type == GO_BACK)
+    if (partition_type < 0)
         return;
 
     char sddevice[256];

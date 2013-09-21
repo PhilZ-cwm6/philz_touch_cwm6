@@ -38,6 +38,24 @@
 #define BOOTLOADER_CMD_ARG "download"
 #endif
 
+// Galaxy Exhibit Variants - codinaxxx
+#ifdef TARGET_DEVICE_CODINAMTR
+#define BOARD_UMS_LUNFILE     "/sys/devices/platform/musb-ux500.0/musb-hdrc/gadget/lun%d/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// Galaxy Grand Duos - i9082
+#ifdef TARGET_DEVICE_I9082
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// Galaxy S Plus - i9001 (ariesve)
+#ifdef TARGET_DEVICE_I9001
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
 // i9300 - Galaxy S3 international
 #ifdef TARGET_DEVICE_I9300
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
