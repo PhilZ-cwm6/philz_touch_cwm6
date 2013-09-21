@@ -184,20 +184,29 @@ int check_backup_size(const char* backup_path) {
     unsigned long long data_backup_size = 0;
     unsigned long long data_used_bytes = 0;
     unsigned long long data_media_size = 0;
-    if (backup_data && is_data_media()) {
+    if (is_data_media() && (backup_data || backup_data_media))
+    {
         if (0 == ensure_path_mounted("/data") && 0 == Get_Size_Via_statfs("/data")) {
             data_media_size = Get_Folder_Size("/data/media");
             data_used_bytes = Get_Folder_Size("/data");
             data_backup_size = data_used_bytes - data_media_size;
-            Backup_Size += data_backup_size;
             LOGI("/data: tot size=%lluMb, free=%lluMb, backup size=%lluMb, used=%lluMb, media=%lluMb\n",
                     Total_Size/1048576LLU, Free_Size/1048576LLU, data_backup_size/1048576LLU,
                     data_used_bytes/1048576LLU, data_media_size/1048576LLU);
         } else {
-            ret++;
-            strcat(skipped_parts, " - /data");
+            if (backup_data) {
+                strcat(skipped_parts, " - /data");
+                ret++;
+            }
+            if (backup_data_media) {
+                strcat(skipped_parts, " - /data/media");
+                ret++;
+            }
         }
     }
+
+    if (backup_data)
+        Backup_Size += data_backup_size;
 
     // check if we are also backing up /data/media
     if (backup_data_media && !is_data_media_volume_path(backup_path)) {
@@ -215,14 +224,12 @@ int check_backup_size(const char* backup_path) {
     }
 
     int backup_size_mb = (int)(Backup_Size / 1048576LLU);
-    backup_size_mb += 50;
-
     ui_print("\n>> Free space: %dMb (%d%%)\n", free_mb, free_percent);
     ui_print(">> Needed space: %dMb\n", backup_size_mb);
     if (ret)
         ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped_parts);
 
-    if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb)) {
+    if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb + 50)) {
         if (!confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
             return -1;
     }
@@ -974,6 +981,7 @@ int nandroid_restore_datamedia(const char* backup_path)
             sprintf(cmd, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
             break;
         }
+        i++;
     }
 
     if (filesystem == NULL || restore_handler == NULL) {

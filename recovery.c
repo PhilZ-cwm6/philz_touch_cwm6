@@ -73,7 +73,6 @@ static const char *CACHE_ROOT = "/cache";
 static const char *SDCARD_ROOT = "/sdcard";
 static int allow_display_toggle = 0;
 static int poweroff = 0;
-static const char *SDCARD_PACKAGE_FILE = "/sdcard/update.zip";
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
@@ -816,7 +815,6 @@ void reboot_main_system(int cmd, int flags, char *arg) {
 #endif
     verify_root_and_recovery();
     finish_recovery(NULL); // sync() in here
-    ui_print("Rebooting...\n");
     android_reboot(cmd, flags, arg);
 }
 

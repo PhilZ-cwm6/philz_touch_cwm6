@@ -1305,7 +1305,7 @@ void misc_nandroid_menu()
                         else if (compression_value == TAR_GZ_HIGH)
                             sprintf(value, "high");
                         else {
-                            compression_value == TAR_GZ_FAST;
+                            compression_value = TAR_GZ_FAST;
                             sprintf(value, "fast");
                         }
                         write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
@@ -2057,7 +2057,7 @@ static void validate_backup_job(const char* backup_path) {
     {
         // it is a backup job to validate
         int fmt = nandroid_get_default_backup_format();
-        if (fmt != NANDROID_BACKUP_FORMAT_TAR || fmt != NANDROID_BACKUP_FORMAT_TGZ)
+        if (fmt != NANDROID_BACKUP_FORMAT_TAR && fmt != NANDROID_BACKUP_FORMAT_TGZ)
             LOGE("Backup format must be tar(.gz)!\n");
         else if (twrp_backup_mode)
             twrp_backup_handler();
@@ -2814,7 +2814,6 @@ void custom_backup_restore_menu() {
                     "Custom Restore Job",
                     "TWRP Backup & Restore",
                     "Clone ROM to update.zip",
-                    "Misc Nandroid Settings",
                     NULL
     };
 
@@ -2837,9 +2836,6 @@ void custom_backup_restore_menu() {
 #ifdef PHILZ_TOUCH_RECOVERY
                 custom_rom_menu();
 #endif
-                break;
-            case 4:
-                misc_nandroid_menu();
                 break;
         }
     }

@@ -49,7 +49,6 @@
 
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
-static const char *SDCARD_UPDATE_FILE = "/sdcard/update.zip";
 
 int get_filtered_menu_selection(char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
@@ -133,10 +132,9 @@ int install_zip(const char* packagefilepath)
 #define ITEM_CHOOSE_ZIP       0
 #define ITEM_CHOOSE_ZIP_INT   1
 #define ITEM_MULTI_FLASH      2
-#define ITEM_APPLY_UPDATE     3 // /sdcard/update.zip
-#define ITEM_APPLY_SIDELOAD   4
-#define ITEM_SIG_CHECK        5
-#define ITEM_FREE_BROWSE      6
+#define ITEM_APPLY_SIDELOAD   3
+#define ITEM_SIG_CHECK        4
+#define ITEM_FREE_BROWSE      5
 
 void show_install_update_menu()
 {
@@ -148,11 +146,11 @@ void show_install_update_menu()
     char* install_menu_items[] = {  "Choose zip from sdcard",
                                     NULL,
                                     "Multi-zip Installer",
-                                    "Apply /sdcard/update.zip",
                                     "Install zip from sideload",
                                     "Toggle Signature Verification",
                                     "Setup Free Browse Mode",
-                                    NULL };
+                                    NULL
+    };
 
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
@@ -172,12 +170,6 @@ void show_install_update_menu()
             case ITEM_SIG_CHECK:
                 toggle_signature_check();
                 break;
-            case ITEM_APPLY_UPDATE:
-            {
-                if (confirm_selection("Confirm install?", "Yes - Install /sdcard/update.zip"))
-                    install_zip(SDCARD_UPDATE_FILE);
-                break;
-            }
             case ITEM_CHOOSE_ZIP:
                 show_choose_zip_menu("/sdcard/");
                 break;
@@ -1179,7 +1171,7 @@ void show_nandroid_menu()
     char* list[] = { "Backup",
                         "Restore",
                         "Delete",
-                        "Advanced Backup and Restore",
+                        "Custom Backup and Restore",
                         "Free Unused Backup Data",
                         "Misc Nandroid Settings",
                         NULL,
@@ -1293,8 +1285,8 @@ void show_nandroid_menu()
 }
 
 void format_sdcard(const char* volume) {
-    // datamedia check is probably useless, but added for extra care
-    if (!can_partition(volume) || is_data_media_volume_path(volume))
+    // this will also ensure it is not /data/media
+    if (!can_partition(volume))
         return;
 
     char* headers[] = {"Format device:", volume, "", NULL };

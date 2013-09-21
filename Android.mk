@@ -91,6 +91,21 @@ else ifeq ($(TARGET_PRODUCT), cm_i9103)
 TARGET_COMMON_NAME := i9103
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9103
 
+#Galaxy Exhibit Variants - codinaxxx
+else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
+TARGET_COMMON_NAME := SGH-T599N
+LOCAL_CFLAGS += -DTARGET_DEVICE_CODINAMTR
+
+#Galaxy Grand Duos - i9082
+else ifeq ($(TARGET_PRODUCT), cm_i9082)
+TARGET_COMMON_NAME := Galaxy_I9082
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9082
+
+#Galaxy S Plus - i9001 (ariesve)
+else ifeq ($(TARGET_PRODUCT), cm_ariesve)
+TARGET_COMMON_NAME := Galaxy_I9001
+LOCAL_CFLAGS += -DTARGET_DEVICE_I9001
+
 #Galaxy S3 International - i9300
 else ifeq ($(TARGET_PRODUCT), cm_i9300)
 TARGET_COMMON_NAME := i930x
@@ -178,6 +193,11 @@ else ifeq ($(TARGET_PRODUCT), cm_ville)
 TARGET_COMMON_NAME := HTC_One_S
 LOCAL_CFLAGS += -DTARGET_DEVICE_VILLE
 
+#HTC One V - primou
+else ifeq ($(TARGET_PRODUCT), cm_primou)
+TARGET_COMMON_NAME := HTC_One_V
+LOCAL_CFLAGS += -DTARGET_DEVICE_PRIMOU
+
 #LGE Nexus 4 - mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
 TARGET_COMMON_NAME := Nexus_4
@@ -202,6 +222,16 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
 else ifeq ($(TARGET_PRODUCT), cm_crespo)
 TARGET_COMMON_NAME := Samsung_Nexus_S
 LOCAL_CFLAGS += -DTARGET_DEVICE_SAMSUNG_NEXUS_S
+
+#Sony Xperia Z - yuga
+else ifeq ($(TARGET_PRODUCT), cm_yuga)
+TARGET_COMMON_NAME := Sony_Xperia_Z
+LOCAL_CFLAGS += -DTARGET_DEVICE_SONY_XPERIA_Z
+
+#Huawei Acsend P1 U9200 - viva
+else ifeq ($(TARGET_PRODUCT), cm_viva)
+TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
+LOCAL_CFLAGS += -DTARGET_DEVICE_VIVA
 
 #Undefined Device
 else
