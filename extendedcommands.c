@@ -722,7 +722,7 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         Volume *vol = volume_for_path("/sd-ext");
         if (vol == NULL || 0 != stat(vol->blk_device, &st))
         {
-            ui_print("No app2sd partition found. Skipping format of /sd-ext.\n");
+            LOGI("No app2sd partition found. Skipping format of /sd-ext.\n");
             return 0;
         }
     }
@@ -1695,15 +1695,11 @@ void handle_failure(int ret)
 {
     if (ret == 0)
         return;
-    char* primary_path = get_primary_storage_path();
-    char cmd[PATH_MAX];
-    if (0 != ensure_path_mounted(primary_path))
+    if (0 != ensure_path_mounted(get_primary_storage_path()))
         return;
-    sprintf(cmd, "%s/clockworkmod", primary_path);
-    mkdir(cmd, S_IRWXU | S_IRWXG | S_IRWXO);
-    sprintf(cmd, "cp /tmp/recovery.log %s/clockworkmod/philz_recovery.log", primary_path);
-    __system(cmd);
-    ui_print("Log copied to %s/clockworkmod/philz_recovery.log\n", primary_path);
+    mkdir("/sdcard/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);
+    __system("cp /tmp/recovery.log /sdcard/clockworkmod/philz_recovery.log");
+    ui_print("/tmp/recovery.log copied to /sdcard/clockworkmod/philz_recovery.log\n");
     ui_print("Send file to Phil3759 @xda\n");
 }
 
