@@ -72,6 +72,7 @@ static int Is_File_System(const char* root) {
             strcmp(vol->fs_type, "yaffs2") == 0 ||
             strcmp(vol->fs_type, "exfat") == 0 ||
             strcmp(vol->fs_type, "rfs") == 0 ||
+            strcmp(vol->fs_type, "f2fs") == 0 ||
             strcmp(vol->fs_type, "auto") == 0)
         return 0; // true
     else
@@ -963,7 +964,7 @@ int nandroid_restore_datamedia(const char* backup_path)
 
     char backup_file_image[PATH_MAX];
     char cmd[PATH_MAX];
-    const char *filesystems[] = { "yaffs2", "ext2", "ext3", "ext4", "vfat", "exfat", "rfs", "auto", NULL };
+    const char *filesystems[] = { "yaffs2", "ext2", "ext3", "ext4", "vfat", "exfat", "rfs", "f2fs", "auto", NULL };
     char *filesystem = NULL;
     int i = 0;
     nandroid_restore_handler restore_handler = NULL;
