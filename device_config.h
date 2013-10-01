@@ -20,6 +20,16 @@
 //for ums lun file fix on some devices and show log menu function
 
 
+// Samsung Galaxy S Blaze 4G - SGH T-769 (t769)
+#ifdef TARGET_DEVICE_T769
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// Samsung Exhilarate SGH-I577 (i577)
+#ifdef TARGET_DEVICE_I577
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
 // i9100 - Galaxy S2 international
 #ifdef TARGET_DEVICE_I9100
 #define BOARD_UMS_LUNFILE     "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
@@ -106,6 +116,12 @@
 
 // i9505
 #ifdef TARGET_DEVICE_I9505
+#define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+#define BOOTLOADER_CMD_ARG "download"
+#endif
+
+// Galaxy S4 Mini LTE - i9195 (serranoltexx) // Galaxy S4 Mini 3G - i9190 (serrano3gxx)
+#ifdef TARGET_DEVICE_S4_MINI
 #define BOARD_UMS_LUNFILE    "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
 #define BOOTLOADER_CMD_ARG "download"
 #endif
