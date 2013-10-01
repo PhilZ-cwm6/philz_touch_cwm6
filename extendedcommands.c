@@ -1244,7 +1244,7 @@ void format_sdcard(const char* volume) {
     if (!can_partition(volume))
         return;
 
-    const char* headers[] = {"Format device:", volume, "", NULL };
+    char* headers[] = {"Format device:", volume, "", NULL };
 
     static char* list[] = { "default",
                             "vfat",

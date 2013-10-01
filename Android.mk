@@ -133,6 +133,11 @@ BOARD_USE_FB2PNG := false
 LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
 LOCAL_CFLAGS += -DBOARD_HAS_SLOW_STORAGE
 
+#Galaxy S4 Mini LTE - i9195 (serranoltexx) // Galaxy S4 Mini 3G - i9190 (serrano3gxx)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx),)
+TARGET_COMMON_NAME := Galaxy_S4_Mini-$(TARGET_PRODUCT)
+LOCAL_CFLAGS += -DTARGET_DEVICE_S4_MINI
+
 #Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
 TARGET_COMMON_NAME := n7000
@@ -157,6 +162,16 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
 else ifeq ($(TARGET_PRODUCT), cm_p5100)
 TARGET_COMMON_NAME := p5100
 LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
+
+#Galaxy S Blaze 4G - SGH T-769 (t769)
+else ifeq ($(TARGET_PRODUCT), cm_t769)
+TARGET_COMMON_NAME := SGH_T769
+LOCAL_CFLAGS += -DTARGET_DEVICE_T769
+
+#Samsung Exhilarate SGH-I577 (i577)
+else ifeq ($(TARGET_PRODUCT), cm_i577)
+TARGET_COMMON_NAME := SGH_I577
+LOCAL_CFLAGS += -DTARGET_DEVICE_I577
 
 #HTC Desire X - protou
 else ifeq ($(TARGET_PRODUCT), cm_protou)
@@ -207,6 +222,11 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
 TARGET_COMMON_NAME := Nexus_4
 LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
 
+#LG Optimus G ATT (e970) - Canada (e973) - Sprint (ls970) - Intl (e975)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_e970 cm_e973 cm_ls970 cm_e975),)
+TARGET_COMMON_NAME := LG_Optimus_G-$(TARGET_PRODUCT)
+LOCAL_CFLAGS += -DTARGET_DEVICE_OPTIMUS_G
+
 #ASUS Nexus 7 (Wifi) - tilapia (grouper)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
 TARGET_COMMON_NAME := ASUS_Nexus_7-$(TARGET_PRODUCT)
@@ -236,6 +256,30 @@ LOCAL_CFLAGS += -DTARGET_DEVICE_SONY_XPERIA_Z
 else ifeq ($(TARGET_PRODUCT), cm_viva)
 TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
 LOCAL_CFLAGS += -DTARGET_DEVICE_VIVA
+
+#Motorola Droid RAZR M (xt907)
+else ifeq ($(TARGET_PRODUCT), cm_xt907)
+TARGET_COMMON_NAME := Droid_RAZR_M
+LOCAL_CFLAGS += -DTARGET_DEVICE_XT907
+
+#Motorola RAZR i XT890 (smi)
+else ifeq ($(TARGET_PRODUCT), cm_smi)
+TARGET_COMMON_NAME := RAZR_I
+NO_AROMA_FILE_MANAGER := true
+LOCAL_CFLAGS += -DTARGET_DEVICE_RAZR_I
+
+#Motorola Droid RAZR HD GSM (xt925) and US (xt926)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_xt925 cm_xt926),)
+TARGET_COMMON_NAME := Droid_RAZR_HD-$(TARGET_PRODUCT)
+LOCAL_CFLAGS += -DTARGET_DEVICE_RAZR_HD
+
+#Micromax A57 (a57)
+else ifeq ($(TARGET_PRODUCT), cm_a57)
+TARGET_COMMON_NAME := Micromax_A57
+BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
+BOARD_USE_NTFS_3G := false
+BOARD_USE_EXFAT_FUSE := false
+LOCAL_CFLAGS += -DTARGET_DEVICE_A57
 
 #Undefined Device
 else
