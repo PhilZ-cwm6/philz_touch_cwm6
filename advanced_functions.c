@@ -193,14 +193,17 @@ unsigned long long Free_Size = 0; // Overall free space
 
 int Get_Size_Via_statfs(const char* Path) {
     struct statfs st;
-    Volume* volume = volume_for_path(Path);
+    Volume* volume;
+    if (is_data_media_volume_path(Path))
+        volume = volume_for_path("/data");
+    else
+        volume = volume_for_path(Path);
     if (NULL == volume) {
-        LOGE("Cannot get size of null volume '%s'\n", Path);
+        LOGE("No volume found to get size from '%s'\n", Path);
         return -1;
     }
-    if (is_data_media_volume_path(volume->mount_point))
-        volume = volume_for_path("/data");
-    if (volume == NULL || volume->mount_point == NULL || statfs(volume->mount_point, &st) != 0) {
+
+    if (volume->mount_point == NULL || statfs(volume->mount_point, &st) != 0) {
         LOGE("Unable to statfs for size '%s'\n", Path);
         return -1;
     }
@@ -822,16 +825,11 @@ int run_ors_script(const char* ors_script) {
                     ret_val = 1;
                 }
             } else if (strcmp(command, "backup") == 0) {
-                char backup_volume[PATH_MAX] = "";
+                char backup_path[PATH_MAX];
+                char backup_volume[PATH_MAX];
                 // read user set volume target
                 get_ors_backup_volume(backup_volume);
-                if (strcmp(backup_volume, "") == 0) {
-                    ret_val = 1;
-                    LOGE("No valid volume found for ors backup target!\n");
-                    continue;
-                }
 
-                char backup_path[PATH_MAX];
                 // Check if ors backup is set by user to twrp mode
                 if (twrp_ors_backup_format())
                     twrp_backup_mode = 1;
@@ -1277,11 +1275,9 @@ void misc_nandroid_menu()
         } else
             ui_format_gui_menu(item_compress, "Compression", "No");
 
-        char ors_volume[PATH_MAX] = "";
+        char ors_volume[PATH_MAX];
         get_ors_backup_volume(ors_volume);
-        if (strcmp(ors_volume, "") != 0)
-            ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
-        else ui_format_gui_menu(item_ors_path,  "ORS Backup Target", "N/A");
+        ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
 
         if (twrp_ors_backup_format())
             ui_format_gui_menu(item_ors_format, "ORS Backup Format", "TWRP");
