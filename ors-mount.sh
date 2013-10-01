@@ -2,16 +2,17 @@
 
 #######################################
 #  Do not remove this credits header  #
-# sk8erwitskil : first release        #
-# PhilZ-cwm6   : multi device support #
-# PhilZ-cwm6   : Jellybean support    #
-# PhilZ-cwm6   : No extSdCard support #
+#  sk8erwitskil : first release       #
+#  PhilZ        : maintained          #
 #######################################
 
-#in cwm, sdcard can be internal sd or external sd on phones with /emmc and no /external_sd defined in recovery.fstab
-INT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /emmc`;
-EXT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /external_sd`;
+# in cm-10.2 voldmanaged devices
+# internal sd is always /sdcard which is a symlink to /storage/sdcard0 or /data/media (no more /emmc)
+# external sd is now /storage/sdcard1, no more /external_sd
+INT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /storage/sdcard0`;
+EXT_SD=`cat /etc/recovery.fstab | grep -v "#" | grep -o /storage/sdcard1`;
 
+# it could be non voldmanaged volume or /data/media: assume internal sd is /sdcard as it should always be (no more /emmc as internal)
 if [ "$INT_SD" = "" ];
      then
         INT_SD="/sdcard"
