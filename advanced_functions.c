@@ -612,7 +612,8 @@ static void get_ors_backup_volume(char *volume) {
     char value_def[PATH_MAX];
     sprintf(value_def, "%s", get_primary_storage_path());
     read_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", value, value_def);
-    if (volume_for_path(value) != NULL && ensure_path_mounted(value) == 0)
+    Volume* v = volume_for_path(value);
+    if (v != NULL && ensure_path_mounted(value) == 0 && strcmp(value, v->mount_point) == 0)
         strcpy(volume, value);
     else strcpy(volume, value_def);
 }
