@@ -32,10 +32,50 @@
 #include <libgen.h>
 #include "flashutils/flashutils.h"
 #include "extendedcommands.h"
+#include "advanced_functions.h"
 
 #include "voldclient/voldclient.h"
 
 static struct fstab *fstab = NULL;
+
+// Support additional extra.fstab entries and add device2
+// Needed until fs_mgr_read_fstab() starts to parse a blk_device2 entries
+static struct fstab *fstab_extra = NULL;
+static void set_blk_device2(Volume* extra_vol) {
+    int i;
+    for(i = 0; i < fstab->num_entries; ++i) {
+        if (strcmp(fstab->recs[i].mount_point, extra_vol->mount_point) == 0) {
+            fstab->recs[i].blk_device2 = strdup(extra_vol->blk_device);
+            fstab->recs[i].fs_type2 = strdup(extra_vol->fs_type);
+            if (extra_vol->fs_options != NULL)
+                fstab->recs[i].fs_options2 = strdup(extra_vol->fs_options);
+        }
+    }
+}
+
+static void load_volume_table_extra() {
+    int i;
+
+    fstab_extra = fs_mgr_read_fstab("/etc/extra.fstab");
+    if (!fstab_extra) {
+        LOGI("No /etc/extra.fstab\n");
+        return;
+    }
+
+    fprintf(stderr, "extra filesystem table (device2, fstype2, options2):\n");
+    for(i = 0; i < fstab_extra->num_entries; ++i) {
+        Volume* v = &fstab_extra->recs[i];
+        set_blk_device2(v);
+        fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
+                v->blk_device, v->length);
+    }
+    fprintf(stderr, "\n");
+}
+
+Volume* volume_for_path_extra(const char* path) {
+    return fs_mgr_get_entry_for_mount_point(fstab_extra, path);
+}
+//----- end extra.fstab support
 
 int get_num_volumes() {
     return fstab->num_entries;
@@ -63,12 +103,18 @@ void load_volume_table() {
         return;
     }
 
+    load_volume_table_extra();
+
     fprintf(stderr, "recovery filesystem table\n");
     fprintf(stderr, "=========================\n");
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = &fstab->recs[i];
         fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
-               v->blk_device, v->length);
+                v->blk_device, v->length);
+        if (v->blk_device2 != NULL) {
+            fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type2,
+                    v->blk_device2, v->length);
+        }
     }
     fprintf(stderr, "\n");
 }
