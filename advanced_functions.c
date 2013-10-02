@@ -221,7 +221,11 @@ int Find_Partition_Size(const char* Path) {
     char line[512];
     char tmpdevice[1024];
 
-    Volume* volume = volume_for_path(Path);
+    Volume* volume;
+    if (is_data_media_volume_path(Path))
+        volume = volume_for_path("/data");
+    else
+        volume = volume_for_path(Path);
     if (volume != NULL) {
         // In this case, we'll first get the partitions we care about (with labels)
         fp = fopen("/proc/partitions", "rt");
