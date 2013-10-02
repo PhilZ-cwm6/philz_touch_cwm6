@@ -1300,10 +1300,14 @@ void format_sdcard(const char* volume) {
             break;
         case 5:
         case 6:
-            // for now, this calls prebuilt mke2fs which won't run on vold managed path
-            // either use different way, or we implement blk_device2 to recovery
-            ret = format_unknown_device(v->blk_device, v->mount_point, list[chosen_item]);
-            break;
+            {
+                // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
+                const char *device = v->blk_device2;
+                if (device == NULL)
+                    device = v->blk_device;
+                ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
+                break;
+            }
     }
 
     if (ret)
