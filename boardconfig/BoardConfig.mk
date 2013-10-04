@@ -266,3 +266,4 @@ endif
 ifndef BATTERY_LEVEL_PATH
     BATTERY_LEVEL_PATH := "/sys/class/power_supply/battery/capacity"
 endif
+
