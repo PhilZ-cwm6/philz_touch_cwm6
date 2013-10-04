@@ -2,6 +2,10 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 commands_recovery_local_path := $(LOCAL_PATH)
+
+#Extra BoardConfig flags
+include $(LOCAL_PATH)/boardconfig/BoardConfig.mk
+
 # LOCAL_CPP_EXTENSION := .c
 
 LOCAL_SRC_FILES := \
@@ -43,7 +47,8 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-CWM_BASE_VERSION := v6.0.3.8
+PHILZ_BUILD := 5.16.6
+CWM_BASE_VERSION := v6.0.3.9
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 RECOVERY_VERSION := $(RECOVERY_NAME) $(CWM_BASE_VERSION)
 
@@ -62,7 +67,6 @@ endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) 5
-PHILZ_BUILD := 5.16.0
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
@@ -70,234 +74,15 @@ LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 
 #debug and calibration logging for touch code
 #RECOVERY_TOUCH_DEBUG := true
-ifeq ($(RECOVERY_TOUCH_DEBUG), true)
+ifeq ($(RECOVERY_TOUCH_DEBUG),true)
 LOCAL_CFLAGS += -DRECOVERY_TOUCH_DEBUG
 endif
-
-##############################################################
-#device specific config                                      #
-#Copyright (C) 2011-2012 sakuramilk <c.sakuramilk@gmail.com> #
-#adapted from kbc-developers                                 #
-##############################################################
-
-#Galaxy S2 International - i9100
-ifeq ($(TARGET_PRODUCT), cm_i9100)
-TARGET_COMMON_NAME := i9100
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9100
-
-#Galaxy S2 - i9100g
-else ifeq ($(TARGET_PRODUCT), cm_i9100g)
-TARGET_COMMON_NAME := i9100G
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9100G
-
-#Galaxy R / Z - i9103
-else ifeq ($(TARGET_PRODUCT), cm_i9103)
-TARGET_COMMON_NAME := i9103
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9103
-
-#Galaxy Exhibit Variants - codinaxxx
-else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
-TARGET_COMMON_NAME := SGH-T599N
-LOCAL_CFLAGS += -DTARGET_DEVICE_CODINAMTR
-
-#Galaxy Grand Duos - i9082
-else ifeq ($(TARGET_PRODUCT), cm_i9082)
-TARGET_COMMON_NAME := Galaxy_I9082
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9082
-
-#Galaxy S Plus - i9001 (ariesve)
-else ifeq ($(TARGET_PRODUCT), cm_ariesve)
-TARGET_COMMON_NAME := Galaxy_I9001
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9001
-
-#Galaxy S3 International - i9300
-else ifeq ($(TARGET_PRODUCT), cm_i9300)
-TARGET_COMMON_NAME := i930x
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9300
-
-#Galaxy S3 T-Mobile - SGH-T999 (d2tmo)
-else ifeq ($(TARGET_PRODUCT), cm_d2tmo)
-TARGET_COMMON_NAME := SGH-T999
-LOCAL_CFLAGS += -DTARGET_DEVICE_D2TMO
-
-#Galaxy S4 International - i9500
-else ifeq ($(TARGET_PRODUCT), cm_i9500)
-TARGET_COMMON_NAME := i9500
-BOARD_USE_FB2PNG := false
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9500
-
-#Galaxy S4 - i9505, jfltexx
-else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
-TARGET_COMMON_NAME := i9505
-BOARD_USE_FB2PNG := false
-LOCAL_CFLAGS += -DTARGET_DEVICE_I9505
-LOCAL_CFLAGS += -DBOARD_HAS_SLOW_STORAGE
-
-#Galaxy S4 Mini LTE - i9195 (serranoltexx) // Galaxy S4 Mini 3G - i9190 (serrano3gxx)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx),)
-TARGET_COMMON_NAME := Galaxy_S4_Mini-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_S4_MINI
-
-#Galaxy Note - n7000
-else ifeq ($(TARGET_PRODUCT), cm_n7000)
-TARGET_COMMON_NAME := n7000
-LOCAL_CFLAGS += -DTARGET_DEVICE_N7000
-
-#Galaxy Note 2 - n7100
-else ifeq ($(TARGET_PRODUCT), cm_n7100)
-TARGET_COMMON_NAME := n710x-i317M-T889
-LOCAL_CFLAGS += -DTARGET_DEVICE_N7100
-
-#Galaxy Note 10.1 - n8000
-else ifeq ($(TARGET_PRODUCT), cm_n8000)
-TARGET_COMMON_NAME := n8000
-LOCAL_CFLAGS += -DTARGET_DEVICE_N8000
-
-#Galaxy Tab 2 - p3100
-else ifeq ($(TARGET_PRODUCT), cm_p3100)
-TARGET_COMMON_NAME := p3100
-LOCAL_CFLAGS += -DTARGET_DEVICE_P3100
-
-#Galaxy Tab 2 - p5100
-else ifeq ($(TARGET_PRODUCT), cm_p5100)
-TARGET_COMMON_NAME := p5100
-LOCAL_CFLAGS += -DTARGET_DEVICE_P5100
-
-#Galaxy S Blaze 4G - SGH T-769 (t769)
-else ifeq ($(TARGET_PRODUCT), cm_t769)
-TARGET_COMMON_NAME := SGH_T769
-LOCAL_CFLAGS += -DTARGET_DEVICE_T769
-
-#Samsung Exhilarate SGH-I577 (i577)
-else ifeq ($(TARGET_PRODUCT), cm_i577)
-TARGET_COMMON_NAME := SGH_I577
-LOCAL_CFLAGS += -DTARGET_DEVICE_I577
-
-#HTC Desire X - protou
-else ifeq ($(TARGET_PRODUCT), cm_protou)
-TARGET_COMMON_NAME := HTC_Desire_X
-LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_DESIRE_X
-
-#HTC Droid Incredible 4G LTE - fireball
-else ifeq ($(TARGET_PRODUCT), cm_fireball)
-TARGET_COMMON_NAME := HTC_Droid_Incredible_4G_LTE
-LOCAL_CFLAGS += -DTARGET_DEVICE_FIREBALL
-
-#HTC Explorer - pico
-else ifeq ($(TARGET_PRODUCT), cm_pico)
-TARGET_COMMON_NAME := HTC_Explorer
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
-BOARD_USE_NTFS_3G := false
-BOARD_USE_EXFAT_FUSE := false
-LOCAL_CFLAGS += -DTARGET_DEVICE_PICO
-
-#HTC One - m7ul / m7spr / m7tmo
-else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo),)
-TARGET_COMMON_NAME := HTC_One-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_HTC_ONE
-
-#HTC One X - endeavoru
-else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
-TARGET_COMMON_NAME := HTC_One_X
-BOARD_USE_NTFS_3G := false
-LOCAL_CFLAGS += -DTARGET_DEVICE_ENDEAVORU
-
-#HTC One XL - evita
-else ifeq ($(TARGET_PRODUCT), cm_evita)
-TARGET_COMMON_NAME := HTC_One_XL
-LOCAL_CFLAGS += -DTARGET_DEVICE_EVITA
-
-#HTC One S - ville
-else ifeq ($(TARGET_PRODUCT), cm_ville)
-TARGET_COMMON_NAME := HTC_One_S
-LOCAL_CFLAGS += -DTARGET_DEVICE_VILLE
-
-#HTC One V - primou
-else ifeq ($(TARGET_PRODUCT), cm_primou)
-TARGET_COMMON_NAME := HTC_One_V
-LOCAL_CFLAGS += -DTARGET_DEVICE_PRIMOU
-
-#LGE Nexus 4 - mako
-else ifeq ($(TARGET_PRODUCT), cm_mako)
-TARGET_COMMON_NAME := Nexus_4
-LOCAL_CFLAGS += -DTARGET_DEVICE_MAKO
-
-#LG Optimus G ATT (e970) - Canada (e973) - Sprint (ls970) - Intl (e975)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_e970 cm_e973 cm_ls970 cm_e975),)
-TARGET_COMMON_NAME := LG_Optimus_G-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_OPTIMUS_G
-
-#ASUS Nexus 7 (Wifi) - tilapia (grouper)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
-TARGET_COMMON_NAME := ASUS_Nexus_7-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_TILAPIA
-
-#Samsung Nexus 10 - manta
-else ifeq ($(TARGET_PRODUCT), cm_manta)
-TARGET_COMMON_NAME := Samsung_Nexus_10
-LOCAL_CFLAGS += -DTARGET_DEVICE_MANTA
-
-#Samsung Galaxy Nexus - maguro, toro, toroplus (tuna common device)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
-TARGET_COMMON_NAME := Samsung_Galaxy_Nexus-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_GALAXY_NEXUS
-
-#Samsung Nexus S - crespo
-else ifeq ($(TARGET_PRODUCT), cm_crespo)
-TARGET_COMMON_NAME := Samsung_Nexus_S
-LOCAL_CFLAGS += -DTARGET_DEVICE_SAMSUNG_NEXUS_S
-
-#Sony Xperia Z - yuga
-else ifeq ($(TARGET_PRODUCT), cm_yuga)
-TARGET_COMMON_NAME := Sony_Xperia_Z
-LOCAL_CFLAGS += -DTARGET_DEVICE_SONY_XPERIA_Z
-
-#Huawei Acsend P1 U9200 - viva
-else ifeq ($(TARGET_PRODUCT), cm_viva)
-TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
-LOCAL_CFLAGS += -DTARGET_DEVICE_VIVA
-
-#Motorola Droid RAZR M (xt907)
-else ifeq ($(TARGET_PRODUCT), cm_xt907)
-TARGET_COMMON_NAME := Droid_RAZR_M
-LOCAL_CFLAGS += -DTARGET_DEVICE_XT907
-
-#Motorola RAZR i XT890 (smi)
-else ifeq ($(TARGET_PRODUCT), cm_smi)
-TARGET_COMMON_NAME := RAZR_I
-NO_AROMA_FILE_MANAGER := true
-LOCAL_CFLAGS += -DTARGET_DEVICE_RAZR_I
-
-#Motorola Droid RAZR HD GSM (xt925) and US (xt926)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_xt925 cm_xt926),)
-TARGET_COMMON_NAME := Droid_RAZR_HD-$(TARGET_PRODUCT)
-LOCAL_CFLAGS += -DTARGET_DEVICE_RAZR_HD
-
-#Micromax A57 (a57)
-else ifeq ($(TARGET_PRODUCT), cm_a57)
-TARGET_COMMON_NAME := Micromax_A57
-BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
-BOARD_USE_NTFS_3G := false
-BOARD_USE_EXFAT_FUSE := false
-LOCAL_CFLAGS += -DTARGET_DEVICE_A57
-
-#Undefined Device
-else
-TARGET_COMMON_NAME := $(TARGET_PRODUCT)
-endif
-
-LOCAL_CFLAGS += -DTARGET_COMMON_NAME="$(TARGET_COMMON_NAME)"
 
 ifdef PHILZ_TOUCH_RECOVERY
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
   BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 endif
 endif
-
-#############################
-#end device specific config #
-#############################
-
 
 ifdef BOARD_TOUCH_RECOVERY
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
@@ -321,6 +106,8 @@ BOARD_RECOVERY_CHAR_HEIGHT := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | c
 LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT)
 
 BOARD_RECOVERY_DEFINES := BOARD_HAS_NO_SELECT_BUTTON BOARD_UMS_LUNFILE BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT BOARD_TOUCH_RECOVERY RECOVERY_EXTEND_NANDROID_MENU TARGET_USE_CUSTOM_LUN_FILE_PATH TARGET_DEVICE TARGET_RECOVERY_FSTAB
+BOARD_RECOVERY_DEFINES += TARGET_COMMON_NAME BOOTLOADER_CMD_ARG BOARD_HAS_SLOW_STORAGE
+BOARD_RECOVERY_DEFINES += BRIGHTNESS_SYS_FILE BATTERY_LEVEL_PATH BOARD_POST_UNBLANK_COMMAND BOARD_HAS_LOW_RESOLUTION RECOVERY_TOUCHSCREEN_SWAP_XY RECOVERY_TOUCHSCREEN_FLIP_X RECOVERY_TOUCHSCREEN_FLIP_Y
 
 $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
   $(if $($(board_define)), \

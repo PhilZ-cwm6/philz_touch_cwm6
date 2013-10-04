@@ -18,7 +18,6 @@
 #define _RECOVERY_UI_H
 
 #include "common.h"
-#include "device_config.h"
 
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
