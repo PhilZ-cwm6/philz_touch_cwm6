@@ -105,7 +105,7 @@ void write_recovery_version() {
     write_string_to_file(path,EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     // force unmount /data as we call this on recovery start
     ignore_data_media_workaround(1);
-    ensure_path_unmounted("/data");
+    ensure_path_unmounted(path);
     ignore_data_media_workaround(0);
 }
 
