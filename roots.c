@@ -41,14 +41,14 @@ static struct fstab *fstab = NULL;
 // Support additional extra.fstab entries and add device2
 // Needed until fs_mgr_read_fstab() starts to parse a blk_device2 entries
 static struct fstab *fstab_extra = NULL;
-static void set_blk_device2(Volume* extra_vol) {
+static void add_extra_fstab_entries(int num) {
     int i;
     for(i = 0; i < fstab->num_entries; ++i) {
-        if (strcmp(fstab->recs[i].mount_point, extra_vol->mount_point) == 0) {
-            fstab->recs[i].blk_device2 = strdup(extra_vol->blk_device);
-            fstab->recs[i].fs_type2 = strdup(extra_vol->fs_type);
-            if (extra_vol->fs_options != NULL)
-                fstab->recs[i].fs_options2 = strdup(extra_vol->fs_options);
+        if (strcmp(fstab->recs[i].mount_point, fstab_extra->recs[num].mount_point) == 0) {
+            fstab->recs[i].blk_device2 = strdup(fstab_extra->recs[num].blk_device);
+            fstab->recs[i].fs_type2 = strdup(fstab_extra->recs[num].fs_type);
+            if (fstab_extra->recs[num].fs_options != NULL)
+                fstab->recs[i].fs_options2 = strdup(fstab_extra->recs[num].fs_options);
         }
     }
 }
@@ -65,7 +65,7 @@ static void load_volume_table_extra() {
     fprintf(stderr, "extra filesystem table (device2, fstype2, options2):\n");
     for(i = 0; i < fstab_extra->num_entries; ++i) {
         Volume* v = &fstab_extra->recs[i];
-        set_blk_device2(v);
+        add_extra_fstab_entries(i);
         fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
     }
