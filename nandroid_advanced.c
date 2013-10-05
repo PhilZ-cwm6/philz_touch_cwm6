@@ -311,24 +311,28 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     // make sure the volume exists...
     ui_print("\n>> Backing up %s...\nUsing raw mode...\n", root);
     if (vol == NULL || vol->fs_type == NULL) {
-        ui_print("Volume not found! Skipping raw backup of %s\n", root);
+        LOGE("volume not found! Skipping raw backup of %s\n", root);
         return 0;
     }
 
     int ret = 0;
     char tmp[PATH_MAX];
-    if (vol->blk_device[0] == '/')
-        sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device, root);
-    else if (vol->blk_device2 != NULL && vol->blk_device2[0] == '/')
-        sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device2, root);
+    char* device_mmcblk;
+    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL)
+        sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device, vol->mount_point);
+    else if (vol->blk_device2 != NULL &&
+            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL))
+        sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device2, vol->mount_point);
+    else if ((device_mmcblk = readlink_device_blk(root)) != NULL)
+        sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, device_mmcblk, vol->mount_point);
     else {
-        ui_print("Invalid device! Skipping raw backup of %s\n", root);
+        LOGE("invalid device! Skipping raw backup of %s\n", root);
         return 0;
     }
 
-    if (0 != (ret = __system(tmp))) {
-        ui_print("Failed raw backup of %s...\n", root);
-    }
+    if (0 != (ret = __system(tmp)))
+        LOGE("failed raw backup of %s...\n", root);
+
     //log
     //finish_nandroid_job();
     char logfile[PATH_MAX];
@@ -337,7 +341,7 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     return ret;
 }
 
-int dd_raw_restore_handler(const char* backup_path, const char* root)
+int dd_raw_restore_handler(const char* backup_file_image, const char* root)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
 
@@ -345,54 +349,58 @@ int dd_raw_restore_handler(const char* backup_path, const char* root)
     Volume *vol = volume_for_path(root);
     // make sure the volume exists...
     if (vol == NULL || vol->fs_type == NULL) {
-        ui_print("Volume not found! Skipping raw restore of %s...\n", root);
+        LOGE("volume not found! Skipping raw restore of %s...\n", root);
         return 0;
     }
 
     // make sure we  have a valid image file name
-    const char *raw_image_format[] = { ".img", ".bin", NULL };
-    char tmp[PATH_MAX];
-    sprintf(tmp, "%s", backup_path);
-    char* image_file = basename(tmp);
     int i = 0;
+    const char *raw_image_format[] = { ".img", ".bin", NULL };
+    char* filename;
+    char tmp[PATH_MAX];
+    sprintf(tmp, "%s", backup_file_image);
+    filename = basename(tmp);
     while (raw_image_format[i] != NULL) {
-        if (strlen(image_file) > strlen(raw_image_format[i]) &&
-                    strcmp(image_file + strlen(image_file) - strlen(raw_image_format[i]), raw_image_format[i]) == 0 &&
-                    strncmp(image_file, root + 1, strlen(root)-1) == 0) {
+        if (strlen(filename) > strlen(raw_image_format[i]) &&
+                    strcmp(filename + strlen(filename) - strlen(raw_image_format[i]), raw_image_format[i]) == 0 &&
+                    strncmp(filename, vol->mount_point + 1, strlen(vol->mount_point)-1) == 0) {
             break;
         }
         i++;
     }
     if (raw_image_format[i] == NULL) {
-        ui_print("Invalid image file! Failed to restore %s to %s\n", image_file, root);
+        LOGE("invalid image file! Failed to restore %s to %s\n", filename, root);
         return -1;
     }
-    
+
     //make sure file exists
-    struct stat file_check;
-    if (0 != stat(backup_path, &file_check)) {
-        ui_print("%s not found. Skipping restore of %s\n", backup_path, root);
+    if (!file_found(backup_file_image)) {
+        LOGE("%s not found. Skipping restore of %s\n", backup_file_image, root);
         return -1;
     }
 
     //restore raw image
     int ret = 0;
-    ui_print("Restoring %s to %s\n", image_file, root);
+    char* device_mmcblk;
 
-    if (vol->blk_device[0] == '/')
-        sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_path, vol->blk_device, root);
-    else if (vol->blk_device2 != NULL && vol->blk_device2[0] == '/')
-        sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_path, vol->blk_device2, root);
+    ui_print("Restoring %s to %s\n", filename, vol->mount_point);
+    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL)
+        sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device, vol->mount_point);
+    else if (vol->blk_device2 != NULL &&
+            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL))
+        sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device2, vol->mount_point);
+    else if ((device_mmcblk = readlink_device_blk(root)) != NULL)
+        sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, device_mmcblk, vol->mount_point);
     else {
-        ui_print("Invalid device! Skipping raw restore of %s\n", root);
+        LOGE("invalid device! Skipping raw restore of %s\n", root);
         return 0;
     }
-    
+
     if (0 != (ret = __system(tmp)))
-        ui_print("Failed raw restore of %s to %s\n", image_file, root);
+        LOGE("failed raw restore of %s to %s\n", filename, root);
     //log
     finish_nandroid_job();
-    sprintf(tmp, "%s", backup_path);
+    sprintf(tmp, "%s", backup_file_image);
     char *logfile = dirname(tmp);
     sprintf(tmp, "%s/log.txt", logfile);
     ui_print_custom_logtail(tmp, 3);

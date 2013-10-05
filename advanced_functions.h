@@ -25,6 +25,7 @@ extern int run_ors_script(const char* ors_script);
 
 // general system functions
 unsigned long gettime_now_msec(void);
+char* readlink_device_blk(const char* Path);
 unsigned long Get_File_Size(const char* Path);
 unsigned long long Get_Folder_Size(const char* Path);
 int file_found(const char* filename);

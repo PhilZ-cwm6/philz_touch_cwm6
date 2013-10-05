@@ -215,13 +215,36 @@ int Get_Size_Via_statfs(const char* Path) {
     return 0;
 }
 
+// try to resolve link from blk_device to real /dev/block/mmcblk or /dev/block/mtdblock
+char* readlink_device_blk(const char* Path) {
+    Volume* vol;
+    if (is_data_media_volume_path(Path))
+        vol = volume_for_path("/data");
+    else
+        vol = volume_for_path(Path);
+    if (vol == NULL)
+        return NULL;
+
+    char buf[1024];
+    ssize_t len = readlink(vol->blk_device, buf, sizeof(buf)-1);
+    if (len == -1) {
+        LOGI("failed to get device mmcblk link (%s)\n", vol->blk_device);
+        return NULL;
+    }
+
+    buf[len] = '\0';
+    LOGI("found device mmcblk link: %s -> %s\n", vol->blk_device, buf);
+    return buf;
+}
+
 // alternate method for statfs (emmc, mtd...)
 int Find_Partition_Size(const char* Path) {
-    FILE* fp;
     char line[512];
     char tmpdevice[1024];
-
+    char* device_mmcblk;
+    FILE* fp;
     Volume* volume;
+
     if (is_data_media_volume_path(Path))
         volume = volume_for_path("/data");
     else
@@ -230,6 +253,7 @@ int Find_Partition_Size(const char* Path) {
         // In this case, we'll first get the partitions we care about (with labels)
         fp = fopen("/proc/partitions", "rt");
         if (fp != NULL) {
+            device_mmcblk = readlink_device_blk(Path);
             while (fgets(line, sizeof(line), fp) != NULL)
             {
                 unsigned long major, minor, blocks;
@@ -249,10 +273,18 @@ int Find_Partition_Size(const char* Path) {
                     fclose(fp);
                     return 0;
                 }
-                if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
+                else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
                     Total_Size = blocks * 1024ULL;
                     fclose(fp);
                     return 0;
+                }
+                else {
+                    // try to get blk_device symlink to /dev/block/xxx path
+                    if (device_mmcblk != NULL && strcmp(tmpdevice, device_mmcblk) == 0) {
+                        Total_Size = blocks * 1024ULL;
+                        fclose(fp);
+                        return 0;
+                    }
                 }
             }
             fclose(fp);
