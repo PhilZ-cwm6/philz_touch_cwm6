@@ -305,9 +305,18 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     mkdir(mount_point, 0755);  // in case it doesn't already exist
 
     if (fs_mgr_is_voldmanaged(v)) {
-        return vold_mount_volume(mount_point, 1) == CommandOkay ? 0 : -1;
-
-    } else if (strcmp(v->fs_type, "yaffs2") == 0) {
+#ifdef USE_EXFAT_KERNEL_MODULE
+        // if vold managed volume is formatted in exfat and we have an exfat kernel module, do not use fuse
+        char cmd[PATH_MAX];
+        sprintf(cmd, "blkid %s | grep -o 'TYPE=\"exfat\"'; exit $?", v->blk_device2 != NULL ? v->blk_device2 : v->blk_device);
+        if (__system(cmd) == 0) {
+            sprintf(cmd, "mount %s %s", v->blk_device2 != NULL ? v->blk_device2 : v->blk_device, mount_point);
+            return __system(cmd);
+        } else
+#endif
+            return vold_mount_volume(mount_point, 1) == CommandOkay ? 0 : -1;
+    }
+    if (strcmp(v->fs_type, "yaffs2") == 0) {
         // mount an MTD partition as a YAFFS2 filesystem.
         mtd_scan_partitions();
         const MtdPartition* partition;
@@ -382,9 +391,15 @@ int ensure_path_unmounted(const char* path) {
         return 0;
     }
 
-    if (fs_mgr_is_voldmanaged(volume_for_path(v->mount_point)))
-        return vold_unmount_volume(v->mount_point, 0, 1) == CommandOkay ? 0 : -1;
-
+    if (fs_mgr_is_voldmanaged(volume_for_path(v->mount_point))) {
+#ifdef USE_EXFAT_KERNEL_MODULE
+        // if vold managed volume is formatted in exfat and we have an exfat kernel module, do not use fuse
+        char cmd[PATH_MAX];
+        sprintf(cmd, "blkid %s | grep -o 'TYPE=\"exfat\"'; exit $?", v->blk_device2 != NULL ? v->blk_device2 : v->blk_device);
+        if (__system(cmd) != 0)
+#endif
+            return vold_unmount_volume(v->mount_point, 0, 1) == CommandOkay ? 0 : -1;
+    }
     return unmount_mounted_volume(mv);
 }
 

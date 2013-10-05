@@ -2871,33 +2871,42 @@ void custom_backup_restore_menu() {
 
 // launch aromafm.zip from default locations
 static int default_aromafm(const char* aromafm_path) {
-        if (ensure_path_mounted(aromafm_path) != 0)
-            return -1;
+    char aroma_file[PATH_MAX];
+    sprintf(aroma_file, "%s/clockworkmod/aromafm/aromafm.zip", aromafm_path);
 
-        char aroma_file[PATH_MAX];
-        sprintf(aroma_file, "%s/clockworkmod/aromafm/aromafm.zip", aromafm_path);
-        if (access(aroma_file, F_OK) != -1) {
+    if (file_found(aroma_file)) {
 #ifdef PHILZ_TOUCH_RECOVERY
-            force_wait = -1;
+        force_wait = -1;
 #endif
-            install_zip(aroma_file);
-            return 0;
-        }
-        return -1;
+        install_zip(aroma_file);
+        return 0;
+    }
+    return -1;
 }
 
 void run_aroma_browser() {
     // look for clockworkmod/aromafm/aromafm.zip in storage paths
+    char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
-
     int ret = -1;
     int i = 0;
-    ret = default_aromafm(get_primary_storage_path());
+
+    vold_unmount_all();
+    ensure_path_mounted(primary_path);
     if (extra_paths != NULL) {
+        while (i < num_extra_volumes) {
+            ensure_path_mounted(extra_paths[i]);
+            ++i;
+        }
+    }
+
+    ret = default_aromafm(primary_path);
+    if (extra_paths != NULL) {
+        i = 0;
         while (ret && i < num_extra_volumes) {
             ret = default_aromafm(extra_paths[i]);
-            i++;
+            ++i;
         }
     }
     if (ret != 0)
