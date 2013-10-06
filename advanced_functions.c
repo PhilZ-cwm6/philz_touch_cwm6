@@ -2918,23 +2918,12 @@ static int default_aromafm(const char* aromafm_path) {
 
 void run_aroma_browser() {
     // look for clockworkmod/aromafm/aromafm.zip in storage paths
-    char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
     int ret = -1;
     int i = 0;
-#ifdef USE_EXFAT_KERNEL_MODULE
 
-    vold_unmount_all();
-    ensure_path_mounted(primary_path);
-    if (extra_paths != NULL) {
-        while (i < num_extra_volumes) {
-            ensure_path_mounted(extra_paths[i]);
-            ++i;
-        }
-    }
-#endif
-    ret = default_aromafm(primary_path);
+    ret = default_aromafm(get_primary_storage_path());
     if (extra_paths != NULL) {
         i = 0;
         while (ret && i < num_extra_volumes) {

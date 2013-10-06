@@ -81,7 +81,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_USE_FB2PNG := false
     BOARD_HAS_SLOW_STORAGE := true
-    USE_EXFAT_KERNEL_MODULE := true
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Galaxy S4 Mini LTE - i9195 (serranoltexx) // Galaxy S4 Mini 3G - i9190 (serrano3gxx)
@@ -164,6 +164,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
 #HTC One - m7ul / m7spr / m7tmo
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo),)
     TARGET_COMMON_NAME := HTC_One-$(TARGET_PRODUCT)
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One X - endeavoru
@@ -196,6 +197,7 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
 #LG Optimus G ATT (e970) - Canada (e973) - Sprint (ls970) - Intl (e975)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_e970 cm_e973 cm_ls970 cm_e975),)
     TARGET_COMMON_NAME := LG_Optimus_G-$(TARGET_PRODUCT)
+    #KERNEL_EXFAT_MODULE_NAME = "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #ASUS Nexus 7 (Wifi) - tilapia (grouper)

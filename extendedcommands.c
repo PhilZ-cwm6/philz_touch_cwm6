@@ -564,9 +564,6 @@ void show_mount_usb_storage_menu()
 
     // Disable USB storage
     control_usb_storage(false);
-#ifdef USE_EXFAT_KERNEL_MODULE
-    vold_unmount_all();
-#endif
 }
 
 int confirm_selection(const char* title, const char* confirm)
