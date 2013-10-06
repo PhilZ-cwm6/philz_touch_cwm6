@@ -695,7 +695,7 @@ static int ui_niced = 0;
 void ui_set_nice(int enabled) {
     ui_nice = enabled;
 }
-#define NICE_INTERVAL 100
+#define NICE_INTERVAL 350
 int ui_was_niced() {
     return ui_niced;
 }
@@ -725,25 +725,28 @@ void ui_print(const char *fmt, ...)
     // check if we need to exclude some line from write to log
     // first line is line 0
     if (no_stdout_line >= 0) {
-        char buf2[256];
         char str[256];
+        char buf2[256];
+        char buf3[256] = "";
+
         // copy the buffer to modify it
         strcpy(buf2, buf);
         char *ptr = strtok(buf2, "\n");
         int i = 0;
         while(ptr != NULL) {
-            // parse the buffer and write line to log except exclude line
+            // parse the buffer and exclude the line we do not want to write to recovery.log file
             if (i != no_stdout_line) {
                 strcpy(str, ptr);
                 // log only nandroid non empty lines
                 if (strcmp(str, " ") != 0) {
                     strcat(str, "\n");
-                    fputs(str, stdout);
+                    strcat(buf3, str);
                 }
             }
             ptr = strtok(NULL, "\n");
-            i++;
+            ++i;
         }
+        fputs(buf3, stdout);
     }
     else if (ui_log_stdout)
         fputs(buf, stdout);
@@ -1143,11 +1146,14 @@ int ui_handle_key(int key, int visible) {
 #endif
 }
 
-void ui_delete_line() {
+void ui_delete_line(int num) {
     pthread_mutex_lock(&gUpdateMutex);
-    text[text_row][0] = '\0';
-    text_row = (text_row - 1 + text_rows) % text_rows;
-    text_col = 0;
+    int i;
+    for(i = 0; i < num; ++i) {
+        text[text_row][0] = '\0';
+        text_row = (text_row - 1 + text_rows) % text_rows;
+        text_col = 0;
+    }
     pthread_mutex_unlock(&gUpdateMutex);
 }
 

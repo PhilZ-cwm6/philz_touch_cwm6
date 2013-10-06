@@ -117,10 +117,8 @@ static void nandroid_callback(const char* filename)
     ui_nolog_lines(-1);
     if (!ui_was_niced() && nandroid_files_total != 0)
         ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
-    if (!ui_was_niced()) {
-        ui_delete_line();
-        ui_delete_line();
-    }
+    if (!ui_was_niced())
+        ui_delete_line(2);
 #ifdef PHILZ_TOUCH_RECOVERY
     ui_print_color(0, 0);
 #endif
