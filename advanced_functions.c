@@ -2923,6 +2923,7 @@ void run_aroma_browser() {
     int num_extra_volumes = get_num_extra_volumes();
     int ret = -1;
     int i = 0;
+#ifdef USE_EXFAT_KERNEL_MODULE
 
     vold_unmount_all();
     ensure_path_mounted(primary_path);
@@ -2932,7 +2933,7 @@ void run_aroma_browser() {
             ++i;
         }
     }
-
+#endif
     ret = default_aromafm(primary_path);
     if (extra_paths != NULL) {
         i = 0;
