@@ -304,10 +304,10 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 
     mkdir(mount_point, 0755);  // in case it doesn't already exist
 
-    if (fs_mgr_is_voldmanaged(v))
+    if (fs_mgr_is_voldmanaged(v)) {
         return vold_mount_volume(mount_point, 1) == CommandOkay ? 0 : -1;
 
-    if (strcmp(v->fs_type, "yaffs2") == 0) {
+    } else if (strcmp(v->fs_type, "yaffs2") == 0) {
         // mount an MTD partition as a YAFFS2 filesystem.
         mtd_scan_partitions();
         const MtdPartition* partition;
