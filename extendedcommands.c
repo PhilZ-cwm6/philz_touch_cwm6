@@ -1517,12 +1517,10 @@ int show_advanced_menu()
             case 0:
                 if (0 != ensure_path_mounted("/data"))
                     break;
-                ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection( "Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
-                    __system("rm -r /sd-ext/dalvik-cache");
                     ui_print("Dalvik Cache wiped.\n");
                 }
                 ensure_path_unmounted("/data");
