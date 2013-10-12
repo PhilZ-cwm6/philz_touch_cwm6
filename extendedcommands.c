@@ -100,7 +100,6 @@ void write_string_to_file(const char* filename, const char* string) {
 
 void write_recovery_version() {
     char path[PATH_MAX];
-    ensure_path_mounted("/data");
     sprintf(path, "%s/clockworkmod/.recovery_version", get_primary_storage_path());
     write_string_to_file(path,EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     // force unmount /data as we call this on recovery start
