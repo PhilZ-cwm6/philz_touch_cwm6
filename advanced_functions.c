@@ -1277,6 +1277,9 @@ void misc_nandroid_menu()
     char item_ors_format[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
     char item_nand_progress[MENU_MAX_COLS];
+#ifdef RECOVERY_NEED_SELINUX_FIX
+    char item_secontext[MENU_MAX_COLS];
+#endif
     char* list[] = { item_md5,
                     item_preload,
                     item_compress,
@@ -1286,6 +1289,9 @@ void misc_nandroid_menu()
                     item_nand_progress,
                     "Default Backup Format...",
                     "Regenerate md5 Sum",
+#ifdef RECOVERY_NEED_SELINUX_FIX
+                    item_secontext,
+#endif
                     NULL
     };
 
@@ -1328,7 +1334,13 @@ void misc_nandroid_menu()
         if (hidenandprogress)
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
-
+#ifdef RECOVERY_NEED_SELINUX_FIX
+        char nandroid_secontext_file[] = "/sdcard/clockworkmod/.nandroid_secontext";
+        int nandroid_secontext = file_found(nandroid_secontext_file);
+        if (nandroid_secontext)
+            ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "(x)");
+        else ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "( )");
+#endif
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
@@ -1410,6 +1422,16 @@ void misc_nandroid_menu()
             case 8:
                 regenerate_md5_sum_menu();
                 break;
+#ifdef RECOVERY_NEED_SELINUX_FIX
+            case 9:
+                {
+                    nandroid_secontext ^= 1;
+                    if (nandroid_secontext)
+                        write_string_to_file(nandroid_secontext_file, "1");
+                    else delete_a_file(nandroid_secontext_file);
+                }
+                break;
+#endif
         }
     }
 }

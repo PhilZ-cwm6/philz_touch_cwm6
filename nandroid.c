@@ -410,20 +410,19 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         ret = backup_handler(mount_point, tmp, callback);
     }
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (0 != ret || strcmp(backup_path, "-") == 0) {
-        LOGI("skipping selinux context!\n");
-    }
-    else if (0 == strcmp(mount_point, "/data") ||
-                0 == strcmp(mount_point, "/system") ||
-                0 == strcmp(mount_point, "/cache"))
+    if (file_found("/sdcard/clockworkmod/.nandroid_secontext") && 0 == ret && 0 != strcmp(backup_path, "-"))
     {
-        ui_print("backing up selinux context...\n");
-        sprintf(tmp, "%s/%s.context", backup_path, name);
-        if (bakupcon_to_file(mount_point, tmp) < 0)
-            LOGE("backup selinux context error!\n");
-        else
-            ui_print("backup selinux context completed.\n");
-    }
+        if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache"))
+        {
+            ui_print("backing up selinux context...\n");
+            sprintf(tmp, "%s/%s.context", backup_path, name);
+            if (bakupcon_to_file(mount_point, tmp) < 0)
+                LOGE("backup selinux context error!\n");
+            else
+                ui_print("backup selinux context completed.\n");
+        }
+    } else
+        LOGI("skipping selinux context!\n");
 #endif
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
@@ -968,25 +967,24 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         }
     }
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (strcmp(backup_path, "-") == 0) {
-        LOGE("cannot restore selinux context on undump command\n");
-    }
-    else if (0 == strcmp(mount_point, "/data") ||
-                0 == strcmp(mount_point, "/system") ||
-                0 == strcmp(mount_point, "/cache"))
+    if (file_found("/sdcard/clockworkmod/.nandroid_secontext") && 0 != strcmp(backup_path, "-"))
     {
-        ui_print("restoring selinux context...\n");
-        name = basename(mount_point);
-        sprintf(tmp, "%s/%s.context", backup_path, name);
-        if ((ret = restorecon_from_file(tmp)) < 0) {
-            ui_print("restorecon from %s.context error, trying regular restorecon.\n", name);
-            if ((ret = restorecon_recursive(mount_point)) < 0) {
-                LOGE("Restorecon %s error!\n", mount_point); 
-                return ret;
+        if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache"))
+        {
+            ui_print("restoring selinux context...\n");
+            name = basename(mount_point);
+            sprintf(tmp, "%s/%s.context", backup_path, name);
+            if ((ret = restorecon_from_file(tmp)) < 0) {
+                ui_print("restorecon from %s.context error, trying regular restorecon.\n", name);
+                if ((ret = restorecon_recursive(mount_point)) < 0) {
+                    LOGE("Restorecon %s error!\n", mount_point); 
+                    return ret;
+                }
             }
+            ui_print("restore selinux context completed.\n");
         }
-        ui_print("restore selinux context completed.\n");
-    }
+    } else
+        LOGE("skipping restore of selinux context\n");
 #endif
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
