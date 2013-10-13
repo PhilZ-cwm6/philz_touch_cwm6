@@ -100,8 +100,7 @@ void delete_a_file(const char* filename) {
 // check if file or folder exists
 int file_found(const char* filename) {
     struct stat s;
-    if (strncmp(filename, "/sbin/", 6) != 0 && strncmp(filename, "/res/", 5) != 0 &&
-            strncmp(filename, "/tmp/", 5) != 0) {
+    if (strncmp(filename, "/sbin/", 6) != 0 && strncmp(filename, "/res/", 5) != 0 && strncmp(filename, "/tmp/", 5) != 0) {
         // do not try to mount ramdisk, else it will error "unknown volume for path..."
         ensure_path_mounted(filename);
     }
@@ -1324,9 +1323,9 @@ void misc_nandroid_menu()
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
 
-        int hidenandprogress = 0;
         char hidenandprogress_file[] = "/sdcard/clockworkmod/.hidenandroidprogress";
-        if (ensure_path_mounted("/sdcard") == 0 && (hidenandprogress = file_found(hidenandprogress_file)) != 0)
+        int hidenandprogress = file_found(hidenandprogress_file);
+        if (hidenandprogress)
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
