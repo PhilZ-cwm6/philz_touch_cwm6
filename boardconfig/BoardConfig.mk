@@ -229,6 +229,7 @@ else ifeq ($(TARGET_PRODUCT), cm_crespo)
 #Sony Xperia Z - yuga
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
     TARGET_COMMON_NAME := Sony_Xperia_Z
+    KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lm3533-lcd-bl/brightness"
 
 #Huawei Acsend P1 U9200 - viva
