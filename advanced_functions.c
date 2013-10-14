@@ -141,12 +141,12 @@ int copy_a_file(const char* file_in, const char* file_out) {
     }
 
     if (!is_path_ramdisk(file_in) && ensure_path_mounted(file_in) != 0) {
-        ui_print("cannot mount volume for %s\n", file_in);
+        LOGE("cannot mount volume for %s\n", file_in);
         return -1;
     }
 
     if (!is_path_ramdisk(file_out) && ensure_path_mounted(file_out) != 0) {
-        ui_print("cannot mount volume for %s\n", file_out);
+        LOGE("cannot mount volume for %s\n", file_out);
         return -1;
     }
 
@@ -156,12 +156,13 @@ int copy_a_file(const char* file_in, const char* file_out) {
     ensure_directory(dirname(tmp));
     FILE *fp = fopen(file_in, "rb");
     if (fp == NULL) {
-        ui_print("Source file not found (%s)\n", file_in);
+        LOGE("Source file not found (%s)\n", file_in);
         return -1;
     }
     FILE *fp_out = fopen(file_out, "wb");
     if (fp_out == NULL) {
-        ui_print("Failed to create destination file %s\n", file_out);
+        LOGE("Failed to create destination file %s\n", file_out);
+        fclose(fp);
         return -1;
     }
 

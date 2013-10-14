@@ -49,8 +49,14 @@ static int is_gzip_file(const char* file_archive) {
         LOGE("Failed to open archive file %s\n", file_archive);
         return -1;
     }
+
     char buff[3];
     fread(buff, 1, 2, fp);
+    if (fclose(fp) != 0) {
+        LOGE("Failed to close '%s'\n", file_archive);
+        return -1;
+    }
+
     static char magic_num[2] = {0x1F, 0x8B};
     int i;
     for(i = 0; i < 2; i++) {
@@ -247,13 +253,14 @@ void check_restore_size(const char* backup_file_image, const char* backup_path)
     Before_Used_Size = Used_Size;
 
     char tmp[PATH_MAX];
+    char filename[PATH_MAX];
     char *dir;
     char** files;
     int numFiles = 0;
 
     strcpy(tmp, backup_file_image);
     dir = dirname(tmp);
-    strcpy(tmp, dir);
+    sprintf(tmp, "%s", dir);
     strcat(tmp, "/");
     files = gather_files(tmp, "", &numFiles);
 
@@ -261,14 +268,15 @@ void check_restore_size(const char* backup_file_image, const char* backup_path)
         snprintf(tmp, strlen(backup_file_image) - 3, "%s", backup_file_image);
     else
         strcpy(tmp, backup_file_image);
-
+    sprintf(filename, "%s", basename(tmp));
+    
     int i;
     unsigned long fsize;
     for(i = 0; i < numFiles; i++) {
-        if (strstr(files[i], basename(tmp)) != NULL) {
+        if (strstr(files[i], filename) != NULL) {
             fsize = Get_File_Size(files[i]);
-            if (is_gzip_file(files[i]))
-                fsize += (fsize * 40) / 100;
+            if (is_gzip_file(files[i]) > 0)
+                fsize += (fsize * 45) / 100;
             Backup_Size += fsize;
         }
     }
