@@ -165,7 +165,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One - m7ul / m7spr / m7tmo
-else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo),)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo cm_m7att),)
     TARGET_COMMON_NAME := HTC_One-$(TARGET_PRODUCT)
     #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
