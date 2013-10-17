@@ -52,11 +52,12 @@ else ifeq ($(TARGET_PRODUCT), cm_ariesve)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#Galaxy S3 International - i9300
-else ifeq ($(TARGET_PRODUCT), cm_i9300)
-    TARGET_COMMON_NAME := i930x
+#Galaxy S3 International - i9300 - i9305
+else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
+    TARGET_COMMON_NAME := Galaxy_S3-$(TARGET_PRODUCT)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
 #Galaxy S3 T-Mobile - SGH-T999 (d2tmo)
@@ -167,7 +168,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
 #HTC One - m7ul / m7spr / m7tmo
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo cm_m7att),)
     TARGET_COMMON_NAME := HTC_One-$(TARGET_PRODUCT)
-    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One X - endeavoru
@@ -207,6 +208,11 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_e970 cm_e973 cm_ls970 cm_e975),)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
     TARGET_COMMON_NAME := ASUS_Nexus_7-$(TARGET_PRODUCT)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+
+#ASUS Nexus 7 2013 - flo
+else ifeq ($(TARGET_PRODUCT), cm_flo)
+    TARGET_COMMON_NAME := Nexus_7_2013-$(TARGET_PRODUCT)
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Samsung Nexus 10 - manta
 else ifeq ($(TARGET_PRODUCT), cm_manta)
