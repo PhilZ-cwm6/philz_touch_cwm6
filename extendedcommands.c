@@ -108,6 +108,27 @@ void write_recovery_version() {
     ignore_data_media_workaround(0);
 }
 
+static void write_last_install_path(const char* install_path) {
+    char path[PATH_MAX];
+    sprintf(path, "%s/clockworkmod/.last_install_path", get_primary_storage_path());
+    write_string_to_file(path, install_path);
+}
+
+const char* read_last_install_path() {
+    char path[PATH_MAX];
+    sprintf(path, "%s/clockworkmod/.last_install_path", get_primary_storage_path());
+
+    ensure_path_mounted(path);
+    FILE *f = fopen(path, "r");
+    if (f != NULL) {
+        fgets(path, PATH_MAX, f);
+        fclose(f);
+
+        return path;
+    }
+    return NULL;
+}
+
 void
 toggle_signature_check()
 {
@@ -470,8 +491,11 @@ void show_choose_zip_menu(const char *mount_point)
     static char* confirm_install  = "Confirm install?";
     static char confirm[PATH_MAX];
     sprintf(confirm, "Yes - Install %s", basename(file));
-    if (confirm_selection(confirm_install, confirm))
+
+    if (confirm_selection(confirm_install, confirm)) {
         install_zip(file);
+        write_last_install_path(dirname(file));
+    }
 }
 
 void show_nandroid_restore_menu(const char* path)

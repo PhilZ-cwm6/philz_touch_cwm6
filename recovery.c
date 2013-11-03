@@ -965,6 +965,15 @@ main(int argc, char **argv) {
     ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
     LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
 
+#ifdef BOARD_RECOVERY_SWIPE
+#if !defined(BOARD_TOUCH_RECOVERY) && !defined(PHILZ_TOUCH_RECOVERY)
+    //display directions for swipe controls
+    ui_print("Swipe up/down to change selections.\n");
+    ui_print("Swipe to the right for enter.\n");
+    ui_print("Swipe to the left for back.\n");
+#endif
+#endif
+
     load_volume_table();
     process_volumes();
     vold_client_start(&v_callbacks, 0);
