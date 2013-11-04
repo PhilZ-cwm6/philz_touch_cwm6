@@ -394,15 +394,16 @@ static int write_config_file(const char* config_file, const char* key, const cha
     strcpy(config_file_tmp, config_file);
     strcat(config_file_tmp, ".tmp");
     delete_a_file(config_file_tmp);
-    FILE *fp = fopen(config_file, "rb");
+
     FILE *f_tmp = fopen(config_file_tmp, "wb");
     if (f_tmp == NULL) {
         LOGE("failed to create temporary settings file!\n");
         return -1;
     }
 
-    // if a new settings file needs to be created, we write a user info header
+    FILE *fp = fopen(config_file, "rb");
     if (fp == NULL) {
+        // we need to create a new settings file: write an info header
         const char* header[] = {
             "#PhilZ Touch Settings File\n",
             "#Edit only in appropriate UNIX format (Notepad+++...)\n",
@@ -441,7 +442,7 @@ static int write_config_file(const char* config_file, const char* key, const cha
     fclose(f_tmp);
 
     if (rename(config_file_tmp, config_file) !=0) {
-        LOGE("failed renaming temporary settings file!\n");
+        LOGE("failed to rename temporary settings file!\n");
         return -1;
     }
     LOGI("%s was set to %s\n", key, value);
