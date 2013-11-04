@@ -205,7 +205,7 @@ int show_install_update_menu()
     }
 
     // FIXED_BOTTOM_INSTALL_ZIP_MENUS
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip from Last Folder";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip from Last Install Folder";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Install zip from sideload";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Multi-zip Installer";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Setup Free Browse Mode";
@@ -1795,7 +1795,10 @@ int volume_main(int argc, char **argv) {
 }
 
 int verify_root_and_recovery() {
-    write_recovery_version();
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (!check_root_and_recovery)
+        return 0;
+#endif
 
     if (ensure_path_mounted("/system") != 0)
         return 0;

@@ -56,11 +56,14 @@
 /*      Part of PhilZ Touch Recovery     */
 /*****************************************/
 
+
 // redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
 // used to format toggle menus to device screen width (only touch build)
 #define MENU_MAX_COLS 64
 
-// Returns the current time in msec: 
+int check_root_and_recovery = 1;
+
+// returns the current time in msec: 
 unsigned long gettime_now_msec(void) {
     struct timeval now;
     long mseconds;
@@ -702,7 +705,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     enable_md5sum = 1;
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
-    ignore_android_secure = 1; //disable
+    ignore_android_secure = 1;
     set_override_yaffs2_wrapper(0);
     nandroid_force_backup_format("tar");
 
@@ -1041,7 +1044,6 @@ int run_ors_script(const char* ors_script) {
     }
     return ret_val;
 }
-//end of open recovery script file code
 
 //show menu: select ors from default path
 static int browse_for_file = 1;
@@ -1779,11 +1781,14 @@ static void delete_custom_backups(const char* backup_path)
 - for /data/media devices, only second storage is allowed, not /sdcard
 - custom backup and restore jobs (incl twrp and ors modes) can force .android_secure to be ignored
   this is done by setting ignore_android_secure to 1
-- ignore_android_secure is by default 0 ad will be reset to 0 by reset_custom_job_settings()
+- ignore_android_secure is by default 0 and will be reset to 0 by reset_custom_job_settings()
+- On restore job: if no android_secure folder is found on any sdcard, restore is skipped.
+                  you need to create at least one .android_secure folder on one of the sd cards to restore to
 */
 int set_android_secure_path(char *and_sec_path) {
     if (ignore_android_secure)
         return android_secure_ext = 0;
+
     android_secure_ext = 1;
 
     struct stat st;
@@ -2922,7 +2927,6 @@ void custom_backup_restore_menu() {
 }
 //-------------- End PhilZ Touch Special Backup and Restore menu and handlers
 
-
 // launch aromafm.zip from default locations
 static int default_aromafm(const char* aromafm_path) {
     char aroma_file[PATH_MAX];
@@ -2968,7 +2972,7 @@ void run_aroma_browser() {
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
 
-//start refresh nandroid compression
+// refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "fast");
@@ -2981,7 +2985,7 @@ static void refresh_nandroid_compression() {
     else compression_value = TAR_GZ_FAST;
 }
 
-//start check nandroid preload setting
+// check nandroid preload setting
 static void check_nandroid_preload() {
     if (volume_for_path("/preload") == NULL)
         return; // nandroid_add_preload = 0 by default on recovery start
@@ -2994,7 +2998,7 @@ static void check_nandroid_preload() {
         nandroid_add_preload = 0;
 }
 
-//start check nandroid md5 sum
+// check nandroid md5 sum
 static void check_nandroid_md5sum() {
     char value[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value, "1");
@@ -3004,7 +3008,7 @@ static void check_nandroid_md5sum() {
         enable_md5sum = 1;
 }
 
-//start check show nandroid size progress
+// check show nandroid size progress
 static void check_show_nand_size_progress() {
     char value_def[3] = "1";
 #ifdef BOARD_HAS_SLOW_STORAGE
@@ -3066,7 +3070,7 @@ static void import_export_settings() {
     }
 }
 
-void show_philz_settings()
+void show_philz_settings_menu()
 {
     static const char* headers[] = {  "PhilZ Settings",
                                 NULL
@@ -3075,6 +3079,7 @@ void show_philz_settings()
     static char* list[] = { "Open Recovery Script",
                             "Custom Backup and Restore",
                             "Aroma File Manager",
+                            "Root Main System",
                             "GUI Preferences",
                             "Save and Restore Settings",
                             "Reset All Recovery Settings",
@@ -3122,21 +3127,31 @@ void show_philz_settings()
                 run_aroma_browser();
                 break;
             case 3:
+                {
+                    int old_val = check_root_and_recovery;
+                    check_root_and_recovery = 1;
+                    ui_print("Verifying root and recovery...\n");
+                    if (!verify_root_and_recovery())
+                        ui_print("No changes were done!\n");
+                    check_root_and_recovery = old_val;
+                }
+                break;
+            case 4:
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_touch_gui_menu();
 #endif
                 break;
-            case 4:
+            case 5:
                 import_export_settings();
                 break;
-            case 5:
+            case 6:
                 if (confirm_selection("Reset all recovery settings?", "Yes - Reset to Defaults")) {
                     delete_a_file(PHILZ_SETTINGS_FILE);
                     refresh_recovery_settings();
                     ui_print("All settings reset to default!\n");
                 }
                 break;
-            case 6:
+            case 7:
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");

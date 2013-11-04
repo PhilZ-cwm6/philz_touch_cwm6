@@ -4,7 +4,8 @@
 
 // print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
-void show_philz_settings();
+
+void show_philz_settings_menu();
 void refresh_recovery_settings();
 void wipe_data_menu();
 extern int no_files_found;
@@ -39,10 +40,15 @@ int copy_a_file(const char* file_in, const char* file_out);
 int show_custom_zip_menu();
 void set_custom_zip_path();
 
-// Misc nandroid settings
+// misc nandroid settings
 void misc_nandroid_menu();
 void get_rom_name(char *rom_name);
 
 // multi zip installer
 void show_multi_flash_menu();
-//---------- End PhilZ Settings
+
+extern int check_root_and_recovery;
+
+#ifdef PHILZ_TOUCH_RECOVERY
+void verify_settings_file();
+#endif
