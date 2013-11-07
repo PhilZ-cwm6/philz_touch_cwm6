@@ -1163,6 +1163,12 @@ static void add_nandroid_options_for_volume(char** menu, char* path, int offset)
     menu[offset + 3] = strdup(buf);
 }
 
+// number of actions added for each volume by add_nandroid_options_for_volume()
+// these go on top of menu list
+#define NANDROID_ACTIONS_NUM 4
+// number of fixed bottom entries after volume actions
+#define NANDROID_FIXED_ENTRIES 3
+
 int show_nandroid_menu()
 {
     char* primary_path = get_primary_storage_path();
@@ -1170,105 +1176,114 @@ int show_nandroid_menu()
     int num_extra_volumes = get_num_extra_volumes();
     int i = 0, offset = 0, chosen_item = 0;
     char* chosen_path = NULL;
-    int max_backup_index = (num_extra_volumes + 1) * 4;
-
+    int action_entries_num = (num_extra_volumes + 1) * NANDROID_ACTIONS_NUM;
+                                   // +1 for primary_path
     static const char* headers[] = {  "Backup and Restore",
                                       NULL
     };
 
-    // *4 is number of items to which we add path in add_nandroid_options_for_volume()
-    // +3 is the extra items to add later
-    // we should really malloc here
-    static char* list[((MAX_NUM_MANAGED_VOLUMES + 1) * 4) + 3];
+    // (MAX_NUM_MANAGED_VOLUMES + 1) for primary_path (/sdcard)
+    // + 1 for extra NULL entry
+    static char* list[((MAX_NUM_MANAGED_VOLUMES + 1) * NANDROID_ACTIONS_NUM) + NANDROID_FIXED_ENTRIES + 1];
 
+    // actions for primary_path
     add_nandroid_options_for_volume(list, primary_path, offset);
-    offset += 4;
+    offset += NANDROID_ACTIONS_NUM;
 
+    // actions for voldmanaged volumes
     if (extra_paths != NULL) {
         for (i = 0; i < num_extra_volumes; i++) {
             add_nandroid_options_for_volume(list, extra_paths[i], offset);
-            offset += 4;
+            offset += NANDROID_ACTIONS_NUM;
         }
     }
 
+    // fixed bottom entries
     list[offset] = "Custom Backup and Restore";
-    offset++;
-    list[offset] = "Free Unused Backup Data";
-    offset++;
-    list[offset] = "Misc Nandroid Settings";
-    offset++;
+    list[offset + 1] = "Free Unused Backup Data";
+    list[offset + 2] = "Misc Nandroid Settings";
+    offset += NANDROID_FIXED_ENTRIES;
 
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
     extend_nandroid_menu(list, offset, sizeof(list) / sizeof(char*));
     offset++;
 #endif
 
+    // extra NULL for GO_BACK
     list[offset] = NULL;
+    offset++;
 
     for (;;) {
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, offset);
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
-        int chosen_subitem = chosen_item % 4;
-        if (chosen_item == max_backup_index) {
+
+        // fixed bottom entries
+        if (chosen_item == action_entries_num) {
             is_custom_backup = 1;
             custom_backup_restore_menu();
             is_custom_backup = 0;            
-        } else if (chosen_item == (max_backup_index + 1)) {
+        } else if (chosen_item == (action_entries_num + 1)) {
             run_dedupe_gc();
-        } else if (chosen_item == (max_backup_index + 2)) {
+        } else if (chosen_item == (action_entries_num + 2)) {
             misc_nandroid_menu();
-        } else if (chosen_item < max_backup_index){
-            if (chosen_item < 4) {
+        } else if (chosen_item < action_entries_num){
+            // get nandroid volume actions path
+            if (chosen_item < NANDROID_ACTIONS_NUM) {
                 chosen_path = primary_path;
             } else if (extra_paths != NULL) {
-                chosen_path = extra_paths[(chosen_item / 4) -1];
+                chosen_path = extra_paths[(chosen_item / NANDROID_ACTIONS_NUM) - 1];
             }
-            switch (chosen_subitem) {
-            case 0:
-                {
-                    char backup_path[PATH_MAX];
-                    char rom_name[PROPERTY_VALUE_MAX] = "noname";
-                    get_rom_name(rom_name);
 
-                    time_t t = time(NULL);
-                    struct tm *timeptr = localtime(&t);
-                    if (timeptr == NULL)
+            // process selected nandroid action
+            int chosen_subitem = chosen_item % NANDROID_ACTIONS_NUM;
+            switch (chosen_subitem) {
+                case 0:
                     {
-                        struct timeval tp;
-                        gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "%s/clockworkmod/backup/%ld_%s", chosen_path, tp.tv_sec, rom_name);
+                        char backup_path[PATH_MAX];
+                        char rom_name[PROPERTY_VALUE_MAX] = "noname";
+                        get_rom_name(rom_name);
+
+                        time_t t = time(NULL);
+                        struct tm *timeptr = localtime(&t);
+                        if (timeptr == NULL)
+                        {
+                            struct timeval tp;
+                            gettimeofday(&tp, NULL);
+                            sprintf(backup_path, "%s/clockworkmod/backup/%ld_%s", chosen_path, tp.tv_sec, rom_name);
+                        }
+                        else
+                        {
+                            char path_fmt[PATH_MAX];
+                            strftime(path_fmt, sizeof(path_fmt), "clockworkmod/backup/%F.%H.%M.%S", timeptr);
+                            // this sprintf results in:
+                            // clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
+                            sprintf(backup_path, "%s/%s_%s", chosen_path, path_fmt, rom_name);
+                        }
+                        nandroid_backup(backup_path);
                     }
-                    else
-                    {
-                        char path_fmt[PATH_MAX];
-                        strftime(path_fmt, sizeof(path_fmt), "clockworkmod/backup/%F.%H.%M.%S", timeptr);
-                        sprintf(backup_path, "%s/%s_%s", chosen_path, path_fmt, rom_name);
-                    }
-                    nandroid_backup(backup_path);
-                }
-                break;
-            case 1:
-                show_nandroid_restore_menu(chosen_path);
-                break;
-            case 2:
-                show_nandroid_delete_menu(chosen_path);
-                break;
-            case 3:
-                show_nandroid_advanced_restore_menu(chosen_path);
-                break;
-            default:
-                break;
+                    break;
+                case 1:
+                    show_nandroid_restore_menu(chosen_path);
+                    break;
+                case 2:
+                    show_nandroid_delete_menu(chosen_path);
+                    break;
+                case 3:
+                    show_nandroid_advanced_restore_menu(chosen_path);
+                    break;
+                default:
+                    break;
             }
         } else {
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-                handle_nandroid_menu(10, chosen_item);
+                handle_nandroid_menu(action_entries_num + NANDROID_FIXED_ENTRIES, chosen_item);
 #endif
             goto out;
         }
     }
 out:
-    for (i = 0; i < max_backup_index; i++)
+    for (i = 0; i < action_entries_num; i++)
         free(list[i]);
     return chosen_item;
 }
