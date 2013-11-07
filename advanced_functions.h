@@ -5,6 +5,8 @@
 // print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
 
+int read_config_file(const char* config_file, const char *key, char *value, const char *value_def);
+int write_config_file(const char* config_file, const char* key, const char* value);
 void show_philz_settings_menu();
 void refresh_recovery_settings();
 void wipe_data_menu();

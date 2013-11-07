@@ -350,7 +350,7 @@ unsigned long long Get_Folder_Size(const char* Path) {
 /**********************************/
 // todo: parse settings file in one pass and make pairs of key:value
 // get value of key from a given config file
-static int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
+int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
     int ret = 0;
     char line[PROPERTY_VALUE_MAX];
     ensure_path_mounted(config_file);
@@ -382,7 +382,7 @@ static int read_config_file(const char* config_file, const char *key, char *valu
 }
 
 // set value of key in config file
-static int write_config_file(const char* config_file, const char* key, const char* value) {
+int write_config_file(const char* config_file, const char* key, const char* value) {
     if (ensure_path_mounted(config_file) != 0) {
         LOGE("Cannot mount path for settings file: %s\n", config_file);
         return -1;
@@ -418,10 +418,8 @@ static int write_config_file(const char* config_file, const char* key, const cha
         for(i=0; header[i] != NULL; i++) {
             fwrite(header[i], 1, strlen(header[i]), f_tmp);
         }
-    }
-
-    // parsing existing config file and writing new temporary file.
-    if (fp != NULL) {
+    } else {
+        // parse existing config file and write new temporary file.
         char line[PROPERTY_VALUE_MAX];
         while(fgets(line, sizeof(line), fp) != NULL) {
             // ignore any existing line with key we want to set
@@ -3080,7 +3078,7 @@ void show_philz_settings_menu()
     static char* list[] = { "Open Recovery Script",
                             "Custom Backup and Restore",
                             "Aroma File Manager",
-                            "Root Main System",
+                            "Re-root System (CWM Superuser)",
                             "GUI Preferences",
                             "Save and Restore Settings",
                             "Reset All Recovery Settings",
@@ -3131,9 +3129,21 @@ void show_philz_settings_menu()
                 {
                     int old_val = check_root_and_recovery;
                     check_root_and_recovery = 1;
-                    ui_print("Verifying root and recovery...\n");
-                    if (!verify_root_and_recovery())
-                        ui_print("No changes were done!\n");
+
+                    if (confirm_selection("Remove existing su", "Yes - Apply CWM SU")) {
+                        delete_a_file("/system/bin/su");
+                        delete_a_file("/system/xbin/su");
+                        delete_a_file("/system/app/superuser.apk");
+                        delete_a_file("/system/app/Superuser.apk");
+                    } else break;
+
+                    int ret = verify_root_and_recovery();
+                    if (ret == 2) {
+                        ui_print("Done!");
+                        ui_print("Uninstall any Superuser update and reinstall from market.\n");
+                    } else {
+                        ui_print("Failed to apply root!\n");
+                    }
                     check_root_and_recovery = old_val;
                 }
                 break;
