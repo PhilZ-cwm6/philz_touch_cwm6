@@ -3139,7 +3139,7 @@ void show_philz_settings_menu()
 
                     int ret = verify_root_and_recovery();
                     if (ret == 2) {
-                        ui_print("Done!");
+                        ui_print("Done!\n");
                         ui_print("Uninstall any Superuser update and reinstall from market.\n");
                     } else {
                         ui_print("Failed to apply root!\n");
