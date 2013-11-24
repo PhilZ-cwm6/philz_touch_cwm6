@@ -484,10 +484,6 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
 
 void show_choose_zip_menu(const char *mount_point)
 {
-    // browse for zip files up/backward including root system and have a default user set start folder
-    if (show_custom_zip_menu() == 0)
-        return;
-
     if (ensure_path_mounted(mount_point) != 0) {
         LOGE ("Can't mount %s\n", mount_point);
         return;
