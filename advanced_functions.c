@@ -598,7 +598,7 @@ void show_multi_flash_menu() {
 
         //flashing selected zip files
         if (chosen_item == 1) {
-            static char confirm[PATH_MAX];
+            char confirm[PATH_MAX];
             sprintf(confirm, "Yes - Install from %s", basename(zip_folder));
             if (confirm_selection("Install selected files?", confirm))
             {
@@ -616,6 +616,7 @@ void show_multi_flash_menu() {
         free_string_array(list);
     }
     free_string_array(files);
+    free(zip_folder);
 }
 //-------- End Multi-Flash Zip code
 
@@ -1096,6 +1097,8 @@ static void choose_default_ors_menu(const char* ors_path)
     if (confirm_selection("Confirm run script?", confirm)) {
         run_ors_script(ors_file);
     }
+
+    free(ors_file);
 }
 
 //show menu: browse for custom Open Recovery Script
@@ -1119,6 +1122,8 @@ static void choose_custom_ors_menu(const char* ors_path)
     if (confirm_selection("Confirm run script?", confirm)) {
         run_ors_script(ors_file);
     }
+
+    free(ors_file);
 }
 
 //show menu: select sdcard volume to search for custom ors file
@@ -1266,6 +1271,8 @@ static void regenerate_md5_sum_menu() {
             ui_print("Error while generating md5 sum!\n");
         else ui_print("Done generating md5 sum.\n");
     }
+
+    free(file);
 
 out:
     free(list[0]);
@@ -1739,6 +1746,8 @@ static void choose_delete_folder(const char* path) {
         sprintf(tmp, "rm -rf '%s'", file);
         __system(tmp);
     }
+
+    free(file);
 }
 
 // actually only used to delete twrp backups
@@ -2061,6 +2070,8 @@ static void custom_restore_handler(const char* backup_path) {
             nandroid_restore(backup_source, backup_boot, backup_system, backup_data, backup_cache, backup_sdext, backup_wimax);
         }
     }
+
+    free(file);
 }
 
 static void browse_backup_folders(const char* backup_path)
@@ -2851,6 +2862,8 @@ void twrp_restore_handler(const char* backup_path) {
     sprintf(tmp, "Yes - Restore %s", basename(backup_source));
     if (confirm_selection("Restore from this backup?", tmp))
         twrp_restore(backup_source);
+
+    free(file);
 }
 
 static void twrp_backup_restore_menu() {
