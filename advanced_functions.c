@@ -62,14 +62,24 @@
 #define MENU_MAX_COLS 64
 
 int check_root_and_recovery = 1;
+static int auto_restore_settings = 0;
+
+long timenow_usec(void) {
+    struct timeval now;
+    long useconds;
+    gettimeofday(&now, NULL);
+    useconds = now.tv_sec * 1000000;
+    useconds += now.tv_usec;
+    return useconds;
+}
 
 // returns the current time in msec: 
-unsigned long gettime_now_msec(void) {
+long timenow_msec(void) {
     struct timeval now;
     long mseconds;
     gettimeofday(&now, NULL);
     mseconds = now.tv_sec * 1000;
-    mseconds += now.tv_usec / 1000;
+    mseconds += (now.tv_usec / 1000);
     return mseconds;
 }
 
@@ -1080,10 +1090,10 @@ static void choose_default_ors_menu(const char* ors_path)
         //either no valid files found or we selected no files by pressing back menu
         return;
     }
-    static char* confirm_install  = "Confirm run script?";
-    static char confirm[PATH_MAX];
+
+    char confirm[PATH_MAX];
     sprintf(confirm, "Yes - Run %s", basename(ors_file));
-    if (confirm_selection(confirm_install, confirm)) {
+    if (confirm_selection("Confirm run script?", confirm)) {
         run_ors_script(ors_file);
     }
 }
@@ -1103,10 +1113,10 @@ static void choose_custom_ors_menu(const char* ors_path)
     char* ors_file = choose_file_menu(ors_path, ".ors", headers);
     if (ors_file == NULL)
         return;
-    static char* confirm_install  = "Confirm run script?";
-    static char confirm[PATH_MAX];
+
+    char confirm[PATH_MAX];
     sprintf(confirm, "Yes - Run %s", basename(ors_file));
-    if (confirm_selection(confirm_install, confirm)) {
+    if (confirm_selection("Confirm run script?", confirm)) {
         run_ors_script(ors_file);
     }
 }
@@ -1242,20 +1252,20 @@ static void regenerate_md5_sum_menu() {
         goto out;
 
     char* file = choose_file_menu(tmp, "", headers);
-    if (file == NULL) goto out;
+    if (file == NULL)
+        goto out;
 
     char *backup_source;
     backup_source = dirname(file);
     sprintf(tmp, "Process %s", basename(backup_source));
-    if (!confirm_selection("Regenerate md5 sum?", tmp))
-        goto out;
-
-    ui_print("Generating md5 sum...\n");
-    // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
-    sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
-    if (0 != __system(tmp))
-        ui_print("Error while generating md5 sum!\n");
-    else ui_print("Done generating md5 sum.\n");
+    if (confirm_selection("Regenerate md5 sum?", tmp)) {
+        ui_print("Generating md5 sum...\n");
+        // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
+        sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
+        if (0 != __system(tmp))
+            ui_print("Error while generating md5 sum!\n");
+        else ui_print("Done generating md5 sum.\n");
+    }
 
 out:
     free(list[0]);
@@ -1572,13 +1582,12 @@ int show_custom_zip_menu() {
     char val[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", val, "");
     if (strcmp(val, "") == 0) {
-        LOGI("Free browse mode disabled. Using default mode\n");
+        ui_print("Free browse mode disabled. Enable it first\n");
         return 1;
     }
     if (ensure_path_mounted(val) != 0) {
         LOGE("Cannot mount custom path %s\n", val);
         LOGE("You must first setup a valid folder\n");
-        LOGE("Switching to default mode\n");
         return -1;
     }
 
@@ -1991,14 +2000,13 @@ static void custom_restore_handler(const char* backup_path) {
             ui_print("efs.img file detected in %s!\n", file);
             ui_print("Either select efs.img to restore it,\n");
             ui_print("or remove it to restore nandroid source.\n");
-            return;
+        } else {
+            //restore efs from nandroid tar format
+            ui_print("%s will be restored to /efs!\n", file);
+            sprintf(tmp, "Yes - Restore %s", basename(file));
+            if (confirm_selection(confirm_install, tmp))
+                nandroid_restore(file, 0, 0, 0, 0, 0, 0);
         }
-
-        //restore efs from nandroid tar format
-        ui_print("%s will be restored to /efs!\n", file);
-        sprintf(tmp, "Yes - Restore %s", basename(file));
-        if (confirm_selection(confirm_install, tmp))
-            nandroid_restore(file, 0, 0, 0, 0, 0, 0);
     } else if (backup_modem == RAW_BIN_FILE) {
         file = choose_file_menu(backup_path, ".bin", headers);
         if (file == NULL) {
@@ -2971,6 +2979,37 @@ void run_aroma_browser() {
 #include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
 #endif
 
+void verify_settings_file() {
+    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(PHILZ_SETTINGS_BAK)) {
+        if (auto_restore_settings) {
+            copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
+            ui_print("Settings restored.\n");
+        }
+        else if (confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard")) {
+            copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
+            ui_print("Settings restored.\n");
+        }
+    }
+}
+
+static void check_auto_restore_settings() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value, "false");
+    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
+        auto_restore_settings = 1;
+    else
+        auto_restore_settings = 0;
+}
+
+static void check_root_and_recovery_settings() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value, "true");
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
+        check_root_and_recovery = 0;
+    else
+        check_root_and_recovery = 1;
+}
+
 // refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
@@ -3022,6 +3061,8 @@ static void check_show_nand_size_progress() {
 }
 
 void refresh_recovery_settings() {
+    check_auto_restore_settings();
+    check_root_and_recovery_settings();
     refresh_nandroid_compression();
     check_nandroid_preload();
     check_nandroid_md5sum();
@@ -3035,14 +3076,43 @@ void refresh_recovery_settings() {
 }
 
 //import / export settings
+static void load_theme_settings()
+{
+#ifdef PHILZ_TOUCH_RECOVERY
+    selective_load_theme_settings();
+#else
+    static const char* headers[] = {  "Select a theme to load",
+                                "",
+                                NULL
+    };
+
+    char* theme_file;
+    ensure_path_mounted(PHILZ_THEMES_PATH);
+    theme_file = choose_file_menu(PHILZ_THEMES_PATH, ".ini", headers);
+    if (theme_file == NULL)
+        return;
+
+    if (confirm_selection("Overwrite default settings ?", "Yes - Apply New Theme")) {
+        copy_a_file(theme_file, PHILZ_SETTINGS_FILE);
+        refresh_recovery_settings();
+        ui_print("loaded default settings from %s\n", basename(theme_file));
+    }
+
+    free(theme_file);
+#endif
+}
+
 static void import_export_settings() {
     static const char* headers[] = {  "Save / Restore Settings",
                                 "",
                                 NULL
     };
 
-    static char* list[] = { "Save Settings to sdcard",
-                    "Load Settings from sdcard",
+    static char* list[] = { "Save Default Settings to sdcard",
+                    "Load Default Settings from sdcard",
+                    "Save Current Theme to sdcard",
+                    "Load Existing Theme from sdcard",
+                    "Delete Saved Themes",
                     NULL
     };
 
@@ -3058,11 +3128,44 @@ static void import_export_settings() {
                 break;
             case 1:
                 {
-                    static int ret;
-                    ret = copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
-                    refresh_recovery_settings();
-                    if (ret == 0)
+                    if (copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE) == 0)
                         ui_print("settings loaded from %s\n", PHILZ_SETTINGS_BAK);
+                    refresh_recovery_settings();
+                }
+                break;
+            case 2:
+                {
+                    int ret = 1;
+                    int i = 1;
+                    char path[PATH_MAX];
+                    while (ret && i < 10) {
+                        sprintf(path, "%s/theme_%03i.ini", PHILZ_THEMES_PATH, i);
+                        ret = file_found(path);
+                        ++i;
+                    }
+
+                    if (ret) {
+                        LOGE("Can't save more than 10 themes!\n");
+                    } else {
+                        copy_a_file(PHILZ_SETTINGS_FILE, path);
+                        ui_print("Custom settings saved to %s\n", path);
+                    }
+                }
+                break;
+            case 3:
+                load_theme_settings();
+                break;
+            case 4:
+                {
+                    ensure_path_mounted(PHILZ_THEMES_PATH);
+                    char* theme_file = choose_file_menu(PHILZ_THEMES_PATH, ".ini", headers);
+                    if (theme_file == NULL)
+                        break;
+
+                    if (confirm_selection("Delete selected theme ?", "Yes - Delete"))
+                        delete_a_file(theme_file);
+
+                    free(theme_file);
                 }
                 break;
         }
@@ -3075,21 +3178,34 @@ void show_philz_settings_menu()
                                 NULL
     };
 
-    static char* list[] = { "Open Recovery Script",
-                            "Custom Backup and Restore",
-                            "Aroma File Manager",
-                            "Re-root System (CWM Superuser)",
-                            "GUI Preferences",
-                            "Save and Restore Settings",
-                            "Reset All Recovery Settings",
-                            "About",
-                             NULL
+    char item_check_root_and_recovery[MENU_MAX_COLS];
+    char item_auto_restore[MENU_MAX_COLS];
+
+    char* list[] = { "Open Recovery Script",
+                        "Aroma File Manager",
+                        "Re-root System (SuperSU)",
+                        item_check_root_and_recovery,
+                        item_auto_restore,
+                        "Save and Restore Settings",
+                        "Reset All Recovery Settings",
+                        "GUI Preferences",
+                        "About",
+                         NULL
     };
 
     for (;;) {
+        if (check_root_and_recovery)
+            ui_format_gui_menu(item_check_root_and_recovery, "Verify Root on Exit", "(x)");
+        else ui_format_gui_menu(item_check_root_and_recovery, "Verify Root on Exit", "( )");
+
+        if (auto_restore_settings)
+            ui_format_gui_menu(item_auto_restore, "Auto Restore Settings", "(x)");
+        else ui_format_gui_menu(item_auto_restore, "Auto Restore Settings", "( )");
+
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
+
         switch (chosen_item)
         {
             case 0:
@@ -3118,39 +3234,31 @@ void show_philz_settings_menu()
                 }
                 break;
             case 1:
-                is_custom_backup = 1;
-                custom_backup_restore_menu();
-                is_custom_backup = 0;
+                run_aroma_browser();
                 break;
             case 2:
-                run_aroma_browser();
+                if (confirm_selection("Remove existing su ?", "Yes - Apply SuperSU")) {
+                    if (0 == __system("/sbin/install-su.sh"))
+                        ui_print("Done!\nNow, install SuperSU from market.\n");
+                    else
+                        ui_print("Failed to apply root!\n");
+                }
                 break;
             case 3:
                 {
-                    int old_val = check_root_and_recovery;
-                    check_root_and_recovery = 1;
-
-                    if (confirm_selection("Remove existing su", "Yes - Apply CWM SU")) {
-                        delete_a_file("/system/bin/su");
-                        delete_a_file("/system/xbin/su");
-                        delete_a_file("/system/app/superuser.apk");
-                        delete_a_file("/system/app/Superuser.apk");
-                    } else break;
-
-                    int ret = verify_root_and_recovery();
-                    if (ret == 2) {
-                        ui_print("Done!\n");
-                        ui_print("Uninstall any Superuser update and reinstall from market.\n");
-                    } else {
-                        ui_print("Failed to apply root!\n");
-                    }
-                    check_root_and_recovery = old_val;
+                    char value[5];
+                    check_root_and_recovery ^= 1;
+                    sprintf(value, "%d", check_root_and_recovery);
+                    write_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value);
                 }
                 break;
             case 4:
-#ifdef PHILZ_TOUCH_RECOVERY
-                show_touch_gui_menu();
-#endif
+                {
+                    char value[5];
+                    auto_restore_settings ^= 1;
+                    sprintf(value, "%d", auto_restore_settings);
+                    write_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value);
+                }
                 break;
             case 5:
                 import_export_settings();
@@ -3163,6 +3271,11 @@ void show_philz_settings_menu()
                 }
                 break;
             case 7:
+#ifdef PHILZ_TOUCH_RECOVERY
+                show_touch_gui_menu();
+#endif
+                break;
+            case 8:
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");

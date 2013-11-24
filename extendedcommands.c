@@ -205,10 +205,10 @@ int show_install_update_menu()
     }
 
     // FIXED_BOTTOM_INSTALL_ZIP_MENUS
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip from Last Install Folder";
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Install zip from sideload";
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Multi-zip Installer";
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Setup Free Browse Mode";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip Using Free Browse Mode";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Choose zip from Last Install Folder";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Install zip from sideload";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Install Multiple zip Files";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = "Toggle Signature Verification";
 
     // extra NULL for GO_BACK
@@ -225,6 +225,10 @@ int show_install_update_menu()
             show_choose_zip_menu(extra_paths[chosen_item - FIXED_TOP_INSTALL_ZIP_MENUS]);
         }
         else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
+            if (show_custom_zip_menu() != 0)
+                set_custom_zip_path();
+        }
+        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
             char *last_path_used;
             last_path_used = read_last_install_path();
             if (last_path_used == NULL)
@@ -232,14 +236,11 @@ int show_install_update_menu()
             else
                 show_choose_zip_menu(last_path_used);
         }
-        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
+        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2) {
             apply_from_adb();
         }
-        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2) {
-            show_multi_flash_menu();
-        }
         else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3) {
-            set_custom_zip_path();
+            show_multi_flash_menu();
         }
         else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4) {
             toggle_signature_check();
@@ -786,7 +787,7 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         return 0;
     }
 
-    static char tmp[PATH_MAX];
+    char tmp[PATH_MAX];
     if (strcmp(path, "/data") == 0) {
         sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
         __system(tmp);
@@ -1525,7 +1526,7 @@ int show_advanced_menu()
     list[1] = "Report Error";
     list[2] = "Key Test";
     list[3] = "Show log";
-    // list[4] // data/media/0 toggle: initialised below
+    list[4] = strdup("Datamedia Not Supported");
 #ifdef ENABLE_LOKI
     list[5] = "Toggle Loki Support";
 #endif
@@ -1555,7 +1556,7 @@ int show_advanced_menu()
             if (use_migrated_storage())
                 list[4] = strdup("Storage set to /data/media/0");
             else list[4] = strdup("Storage set to /data/media");
-        } else list[4] = strdup("Datamedia Not Supported");
+        }
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
@@ -1810,10 +1811,8 @@ int volume_main(int argc, char **argv) {
 }
 
 int verify_root_and_recovery() {
-#ifdef PHILZ_TOUCH_RECOVERY
     if (!check_root_and_recovery)
         return 0;
-#endif
 
     if (ensure_path_mounted("/system") != 0)
         return 0;

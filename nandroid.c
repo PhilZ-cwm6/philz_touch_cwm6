@@ -150,9 +150,9 @@ static void update_size_progress(const char* Path) {
     if (!show_nandroid_size_progress || Backup_Size == 0)
         return;
     // statfs every 5 sec interval maximum (some sdcards and phones cannot support previous 0.5 sec)
-    if (last_size_update == 0 || (gettime_now_msec() - last_size_update) > 5000) {
+    if (last_size_update == 0 || (timenow_msec() - last_size_update) > 5000) {
         Get_Size_Via_statfs(Path);
-        last_size_update = gettime_now_msec();
+        last_size_update = timenow_msec();
     }
 }
 
@@ -498,7 +498,7 @@ int nandroid_backup(const char* backup_path)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    nandroid_start_msec = gettime_now_msec();
+    nandroid_start_msec = timenow_msec(); // starts backup monitoring timer for total backup time
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = nandroid_start_msec; //support dim screen timeout during nandroid operation
 #endif
@@ -1046,9 +1046,9 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     nandroid_files_total = 0;
-    nandroid_start_msec = gettime_now_msec();
+    nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = gettime_now_msec();
+    last_key_ev = timenow_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");

@@ -57,7 +57,7 @@ static int is_gzip_file(const char* file_archive) {
         return -1;
     }
 
-    static char magic_num[2] = {0x1F, 0x8B};
+    char magic_num[2] = {0x1F, 0x8B};
     int i;
     for(i = 0; i < 2; i++) {
         if (buff[i] != magic_num[i])
@@ -285,9 +285,9 @@ void check_restore_size(const char* backup_file_image, const char* backup_path)
 }
 
 void show_backup_stats(const char* backup_path) {
-    long total_msec = gettime_now_msec() - nandroid_start_msec;
-    int minutes = total_msec / 60000;
-    int seconds = (total_msec % 60000) / 1000;
+    long total_msec = timenow_msec() - nandroid_start_msec;
+    long minutes = total_msec / 60000L;
+    long seconds = (total_msec % 60000L) / 1000L;
 
     unsigned long long final_size = Get_Folder_Size(backup_path);
     long double compression;
@@ -296,19 +296,19 @@ void show_backup_stats(const char* backup_path) {
     else compression = 1 - ((long double)(final_size) / (long double)(Backup_Size));
 
     ui_print("\nBackup complete!\n");
-    ui_print("Backup time: %02i:%02i mn\n", minutes, seconds);
+    ui_print("Backup time: %02ld:%02ld mn\n", minutes, seconds);
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
     if (default_backup_handler != dedupe_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
 }
 
 void show_restore_stats() {
-    long total_msec = gettime_now_msec() - nandroid_start_msec;
-    int minutes = total_msec / 60000;
-    int seconds = (total_msec % 60000) / 1000;
+    long total_msec = timenow_msec() - nandroid_start_msec;
+    long minutes = total_msec / 60000L;
+    long seconds = (total_msec % 60000L) / 1000L;
 
     ui_print("\nRestore complete!\n");
-    ui_print("Restore time: %02i:%02i mn\n", minutes, seconds);
+    ui_print("Restore time: %02ld:%02ld mn\n", minutes, seconds);
 }
 
 int dd_raw_backup_handler(const char* backup_path, const char* root)
@@ -656,7 +656,7 @@ int twrp_backup(const char* backup_path) {
         return print_and_error("Not enough free space: backup cancelled.\n");
 
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    nandroid_start_msec = gettime_now_msec();
+    nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
     last_key_ev = nandroid_start_msec;
 #endif
@@ -823,9 +823,9 @@ int twrp_restore(const char* backup_path)
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     nandroid_files_total = 0;
-    nandroid_start_msec = gettime_now_msec();
+    nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = gettime_now_msec();
+    last_key_ev = timenow_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");

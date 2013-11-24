@@ -35,6 +35,8 @@
 #include "recovery_ui.h"
 #include "voldclient/voldclient.h"
 
+#include "advanced_functions.h"
+
 extern int __system(const char *command);
 
 #if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
@@ -52,9 +54,7 @@ static int gShowBackButton = 0;
 #define MIN_LOG_ROWS 3
 
 #define CHAR_WIDTH BOARD_RECOVERY_CHAR_WIDTH
-#ifndef PHILZ_TOUCH_RECOVERY
 #define CHAR_HEIGHT BOARD_RECOVERY_CHAR_HEIGHT
-#endif
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
 #define UI_KEY_REPEAT_INTERVAL 80
@@ -478,7 +478,8 @@ static int input_callback(int fd, short revents, void *data)
     }
     const int queue_max = sizeof(key_queue) / sizeof(key_queue[0]);
     if (ev.value > 0 && key_queue_len < queue_max) {
-        key_queue[key_queue_len++] = ev.code;
+        key_queue[key_queue_len] = ev.code;
+        ++key_queue_len;
 
         if (boardEnableKeyRepeat) {
             struct timeval now;

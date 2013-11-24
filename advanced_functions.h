@@ -1,6 +1,7 @@
 // PhilZ Touch config file
-#define PHILZ_SETTINGS_FILE "/data/philz-touch/philz-touch_5.ini"
-#define PHILZ_SETTINGS_BAK "/sdcard/clockworkmod/philz-touch.ini.bak"
+#define PHILZ_SETTINGS_FILE "/data/philz-touch/philz-touch_6.ini"
+#define PHILZ_SETTINGS_BAK "/sdcard/clockworkmod/philz-touch_6.ini.bak"
+#define PHILZ_THEMES_PATH "/sdcard/clockworkmod/themes"
 
 // print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
@@ -27,7 +28,8 @@ extern int check_for_script_file(const char* ors_boot_script);
 extern int run_ors_script(const char* ors_script);
 
 // general system functions
-unsigned long gettime_now_msec(void);
+long timenow_usec(void);
+long timenow_msec(void);
 char* readlink_device_blk(const char* Path);
 unsigned long Get_File_Size(const char* Path);
 unsigned long long Get_Folder_Size(const char* Path);
@@ -51,6 +53,4 @@ void show_multi_flash_menu();
 
 extern int check_root_and_recovery;
 
-#ifdef PHILZ_TOUCH_RECOVERY
 void verify_settings_file();
-#endif

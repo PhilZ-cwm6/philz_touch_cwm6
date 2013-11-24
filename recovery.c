@@ -511,7 +511,7 @@ get_menu_selection(const char** headers, char** items, int menu_only,
                     break;
 #ifdef PHILZ_TOUCH_RECOVERY
                 case HIGHLIGHT_ON_TOUCH:
-                    selected = ui_menu_touch_select(selected);
+                    selected = ui_menu_touch_select();
                     break;
 #endif
                 case SELECT_ITEM:
@@ -854,9 +854,7 @@ setup_adbd() {
 
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg) {
-#ifdef PHILZ_TOUCH_RECOVERY
     verify_settings_file();
-#endif
     write_recovery_version();
     verify_root_and_recovery();
     finish_recovery(NULL); // sync() in here

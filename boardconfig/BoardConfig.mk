@@ -60,9 +60,9 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy S3 T-Mobile - SGH-T999 (d2tmo)
-else ifeq ($(TARGET_PRODUCT), cm_d2tmo)
-    TARGET_COMMON_NAME := SGH-T999
+#Galaxy S3 T-Mobile - SGH-T999 (d2tmo, d2att, d2spr)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att),)
+    TARGET_COMMON_NAME := $(TARGET_PRODUCT)
     BOOTLOADER_CMD_ARG := "download"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
@@ -76,8 +76,8 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
     BOARD_POST_UNBLANK_COMMAND := "/sbin/postunblankdisplay.sh"
 
 #Galaxy S4 - i9505, jfltexx
-else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltevzw),)
-    TARGET_COMMON_NAME := i9505
+else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltecan cm_jfltecri cm_jfltespr cm_jfltetmo cm_jflteusc cm_jfltevzw cm_jfltezm),)
+    TARGET_COMMON_NAME := i9505 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     BOARD_USE_FB2PNG := false
@@ -276,6 +276,8 @@ RECOVERY_NEED_SELINUX_FIX := true
 ifndef TARGET_COMMON_NAME
     TARGET_COMMON_NAME := $(TARGET_PRODUCT)
 endif
+
+LOCAL_CFLAGS += -DTARGET_COMMON_NAME="$(TARGET_COMMON_NAME)"
 
 # battery level default path (PhilZ Touch Only)
 ifndef BATTERY_LEVEL_PATH
