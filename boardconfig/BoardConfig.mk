@@ -3,6 +3,20 @@
 # These can go under device BoardConfig.mk #
 # By PhilZ for PhilZ Touch recovery        #
 ############################################
+#
+# Info on some tags
+#   - KERNEL_EXFAT_MODULE_NAME: This will force minivold to use much faster kernel modules instead of slow fuse
+#                               it will only work if you have modified vold sources (contact me for info)
+#                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
+#                               you need either an exfat enabled prebuilt kernel or to compile exfat modules along kernel
+#   - KERNEL_NTFS_MODULE_NAME:  Same as above, but for ntfs.
+#   - BOARD_HAS_LOW_RESOLUTION: (optional) for all devices 1024x768 resolution.
+#                               it forces default touch sensitivity to a lower value. It can be altered in GUI Settings
+#   - BOOTLOADER_CMD_ARG:       This will override ro.bootloader.mode. Mostly used for Samsung devices to access download mode
+#   - TARGET_COMMON_NAME:       The device name that will be displayed on recovery start and in About dialogue
+#   - BRIGHTNESS_SYS_FILE:      Needed to be able to alter screen brightness
+#
+
 
 #Galaxy S2 International - i9100
 ifeq ($(TARGET_PRODUCT), cm_i9100)
@@ -167,8 +181,8 @@ else ifeq ($(TARGET_PRODUCT), cm_p3100)
     RECOVERY_TOUCHSCREEN_SWAP_XY := true
     RECOVERY_TOUCHSCREEN_FLIP_Y := true
 
-#Galaxy Tab 2 - p5100
-else ifeq ($(TARGET_PRODUCT), cm_p5100)
+#Galaxy Tab 2 - p5100 / p5110
+else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
     TARGET_COMMON_NAME := p5100
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -180,8 +194,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
     TARGET_COMMON_NAME := Galaxy Nexus ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s6e8aa0/brightness"
 
-#Google Nexus S (Samsung) - crespo
-else ifeq ($(TARGET_PRODUCT), cm_crespo)
+#Google Nexus S (Samsung) - crespo / crespo4g
+else ifneq ($(filter $(TARGET_PRODUCT),cm_crespo cm_crespo4g),)
     TARGET_COMMON_NAME := Nexus S
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s5p_bl/brightness"
