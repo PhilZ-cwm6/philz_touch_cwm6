@@ -52,7 +52,10 @@
 #endif
 
 // time in msec when nandroid job starts: used for dim timeout and total backup time
-static long nandroid_start_msec;
+static long long nandroid_start_msec = 0;
+
+// last time we updated size progress during backup job
+static long long last_size_update = 0;
 
 void nandroid_generate_timestamp_path(char* backup_path)
 {
@@ -145,7 +148,7 @@ static void compute_directory_stats(const char* directory)
     }
 }
 
-static long last_size_update = 0;
+// size progress update during backup jobs
 static void update_size_progress(const char* Path) {
     if (!show_nandroid_size_progress || Backup_Size == 0)
         return;

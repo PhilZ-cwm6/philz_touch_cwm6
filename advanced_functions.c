@@ -64,23 +64,55 @@
 int check_root_and_recovery = 1;
 static int auto_restore_settings = 0;
 
-long timenow_usec(void) {
+static unsigned long long gettime() {
+    struct timespec ts;
+    static int err = 0;
+
+    if (err) return 0;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0) {
+        LOGI("clock_gettime(CLOCK_MONOTONIC) failed: %s\n", strerror(errno));
+        ++err;
+        return 0;
+    }
+
+    unsigned long long nseconds = (unsigned long long)(ts.tv_sec) * 1000000000ULL;
+	nseconds += (unsigned long long)(ts.tv_nsec);
+    return nseconds;
+}
+
+static long long gettime_usec() {
     struct timeval now;
-    long useconds;
+    long long useconds;
     gettimeofday(&now, NULL);
-    useconds = now.tv_sec * 1000000;
-    useconds += now.tv_usec;
+    useconds = (long long)(now.tv_sec) * 1000000LL;
+    useconds += (long long)now.tv_usec;
     return useconds;
 }
 
+long long timenow_usec() {
+    // try clock_gettime
+    unsigned long long nseconds;
+    nseconds = gettime();
+    if (nseconds == 0) {
+        // LOGI("dropping to gettimeofday()\n");
+        return gettime_usec();
+    }
+
+    return (long long)(nseconds / 1000ULL);
+}
+
 // returns the current time in msec: 
-long timenow_msec(void) {
-    struct timeval now;
-    long mseconds;
-    gettimeofday(&now, NULL);
-    mseconds = now.tv_sec * 1000;
-    mseconds += (now.tv_usec / 1000);
-    return mseconds;
+long long timenow_msec() {
+    // first try using clock_gettime
+    unsigned long long nseconds;
+    nseconds = gettime();
+    if (nseconds == 0) {
+        // LOGI("dropping to gettimeofday()\n");
+        return (gettime_usec() / 1000LL);
+    }
+
+    return (long long)(nseconds / 1000000ULL);
 }
 
 //start print tail from custom log file

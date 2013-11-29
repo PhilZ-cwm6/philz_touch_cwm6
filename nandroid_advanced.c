@@ -285,9 +285,9 @@ void check_restore_size(const char* backup_file_image, const char* backup_path)
 }
 
 void show_backup_stats(const char* backup_path) {
-    long total_msec = timenow_msec() - nandroid_start_msec;
-    long minutes = total_msec / 60000L;
-    long seconds = (total_msec % 60000L) / 1000L;
+    long long total_msec = timenow_msec() - nandroid_start_msec;
+    long long minutes = total_msec / 60000LL;
+    long long seconds = (total_msec % 60000LL) / 1000LL;
 
     unsigned long long final_size = Get_Folder_Size(backup_path);
     long double compression;
@@ -296,19 +296,19 @@ void show_backup_stats(const char* backup_path) {
     else compression = 1 - ((long double)(final_size) / (long double)(Backup_Size));
 
     ui_print("\nBackup complete!\n");
-    ui_print("Backup time: %02ld:%02ld mn\n", minutes, seconds);
+    ui_print("Backup time: %02lld:%02lld mn\n", minutes, seconds);
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
     if (default_backup_handler != dedupe_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
 }
 
 void show_restore_stats() {
-    long total_msec = timenow_msec() - nandroid_start_msec;
-    long minutes = total_msec / 60000L;
-    long seconds = (total_msec % 60000L) / 1000L;
+    long long total_msec = timenow_msec() - nandroid_start_msec;
+    long long minutes = total_msec / 60000LL;
+    long long seconds = (total_msec % 60000LL) / 1000LL;
 
     ui_print("\nRestore complete!\n");
-    ui_print("Restore time: %02ld:%02ld mn\n", minutes, seconds);
+    ui_print("Restore time: %02lld:%02lld mn\n", minutes, seconds);
 }
 
 int dd_raw_backup_handler(const char* backup_path, const char* root)
