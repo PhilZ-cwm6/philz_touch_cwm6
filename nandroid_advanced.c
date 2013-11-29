@@ -110,7 +110,7 @@ int check_backup_size(const char* backup_path) {
 
     // backable partitions
     static const char* Partitions_List[] = {"/recovery",
-                    "/boot",
+                    BOOT_PARTITION_MOUNT_POINT,
                     "/wimax",
                     "/modem",
                     "/radio",
@@ -664,11 +664,19 @@ int twrp_backup(const char* backup_path) {
     char tmp[PATH_MAX];
     ensure_directory(backup_path);
 
-    if (backup_boot && 0 != (ret = nandroid_backup_partition(backup_path, "/boot")))
+    if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
+            0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
         return ret;
 
-    if (backup_recovery && 0 != (ret = nandroid_backup_partition(backup_path, "/recovery")))
+    if (backup_recovery && volume_for_path("/recovery") != NULL &&
+            0 != (ret = nandroid_backup_partition(backup_path, "/recovery")))
         return ret;
+
+#ifdef BOARD_USE_MTK_LAYOUT
+    if ((backup_boot || backup_recovery) && volume_for_path("/uboot") != NULL &&
+            0 != (ret = nandroid_backup_partition(backup_path, "/uboot")))
+        return ret;
+#endif
 
     Volume *vol = volume_for_path("/efs");
     if (backup_efs &&  NULL != vol) {
@@ -838,11 +846,19 @@ int twrp_restore(const char* backup_path)
 
     int ret;
 
-    if (backup_boot && NULL != volume_for_path("/boot") && 0 != (ret = nandroid_restore_partition(backup_path, "/boot")))
+    if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
+            0 != (ret = nandroid_restore_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
         return ret;
 
-    if (backup_recovery && 0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
+    if (backup_recovery && volume_for_path("/recovery") != NULL &&
+            0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
         return ret;
+
+#ifdef BOARD_USE_MTK_LAYOUT
+    if ((backup_boot || backup_recovery) && volume_for_path("/uboot") != NULL &&
+            0 != (ret = nandroid_restore_partition(backup_path, "/uboot")))
+        return ret;
+#endif
 
     Volume *vol = volume_for_path("/efs");
     if (backup_efs == RESTORE_EFS_TAR && vol != NULL) {

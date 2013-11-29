@@ -299,6 +299,75 @@ int Find_Partition_Size(const char* Path) {
 
     if (volume != NULL) {
         // In this case, we'll first get the partitions we care about (with labels)
+
+/*
+        --> Start by checking if it is an MTK based device (cat /proc/dumchar_info)
+        Part_Name    Size               StartAddr         Type   MapTo
+        preloader    0x0000000000040000 0x0000000000000000   2   /dev/misc-sd
+        dsp_bl       0x00000000005c0000 0x0000000000040000   2   /dev/misc-sd
+        mbr          0x0000000000004000 0x0000000000000000   2   /dev/block/mmcblk0
+        ebr1         0x0000000000004000 0x0000000000004000   2   /dev/block/mmcblk0p1
+        pmt          0x0000000000400000 0x0000000000008000   2   /dev/block/mmcblk0
+        nvram        0x0000000000500000 0x0000000000408000   2   /dev/block/mmcblk0
+        seccfg       0x0000000000020000 0x0000000000908000   2   /dev/block/mmcblk0
+        uboot        0x0000000000060000 0x0000000000928000   2   /dev/block/mmcblk0
+        bootimg      0x0000000000600000 0x0000000000988000   2   /dev/block/mmcblk0
+        recovery     0x0000000000600000 0x0000000000f88000   2   /dev/block/mmcblk0
+        sec_ro       0x0000000000600000 0x0000000001588000   2   /dev/block/mmcblk0p2
+        misc         0x0000000000060000 0x0000000001b88000   2   /dev/block/mmcblk0
+        logo         0x0000000000300000 0x0000000001be8000   2   /dev/block/mmcblk0
+        expdb        0x0000000000200000 0x0000000001ee8000   2   /dev/block/mmcblk0
+        android      0x0000000020100000 0x00000000020e8000   2   /dev/block/mmcblk0p3
+        cache        0x0000000020100000 0x00000000221e8000   2   /dev/block/mmcblk0p4
+        usrdata      0x0000000020100000 0x00000000422e8000   2   /dev/block/mmcblk0p5
+        fat          0x00000000854f8000 0x00000000623e8000   2   /dev/block/mmcblk0p6
+        bmtpool      0x0000000001500000 0x00000000ff9f00a8   2   /dev/block/mmcblk0
+        Part_Name:Partition name you should open;
+        Size:size of partition
+        StartAddr:Start Address of partition;
+        Type:Type of partition(MTD=1,EMMC=2)
+        MapTo:actual device you operate
+*/
+        fp = fopen("/proc/dumchar_info", "rt");
+        if (fp != NULL) {
+            while (fgets(line, sizeof(line), fp) != NULL)
+            {
+                char label[32], device[32];
+                unsigned long size = 0;
+
+                sscanf(line, "%s %lx %*lx %*lu %s", label, &size, device);
+
+                // Skip header, annotation  and blank lines
+                if ((strncmp(device, "/dev/", 5) != 0) || (strlen(line) < 8))
+                    continue;
+
+                sprintf(tmpdevice, "/dev/");
+                strcat(tmpdevice, label);
+                if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
+                    Total_Size = size;
+                    fclose(fp);
+                    return 0;
+                }
+                if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
+                    Total_Size = size;
+                    fclose(fp);
+                    return 0;
+                }
+            }
+            fclose(fp);
+        }
+/*
+        --> Try mtd / emmc devices (cat /proc/partitions):
+        major minor #blocks name
+        179  0 15388672 mmcblk0
+        179  1    65536 mmcblk0p1
+        179  2      512 mmcblk0p2
+        179  3      512 mmcblk0p3
+        179  4     2048 mmcblk0p4
+        179  5      512 mmcblk0p5
+        179  6    22528 mmcblk0p6
+        179  7    22528 mmcblk0p7
+*/
         fp = fopen("/proc/partitions", "rt");
         if (fp != NULL) {
             readlink_device_blk(Path);

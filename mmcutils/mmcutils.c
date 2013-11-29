@@ -41,6 +41,12 @@
 
 #include "mmcutils.h"
 
+#ifdef BOARD_USE_MTK_LAYOUT
+// for MTK board defines and for Find_Partition_Size()
+#include "../flashutils/flashutils.h"
+#include "../advanced_functions.h"
+#endif
+
 unsigned ext3_count = 0;
 char *ext3_partitions[] = {"system", "userdata", "cache", "NONE"};
 
@@ -471,13 +477,12 @@ ERROR3:
 
 
 int
-mmc_raw_dump_internal (const char* in_file, const char *out_file) {
+mmc_raw_dump_internal (const char* in_file, const char *out_file, unsigned sz) {
     int ch;
     FILE *in;
     FILE *out;
     int val = 0;
     char buf[512];
-    unsigned sz = 0;
     unsigned i;
     int ret = -1;
 
@@ -489,14 +494,24 @@ mmc_raw_dump_internal (const char* in_file, const char *out_file) {
     if (out == NULL)
         goto ERROR2;
 
-    fseek(in, 0L, SEEK_END);
-    sz = ftell(in);
-    fseek(in, 0L, SEEK_SET);
+    if (sz == 0)
+    {
+        fseek(in, 0L, SEEK_END);
+        sz = ftell(in);
+        fseek(in, 0L, SEEK_SET);
+    }
 
     if (sz % 512)
     {
+        unsigned counter = 0;
         while ( ( ch = fgetc ( in ) ) != EOF )
+        {
             fputc ( ch, out );
+#ifdef BOARD_USE_MTK_LAYOUT
+            if (++counter == sz)
+                break;
+#endif
+        }
     }
     else
     {
@@ -523,7 +538,7 @@ ERROR3:
 // TODO: refactor this to not be a giant copy paste mess
 int
 mmc_raw_dump (const MmcPartition *partition, char *out_file) {
-    return mmc_raw_dump_internal(partition->device_index, out_file);
+    return mmc_raw_dump_internal(partition->device_index, out_file, 0);
 }
 
 
@@ -594,7 +609,7 @@ int cmd_mmc_restore_raw_partition(const char *partition, const char *filename)
         return mmc_raw_copy(p, filename);
     }
     else {
-        return mmc_raw_dump_internal(filename, partition);
+        return mmc_raw_dump_internal(filename, partition, 0);
     }
 }
 
@@ -609,7 +624,31 @@ int cmd_mmc_backup_raw_partition(const char *partition, const char *filename)
         return mmc_raw_dump(p, filename);
     }
     else {
-        return mmc_raw_dump_internal(partition, filename);
+        unsigned sz = 0;
+
+#ifdef BOARD_USE_MTK_LAYOUT
+        // adapted from https://github.com/PhilZ-cwm6/mtk6589_bootable_recovery
+        // take boot and recovery partition sizes into account
+        if (strcmp(partition, BOOT_PARTITION_MOUNT_POINT) == 0) {
+            Find_Partition_Size(BOOT_PARTITION_MOUNT_POINT);
+            sz = (unsigned)Total_Size;
+            printf("mtk boot: %s (%u)\n", partition, sz);
+        }
+
+        if (strcmp(partition, "/recovery") == 0) {
+            Find_Partition_Size("/recovery");
+            sz = (unsigned)Total_Size;
+            printf("mtk recovery: %s (%u)\n", partition, sz);
+        }
+
+        if (strcmp(partition, "/uboot") == 0) {
+            Find_Partition_Size("/uboot");
+            sz = (unsigned)Total_Size;
+            printf("mtk uboot: %s (%u)\n", partition, sz);
+        }
+#endif
+
+        return mmc_raw_dump_internal(partition, filename, sz);
     }
 }
 

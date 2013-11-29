@@ -10,6 +10,18 @@
 #                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
 #                               you need either an exfat enabled prebuilt kernel or to compile exfat modules along kernel
 #   - KERNEL_NTFS_MODULE_NAME:  Same as above, but for ntfs.
+#   - BOARD_USE_MTK_LAYOUT :=   true
+#                               will enable backup/restore of boot, recovery and uboot partitions on MTK devices
+#   - BOARD_MTK_BOOT_LABEL :=   "/bootimg"
+#                               This flag is optional, it is used only if BOARD_USE_MTK_LAYOUT is defined
+#                               If not defined while previous flag is enabled, default boot label is assumed "/bootimg"
+#                               Else, it is assigned the defined value
+#                               In fstab.device used by recovery (recovery.fstab), boot mount point must be the same as what we
+#                               define in label
+#                               It is also mandatory that it is defined to real device label (cat /proc/dumchar_info)
+#                               Partition size is grabbed during backup/restore from /proc/dumchar_info
+#                               uboot label is defined as "/uboot". It is automatically backed-up/restored with boot and recovery
+#                               recovery label is assumed to be "/recovery"
 #   - BOARD_HAS_LOW_RESOLUTION: (optional) for all devices 1024x768 resolution.
 #                               it forces default touch sensitivity to a lower value. It can be altered in GUI Settings
 #   - BOOTLOADER_CMD_ARG:       This will override ro.bootloader.mode. Mostly used for Samsung devices to access download mode
