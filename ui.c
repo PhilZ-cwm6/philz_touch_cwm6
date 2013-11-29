@@ -590,9 +590,7 @@ void ui_init(void)
 #ifndef PHILZ_TOUCH_RECOVERY
     char enable_key_repeat[PROPERTY_VALUE_MAX];
     property_get("ro.cwm.enable_key_repeat", enable_key_repeat, "");
-    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1"))
-#endif
-    {
+    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1")) {
         boardEnableKeyRepeat = 1;
 
         char key_list[PROPERTY_VALUE_MAX];
@@ -610,6 +608,7 @@ void ui_init(void)
             }
         }
     }
+#endif
 
     pthread_t t;
     pthread_create(&t, NULL, progress_thread, NULL);
