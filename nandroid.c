@@ -45,6 +45,8 @@
 
 #ifdef RECOVERY_NEED_SELINUX_FIX
 #include <selinux/selinux.h>
+#include <selinux/label.h>
+#include <selinux/android.h>
 #endif
 
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -413,19 +415,20 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         ret = backup_handler(mount_point, tmp, callback);
     }
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (file_found("/sdcard/clockworkmod/.nandroid_secontext") && 0 == ret && 0 != strcmp(backup_path, "-"))
+    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found("/sdcard/clockworkmod/.ignore_nandroid_secontext")) {
+        LOGI("skipping selinux context!\n");
+    }
+    else if (0 == strcmp(mount_point, "/data") ||
+                0 == strcmp(mount_point, "/system") ||
+                0 == strcmp(mount_point, "/cache"))
     {
-        if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache"))
-        {
             ui_print("backing up selinux context...\n");
             sprintf(tmp, "%s/%s.context", backup_path, name);
             if (bakupcon_to_file(mount_point, tmp) < 0)
                 LOGE("backup selinux context error!\n");
             else
                 ui_print("backup selinux context completed.\n");
-        }
-    } else
-        LOGI("skipping selinux context!\n");
+    }
 #endif
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
@@ -978,24 +981,25 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         }
     }
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (file_found("/sdcard/clockworkmod/.nandroid_secontext") && 0 != strcmp(backup_path, "-"))
-    {
-        if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache"))
+    if (strcmp(backup_path, "-") == 0 || file_found("/sdcard/clockworkmod/.ignore_nandroid_secontext")) {
+        LOGE("skipping restore of selinux context\n");
+    }
+    else if (0 == strcmp(mount_point, "/data") ||
+                0 == strcmp(mount_point, "/system") ||
+                0 == strcmp(mount_point, "/cache"))
         {
             ui_print("restoring selinux context...\n");
             name = basename(mount_point);
             sprintf(tmp, "%s/%s.context", backup_path, name);
             if ((ret = restorecon_from_file(tmp)) < 0) {
                 ui_print("restorecon from %s.context error, trying regular restorecon.\n", name);
-                if ((ret = restorecon_recursive(mount_point)) < 0) {
+                if ((ret = restorecon_recursive(mount_point, "/data/media/")) < 0) {
                     LOGE("Restorecon %s error!\n", mount_point); 
                     return ret;
                 }
             }
             ui_print("restore selinux context completed.\n");
         }
-    } else
-        LOGE("skipping restore of selinux context\n");
 #endif
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
@@ -1329,6 +1333,8 @@ int nandroid_main(int argc, char** argv)
 }
 
 #ifdef RECOVERY_NEED_SELINUX_FIX
+static int nochange;
+static int verbose;
 int bakupcon_to_file(const char *pathname, const char *filename)
 {
     int ret = 0;
@@ -1371,8 +1377,8 @@ int bakupcon_to_file(const char *pathname, const char *filename)
         if (asprintf(&entryname, "%s/%s", pathname, entry->d_name) == -1)
             continue;
         if ((is_data_media() && (strncmp(entryname, "/data/media/", 12) == 0)) ||
-                strncmp(entryname, "/data/data/com.google.android.music/files", 41) == 0 )
-			continue;
+                strncmp(entryname, "/data/data/com.google.android.music/files/", 42) == 0 )
+            continue;
 
         bakupcon_to_file(entryname, filename);
         free(entryname);
@@ -1412,7 +1418,7 @@ int restorecon_from_file(const char *filename)
     return ret;
 }
 
-int restorecon_recursive(const char *pathname)
+int restorecon_recursive(const char *pathname, const char *exclude)
 {
     int ret = 0;
     struct stat sb;
@@ -1420,13 +1426,17 @@ int restorecon_recursive(const char *pathname)
         LOGW("restorecon: %s not found\n", pathname);
         return -1;
     }
-
+    if (exclude) {
+        int eclen = strlen(exclude);
+        if (strncmp(pathname, exclude, strlen(exclude)) == 0)
+            return 0;
+    }
     if (selinux_android_restorecon(pathname) < 0) {
         LOGW("restorecon: error restoring %s context\n", pathname);
         ret = 1;
     }
 
-    //skip symlink
+    // skip symlink dir
     if (S_ISLNK(sb.st_mode)) return 0;
 
     DIR *dir = opendir(pathname);
@@ -1442,11 +1452,8 @@ int restorecon_recursive(const char *pathname)
             continue;
         if (asprintf(&entryname, "%s/%s", pathname, entry->d_name) == -1)
             continue;
-        if ((is_data_media() && (strncmp(entryname, "/data/media/", 12) == 0)) ||
-                strncmp(entryname, "/data/data/com.google.android.music/files", 41) == 0 )
-			continue;
 
-        restorecon_recursive(entryname);
+        restorecon_recursive(entryname, exclude);
         free(entryname);
     }
 

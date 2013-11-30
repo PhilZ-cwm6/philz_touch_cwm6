@@ -1455,8 +1455,8 @@ void misc_nandroid_menu()
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 #ifdef RECOVERY_NEED_SELINUX_FIX
-        char nandroid_secontext_file[] = "/sdcard/clockworkmod/.nandroid_secontext";
-        int nandroid_secontext = file_found(nandroid_secontext_file);
+        char ignore_nand_secontext_file[] = "/sdcard/clockworkmod/.ignore_nandroid_secontext";
+        int nandroid_secontext = !file_found(ignore_nand_secontext_file);
         if (nandroid_secontext)
             ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "(x)");
         else ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "( )");
@@ -1547,8 +1547,8 @@ void misc_nandroid_menu()
                 {
                     nandroid_secontext ^= 1;
                     if (nandroid_secontext)
-                        write_string_to_file(nandroid_secontext_file, "1");
-                    else delete_a_file(nandroid_secontext_file);
+                        delete_a_file(ignore_nand_secontext_file);
+                    else write_string_to_file(ignore_nand_secontext_file, "1");
                 }
                 break;
 #endif
