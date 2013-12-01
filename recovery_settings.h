@@ -10,7 +10,7 @@
 // nandroid settings
 #define NANDROID_HIDE_PROGRESS_FILE  "clockworkmod/.hidenandroidprogress"
 #define NANDROID_IGNORE_SELINUX_FILE "clockworkmod/.ignore_nandroid_secontext"
-#define NANDROID_BACKUP_FORMAT_FILE  "/sdcard/clockworkmod/.default_backup_format"
+#define NANDROID_BACKUP_FORMAT_FILE  "clockworkmod/.default_backup_format"
 
 #define EFS_BACKUP_PATH     "clockworkmod/backup/.efs_backup"
 #define MODEM_BIN_PATH      "clockworkmod/backup/.modem_bin"

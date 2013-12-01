@@ -307,8 +307,10 @@ static void refresh_default_backup_handler() {
         strcpy(fmt, forced_backup_format);
     }
     else {
-        ensure_path_mounted(get_primary_storage_path());
-        FILE* f = fopen(NANDROID_BACKUP_FORMAT_FILE, "r");
+        char path[PATH_MAX];
+        sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_BACKUP_FORMAT_FILE);
+        ensure_path_mounted(path);
+        FILE* f = fopen(path, "r");
         if (NULL == f) {
             default_backup_handler = tar_compress_wrapper;
             return;

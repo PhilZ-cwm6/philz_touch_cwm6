@@ -1143,18 +1143,20 @@ void choose_default_backup_format() {
         list = list_tar_default;
     }
 
+    char path[PATH_MAX];
+    sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_BACKUP_FORMAT_FILE);
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item) {
         case 0:
-            write_string_to_file(NANDROID_BACKUP_FORMAT_FILE, "tar");
+            write_string_to_file(path, "tar");
             ui_print("Default backup format set to tar.\n");
             break;
         case 1:
-            write_string_to_file(NANDROID_BACKUP_FORMAT_FILE, "dup");
+            write_string_to_file(path, "dup");
             ui_print("Default backup format set to dedupe.\n");
             break;
         case 2:
-            write_string_to_file(NANDROID_BACKUP_FORMAT_FILE, "tgz");
+            write_string_to_file(path, "tgz");
             ui_print("Default backup format set to tar + gzip.\n");
             break;
     }
