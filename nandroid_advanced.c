@@ -926,6 +926,7 @@ int twrp_restore(const char* backup_path)
 // backup /data/media support
 int nandroid_backup_datamedia(const char* backup_path)
 {
+    char tmp[PATH_MAX];
     ui_print("\n>> Backing up /data/media...\n");
     if (is_data_media_volume_path(backup_path)) {
         // non fatal failure
@@ -936,9 +937,9 @@ int nandroid_backup_datamedia(const char* backup_path)
     if (0 != ensure_path_mounted("/data"))
         return -1;
 
-    ensure_path_mounted(get_primary_storage_path());
-    struct stat s;
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &s) != 0;
+    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
+    ensure_path_mounted(tmp);
+    int callback = !file_found(tmp);
 
     compute_directory_stats("/data/media");
     Volume *v = volume_for_path("/data");
@@ -948,15 +949,14 @@ int nandroid_backup_datamedia(const char* backup_path)
     char backup_file_image[PATH_MAX];
     sprintf(backup_file_image, "%s/datamedia.%s", backup_path, v->fs_type == NULL ? "auto" : v->fs_type);
 
-    char cmd[PATH_MAX];
     int fmt;
     fmt = nandroid_get_default_backup_format();
     if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
-        sprintf(cmd, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
     }
     else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
-        sprintf(cmd, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value, backup_file_image);
     }
     else {
@@ -966,7 +966,7 @@ int nandroid_backup_datamedia(const char* backup_path)
     }
 
     int ret;
-    ret = do_tar_compress(cmd, callback, backup_file_image);
+    ret = do_tar_compress(tmp, callback, backup_file_image);
 
     ensure_path_unmounted("/data");
 
@@ -979,6 +979,7 @@ int nandroid_backup_datamedia(const char* backup_path)
 
 int nandroid_restore_datamedia(const char* backup_path)
 {
+    char tmp[PATH_MAX];
     ui_print("\n>> Restoring /data/media...\n");
     if (is_data_media_volume_path(backup_path)) {
         // non fatal failure
@@ -990,12 +991,12 @@ int nandroid_restore_datamedia(const char* backup_path)
     if (v == NULL)
         return -1;
 
-    ensure_path_mounted(get_primary_storage_path());
-    struct stat s;
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &s) != 0;
+    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
+    ensure_path_mounted(tmp);
+    int callback = !file_found(tmp);
 
+    struct stat s;
     char backup_file_image[PATH_MAX];
-    char cmd[PATH_MAX];
     const char *filesystems[] = { "yaffs2", "ext2", "ext3", "ext4", "vfat", "exfat", "rfs", "f2fs", "auto", NULL };
     char *filesystem = NULL;
     int i = 0;
@@ -1004,13 +1005,13 @@ int nandroid_restore_datamedia(const char* backup_path)
         sprintf(backup_file_image, "%s/datamedia.%s.tar", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_extract_wrapper;
-            sprintf(cmd, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
             break;
         }
         sprintf(backup_file_image, "%s/datamedia.%s.tar.gz", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_gzip_extract_wrapper;
-            sprintf(cmd, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
             break;
         }
         i++;
@@ -1027,7 +1028,7 @@ int nandroid_restore_datamedia(const char* backup_path)
     if (0 != ensure_path_mounted("/data"))
         return -1;
 
-    if (0 != do_tar_extract(cmd, backup_file_image, "/data", callback))
+    if (0 != do_tar_extract(tmp, backup_file_image, "/data", callback))
         return print_and_error("Failed to restore /data/media!\n");
 
     ui_print("Restore of /data/media completed.\n");

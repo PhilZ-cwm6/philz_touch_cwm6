@@ -319,7 +319,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_xt925 cm_xt926),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
 #Motorola Atrix HD
-else ifeq ($(TARGET_PRODUCT), mb886)
+else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_COMMON_NAME := Atrix HD
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 

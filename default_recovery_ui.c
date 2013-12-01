@@ -39,7 +39,7 @@ void device_ui_init(UIParameters* ui_parameters) {
 
 //add here what we want to run on recovery start, even for temporary recovery
 int device_recovery_start() {
-    refresh_recovery_settings();
+    refresh_recovery_settings(1);
     return 0;
 }
 

@@ -37,6 +37,7 @@
 
 #include "extendedcommands.h"
 #include "advanced_functions.h"
+#include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
 
@@ -374,8 +375,9 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     strcpy(name, basename(mount_point));
 
     struct stat file_info;
-    ensure_path_mounted(get_primary_storage_path());
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
+    ensure_path_mounted(tmp);
+    int callback = stat(tmp, &file_info) != 0;
 
     ui_print("\n>> Backing up %s...\n", mount_point);
     if (0 != (ret = ensure_path_mounted(mount_point) != 0)) {
@@ -414,8 +416,11 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         }
         ret = backup_handler(mount_point, tmp, callback);
     }
+
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found("/sdcard/clockworkmod/.ignore_nandroid_secontext")) {
+    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
+    ensure_path_mounted(tmp);
+    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp)) {
         LOGI("skipping selinux context!\n");
     }
     else if (0 == strcmp(mount_point, "/data") ||
@@ -936,8 +941,10 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    ensure_path_mounted(get_primary_storage_path());
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
+    char path[PATH_MAX];
+    sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
+    ensure_path_mounted(path);
+    int callback = stat(path, &file_info) != 0;
 
     ui_print("Restoring %s...\n", name);
     if (backup_filesystem == NULL) {
@@ -980,8 +987,11 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
             return ret;
         }
     }
+
 #ifdef RECOVERY_NEED_SELINUX_FIX
-    if (strcmp(backup_path, "-") == 0 || file_found("/sdcard/clockworkmod/.ignore_nandroid_secontext")) {
+    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
+    ensure_path_mounted(tmp);
+    if (strcmp(backup_path, "-") == 0 || file_found(tmp)) {
         LOGE("skipping restore of selinux context\n");
     }
     else if (0 == strcmp(mount_point, "/data") ||

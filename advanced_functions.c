@@ -36,6 +36,7 @@
 
 #include "extendedcommands.h"
 #include "advanced_functions.h"
+#include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
 #include "flashutils/flashutils.h"
@@ -186,12 +187,12 @@ int copy_a_file(const char* file_in, const char* file_out) {
     }
 
     if (!is_path_ramdisk(file_in) && ensure_path_mounted(file_in) != 0) {
-        LOGE("cannot mount volume for %s\n", file_in);
+        LOGE("copy: cannot mount volume %s\n", file_in);
         return -1;
     }
 
     if (!is_path_ramdisk(file_out) && ensure_path_mounted(file_out) != 0) {
-        LOGE("cannot mount volume for %s\n", file_out);
+        LOGE("copy: cannot mount volume %s\n", file_out);
         return -1;
     }
 
@@ -201,12 +202,12 @@ int copy_a_file(const char* file_in, const char* file_out) {
     ensure_directory(dirname(tmp));
     FILE *fp = fopen(file_in, "rb");
     if (fp == NULL) {
-        LOGE("Source file not found (%s)\n", file_in);
+        LOGE("copy: source file not found (%s)\n", file_in);
         return -1;
     }
     FILE *fp_out = fopen(file_out, "wb");
     if (fp_out == NULL) {
-        LOGE("Failed to create destination file %s\n", file_out);
+        LOGE("copy: failed to create destination file %s\n", file_out);
         fclose(fp);
         return -1;
     }
@@ -597,7 +598,6 @@ void wipe_data_menu() {
 /*      Start Multi-Flash Zip code       */
 /*      Original code by PhilZ @xda      */
 /*****************************************/
-#define MULTI_ZIP_FOLDER "clockworkmod/multi_flash"
 void show_multi_flash_menu() {
     static const char* headers_dir[] = { "Choose a set of zip files",
                                    NULL
@@ -1167,7 +1167,7 @@ static void choose_default_ors_menu(const char* ors_path)
     }
 
     char ors_dir[PATH_MAX];
-    sprintf(ors_dir, "%s/clockworkmod/ors/", ors_path);
+    sprintf(ors_dir, "%s/%s/", ors_path, RECOVERY_ORS_PATH);
     if (access(ors_dir, F_OK) == -1) {
         //custom folder does not exist
         browse_for_file = 1;
@@ -1182,7 +1182,7 @@ static void choose_default_ors_menu(const char* ors_path)
     char* ors_file = choose_file_menu(ors_dir, ".ors", headers);
     if (no_files_found == 1) {
         //0 valid files to select, let's continue browsing next locations
-        ui_print("No *.ors files in %s/clockworkmod/ors\n", ors_path);
+        ui_print("No *.ors files in %s/%s\n", ors_path, RECOVERY_ORS_PATH);
         browse_for_file = 1;
     } else {
         browse_for_file = 0;
@@ -1415,6 +1415,14 @@ void misc_nandroid_menu()
                     NULL
     };
 
+    int nandroid_secontext;
+    int hidenandprogress;
+    char* primary_path = get_primary_storage_path();
+    char hidenandprogress_file[PATH_MAX];
+    char ignore_nand_secontext_file[PATH_MAX];
+    sprintf(hidenandprogress_file, "%s/%s", primary_path, NANDROID_HIDE_PROGRESS_FILE);
+    sprintf(ignore_nand_secontext_file, "%s/%s", primary_path, NANDROID_IGNORE_SELINUX_FILE);
+
     int fmt;
     for (;;) {
         if (enable_md5sum) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
@@ -1449,18 +1457,18 @@ void misc_nandroid_menu()
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
 
-        char hidenandprogress_file[] = "/sdcard/clockworkmod/.hidenandroidprogress";
-        int hidenandprogress = file_found(hidenandprogress_file);
+        hidenandprogress = file_found(hidenandprogress_file);
         if (hidenandprogress)
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
+
 #ifdef RECOVERY_NEED_SELINUX_FIX
-        char ignore_nand_secontext_file[] = "/sdcard/clockworkmod/.ignore_nandroid_secontext";
-        int nandroid_secontext = !file_found(ignore_nand_secontext_file);
+        nandroid_secontext = !file_found(ignore_nand_secontext_file);
         if (nandroid_secontext)
             ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "(x)");
         else ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "( )");
 #endif
+
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
@@ -3049,9 +3057,9 @@ void custom_backup_restore_menu() {
 //-------------- End PhilZ Touch Special Backup and Restore menu and handlers
 
 // launch aromafm.zip from default locations
-static int default_aromafm(const char* aromafm_path) {
+static int default_aromafm(const char* root) {
     char aroma_file[PATH_MAX];
-    sprintf(aroma_file, "%s/clockworkmod/aromafm/aromafm.zip", aromafm_path);
+    sprintf(aroma_file, "%s/%s", root, AROMA_FM_PATH);
 
     if (file_found(aroma_file)) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -3079,7 +3087,7 @@ void run_aroma_browser() {
         }
     }
     if (ret != 0)
-        ui_print("No clockworkmod/aromafm/aromafm.zip on storage paths\n");
+        ui_print("No %s in storage paths\n", AROMA_FM_PATH);
 }
 //------ end aromafm launcher functions
 
@@ -3094,13 +3102,14 @@ void run_aroma_browser() {
 #endif
 
 void verify_settings_file() {
-    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(PHILZ_SETTINGS_BAK)) {
-        if (auto_restore_settings) {
-            copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
+    char backup_file[PATH_MAX];
+    sprintf(backup_file, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_BAK);
+    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(backup_file)) {
+        if (auto_restore_settings && copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
             ui_print("Settings restored.\n");
         }
-        else if (confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard")) {
-            copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE);
+        else if (confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard") &&
+                    copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
             ui_print("Settings restored.\n");
         }
     }
@@ -3174,7 +3183,7 @@ static void check_show_nand_size_progress() {
         show_nandroid_size_progress = 1;
 }
 
-void refresh_recovery_settings() {
+void refresh_recovery_settings(int unmount) {
     check_auto_restore_settings();
     check_root_and_recovery_settings();
     refresh_nandroid_compression();
@@ -3184,9 +3193,12 @@ void refresh_recovery_settings() {
 #ifdef PHILZ_TOUCH_RECOVERY
     refresh_touch_gui_settings();
 #endif
-    ignore_data_media_workaround(1);
-    ensure_path_unmounted(PHILZ_SETTINGS_FILE);
-    ignore_data_media_workaround(0);
+    // unmount settings file if requested: only on recovery start
+    if (unmount) {
+        ignore_data_media_workaround(1);
+        ensure_path_unmounted(PHILZ_SETTINGS_FILE);
+        ignore_data_media_workaround(0);
+    }
 }
 
 //import / export settings
@@ -3200,15 +3212,20 @@ static void load_theme_settings()
                                 NULL
     };
 
+    char themes_dir[PATH_MAX];
     char* theme_file;
-    ensure_path_mounted(PHILZ_THEMES_PATH);
-    theme_file = choose_file_menu(PHILZ_THEMES_PATH, ".ini", headers);
+
+    sprintf(themes_dir, "%s/%s", get_primary_storage_path(), PHILZ_THEMES_PATH);
+    if (0 != ensure_path_mounted(themes_dir))
+        return;
+
+    theme_file = choose_file_menu(themes_dir, ".ini", headers);
     if (theme_file == NULL)
         return;
 
-    if (confirm_selection("Overwrite default settings ?", "Yes - Apply New Theme")) {
-        copy_a_file(theme_file, PHILZ_SETTINGS_FILE);
-        refresh_recovery_settings();
+    if (confirm_selection("Overwrite default settings ?", "Yes - Apply New Theme") &&
+            copy_a_file(theme_file, PHILZ_SETTINGS_FILE) == 0) {
+        refresh_recovery_settings(0);
         ui_print("loaded default settings from %s\n", basename(theme_file));
     }
 
@@ -3230,6 +3247,11 @@ static void import_export_settings() {
                     NULL
     };
 
+    char backup_file[PATH_MAX];
+    char themes_dir[PATH_MAX];
+    sprintf(backup_file, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_BAK);
+    sprintf(themes_dir, "%s/%s", get_primary_storage_path(), PHILZ_THEMES_PATH);
+
     for (;;) {
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
@@ -3237,14 +3259,13 @@ static void import_export_settings() {
         switch (chosen_item)
         {
             case 0:
-                if (copy_a_file(PHILZ_SETTINGS_FILE, PHILZ_SETTINGS_BAK) == 0)
-                    ui_print("config file successefully backed up to %s\n", PHILZ_SETTINGS_BAK);
+                if (copy_a_file(PHILZ_SETTINGS_FILE, backup_file) == 0)
+                    ui_print("config file successefully backed up to %s\n", backup_file);
                 break;
             case 1:
-                {
-                    if (copy_a_file(PHILZ_SETTINGS_BAK, PHILZ_SETTINGS_FILE) == 0)
-                        ui_print("settings loaded from %s\n", PHILZ_SETTINGS_BAK);
-                    refresh_recovery_settings();
+                if (copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
+                    refresh_recovery_settings(0);
+                    ui_print("settings loaded from %s\n", backup_file);
                 }
                 break;
             case 2:
@@ -3253,17 +3274,15 @@ static void import_export_settings() {
                     int i = 1;
                     char path[PATH_MAX];
                     while (ret && i < 10) {
-                        sprintf(path, "%s/theme_%03i.ini", PHILZ_THEMES_PATH, i);
+                        sprintf(path, "%s/theme_%03i.ini", themes_dir, i);
                         ret = file_found(path);
                         ++i;
                     }
 
-                    if (ret) {
+                    if (ret)
                         LOGE("Can't save more than 10 themes!\n");
-                    } else {
-                        copy_a_file(PHILZ_SETTINGS_FILE, path);
+                    else if (copy_a_file(PHILZ_SETTINGS_FILE, path) == 0)
                         ui_print("Custom settings saved to %s\n", path);
-                    }
                 }
                 break;
             case 3:
@@ -3271,8 +3290,8 @@ static void import_export_settings() {
                 break;
             case 4:
                 {
-                    ensure_path_mounted(PHILZ_THEMES_PATH);
-                    char* theme_file = choose_file_menu(PHILZ_THEMES_PATH, ".ini", headers);
+                    ensure_path_mounted(themes_dir);
+                    char* theme_file = choose_file_menu(themes_dir, ".ini", headers);
                     if (theme_file == NULL)
                         break;
 
@@ -3341,7 +3360,7 @@ void show_philz_settings_menu()
 
                     if (browse_for_file) {
                         //no files found in default locations, let's search manually for a custom ors
-                        ui_print("No .ors files under clockworkmod/ors in default storage paths\n");
+                        ui_print("No .ors files under %s\n", RECOVERY_ORS_PATH);
                         ui_print("Manually search .ors files...\n");
                         show_custom_ors_menu();
                     }
@@ -3380,7 +3399,7 @@ void show_philz_settings_menu()
             case 6:
                 if (confirm_selection("Reset all recovery settings?", "Yes - Reset to Defaults")) {
                     delete_a_file(PHILZ_SETTINGS_FILE);
-                    refresh_recovery_settings();
+                    refresh_recovery_settings(0);
                     ui_print("All settings reset to default!\n");
                 }
                 break;

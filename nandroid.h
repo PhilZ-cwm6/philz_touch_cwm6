@@ -11,7 +11,6 @@ void nandroid_dedupe_gc(const char* blob_dir);
 void nandroid_force_backup_format(const char* fmt);
 unsigned nandroid_get_default_backup_format();
 
-#define NANDROID_BACKUP_FORMAT_FILE "/sdcard/clockworkmod/.default_backup_format"
 #define NANDROID_BACKUP_FORMAT_TAR 0
 #define NANDROID_BACKUP_FORMAT_DUP 1
 #define NANDROID_BACKUP_FORMAT_TGZ 2
@@ -24,10 +23,6 @@ unsigned nandroid_get_default_backup_format();
 /*    Keep this credits header    */
 /**********************************/
 
-#define EFS_BACKUP_PATH "clockworkmod/backup/.efs_backup"
-#define MODEM_BIN_PATH "clockworkmod/backup/.modem_bin"
-#define RADIO_BIN_PATH "clockworkmod/backup/.radio_bin"
-#define TWRP_BACKUP_PATH "TWRP/BACKUPS"
 extern int twrp_backup_mode;
 int gen_twrp_md5sum(const char* backup_path);
 int check_twrp_md5sum(const char* backup_path);
