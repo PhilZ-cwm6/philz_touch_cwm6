@@ -143,6 +143,8 @@ else ifeq ($(TARGET_PRODUCT), cm_n5100)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    RECOVERY_TOUCHSCREEN_SWAP_XY := true
+    RECOVERY_TOUCHSCREEN_FLIP_Y := true
 
 #Galaxy Note 10.1 GSM (n8000) and classic (n8013)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)
@@ -299,6 +301,16 @@ else ifeq ($(TARGET_PRODUCT), cm_e980)
 #LG Spectrum 4G - vs920
 else ifeq ($(TARGET_PRODUCT), cm_vs920)
     TARGET_COMMON_NAME := Spectrum 4G
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#LG Nitro HD AT&T - p930
+else ifeq ($(TARGET_PRODUCT), cm_p930)
+    TARGET_COMMON_NAME := LG Nitro HD
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802)- G2 Verizon (vs980) - G2 Sprint (ls980)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_vs980 cm_ls980),)
+    TARGET_COMMON_NAME := LG G2 ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Micromax A57 - a57 (no cm tree)
