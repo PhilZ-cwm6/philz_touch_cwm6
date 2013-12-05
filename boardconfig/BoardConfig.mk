@@ -77,10 +77,9 @@ else ifeq ($(TARGET_PRODUCT), cm_i9082)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy S Plus - i9001 (ariesve) (no cm device tree)
+#Galaxy S Plus - i9001 (ariesve)
 else ifeq ($(TARGET_PRODUCT), cm_ariesve)
-    TARGET_COMMON_NAME := Galaxy_I9001
-    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+    TARGET_COMMON_NAME := Galaxy i9001
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
