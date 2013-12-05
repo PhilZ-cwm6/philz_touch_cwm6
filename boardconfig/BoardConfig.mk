@@ -308,8 +308,8 @@ else ifeq ($(TARGET_PRODUCT), cm_p930)
     TARGET_COMMON_NAME := LG Nitro HD
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802)- G2 Verizon (vs980) - G2 Sprint (ls980)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_vs980 cm_ls980),)
+#LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802) - G2 CAN (d803) - G2 Verizon (vs980) - G2 Sprint (ls980)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_d803 cm_vs980 cm_ls980),)
     TARGET_COMMON_NAME := LG G2 ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
