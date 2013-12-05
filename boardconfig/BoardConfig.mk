@@ -85,9 +85,16 @@ else ifeq ($(TARGET_PRODUCT), cm_ariesve)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Galaxy W I8150 (ancora)
+else ifeq ($(TARGET_PRODUCT), cm_ancora)
+    TARGET_COMMON_NAME := Galaxy W I8150
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Galaxy S Blaze 4G - SGH T-769
 else ifeq ($(TARGET_PRODUCT), cm_t769)
-    TARGET_COMMON_NAME := SGH T769
+    TARGET_COMMON_NAME := SGH-T769
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -99,9 +106,15 @@ else ifeq ($(TARGET_PRODUCT), cm_i577)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#Samsung Galaxy S2 HD LTE (SGH-I757M) - celoxhd
+#Galaxy S2 HD LTE (SGH-I757M) - celoxhd
 else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     TARGET_COMMON_NAME := SGH-I757M
+    BOOTLOADER_CMD_ARG := "download"
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Galaxy S2 Skyrocket i727 - skyrocket
+else ifeq ($(TARGET_PRODUCT), cm_skyrocket)
+    TARGET_COMMON_NAME := Skyrocket i727
     BOOTLOADER_CMD_ARG := "download"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
