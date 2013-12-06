@@ -29,9 +29,9 @@ int loki_flash(char *partition)
 	char outfile[1024];
 
 
-	if (!strcmp(partition, BOOT_PARTITION)) {
+	if (!strcmp(partition, "boot")) {
 		recovery = 0;
-	} else if (!strcmp(partition, RECOVERY_PARTITION)) {
+	} else if (!strcmp(partition, "recovery")) {
 		recovery = 1;
 	} else {
 		LOGE("[+] First argument must be \"boot\" or \"recovery\".\n");
@@ -121,8 +121,8 @@ int loki_flash(char *partition)
 	ui_print("[+] Loki validation passed, flashing image.\n");
 
 	snprintf(outfile, sizeof(outfile),
-			 "/dev/block/platform/msm_sdcc.1/by-name/%s",
-			 recovery ? "recovery" : "boot");
+			 "%s",
+			 recovery ? RECOVERY_PARTITION : BOOT_PARTITION);
 
 	ofd = open(outfile, O_WRONLY);
 	if (ofd < 0) {

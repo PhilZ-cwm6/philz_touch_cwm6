@@ -68,17 +68,17 @@ int loki_check()
         if ((ret = loki_patch("boot", BOOT_PARTITION)) != 0) {
             LOGE("Error loki-ifying the boot image.\n");
         }
-        else if ((ret = loki_flash(BOOT_PARTITION)) != 0) {
+        else if ((ret = loki_flash("boot")) != 0) {
             LOGE("Error loki-flashing the boot image.\n");
         }
     }
 
     if (!ret && loki_check_partition(RECOVERY_PARTITION))
     {
-        if ((ret = loki_patch("recovery",RECOVERY_PARTITION)) != 0) {
+        if ((ret = loki_patch("recovery", RECOVERY_PARTITION)) != 0) {
             LOGE("Error loki-ifying the recovery image.\n");
         }
-        else if ((ret = loki_flash(RECOVERY_PARTITION)) != 0) {
+        else if ((ret = loki_flash("recovery")) != 0) {
             LOGE("Error loki-flashing the recovery image.\n");
         }
     }
