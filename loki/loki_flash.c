@@ -1,9 +1,7 @@
 /*
- * loki_patch
+ * loki_flash
  *
- * A utility to patch unsigned boot and recovery images to make
- * them suitable for booting on the AT&T/Verizon Samsung
- * Galaxy S4, Galaxy Stellar, and various locked LG devices
+ * A sample utility to validate and flash .lok files
  *
  * by Dan Rosenberg (@djrbliss)
  * modified for use in recovery by Seth Shelnutt, adapted by PhilZ
@@ -28,7 +26,7 @@ int loki_flash(char *partition)
 	struct stat st;
 	struct boot_img_hdr *hdr;
 	struct loki_hdr *loki_hdr;
-	char prop[256], outfile[1024], buf[4096];
+	char outfile[1024];
 
 
 	if (!strcmp(partition, BOOT_PARTITION)) {
