@@ -262,9 +262,10 @@ int Get_Size_Via_statfs(const char* Path) {
 }
 
 // try to resolve link from blk_device to real /dev/block/mmcblk or /dev/block/mtdblock
-static char* mmcblk_from_link;
-char* readlink_device_blk(const char* Path) {
-    mmcblk_from_link = NULL;
+// free by caller
+char* readlink_device_blk(const char* Path)
+{
+    char* mmcblk_from_link = NULL;
     Volume* vol;
     if (is_data_media_volume_path(Path))
         vol = volume_for_path("/data");
@@ -276,17 +277,17 @@ char* readlink_device_blk(const char* Path) {
     char buf[1024];
     ssize_t len = readlink(vol->blk_device, buf, sizeof(buf)-1);
     if (len == -1) {
-        LOGI("failed to get device mmcblk link (%s)\n", vol->blk_device);
+        LOGI("failed to get device mmcblk link '%s'\n", vol->blk_device);
         return NULL;
     }
 
     buf[len] = '\0';
-    mmcblk_from_link = buf;
-    LOGI("found device mmcblk link: %s -> %s\n", vol->blk_device, mmcblk_from_link);
+    mmcblk_from_link = strdup(buf);
+    LOGI("found device mmcblk link: '%s' -> '%s'\n", vol->blk_device, mmcblk_from_link);
     return mmcblk_from_link;
 }
 
-// alternate method for statfs (emmc, mtd...)
+// alternate method for statfs (emmc, mtd, mtk...)
 int Find_Partition_Size(const char* Path) {
     char line[512];
     char tmpdevice[1024];
@@ -298,116 +299,123 @@ int Find_Partition_Size(const char* Path) {
     else
         volume = volume_for_path(Path);
 
-    if (volume != NULL) {
-        // In this case, we'll first get the partitions we care about (with labels)
-
-/*
-        --> Start by checking if it is an MTK based device (cat /proc/dumchar_info)
-        Part_Name    Size               StartAddr         Type   MapTo
-        preloader    0x0000000000040000 0x0000000000000000   2   /dev/misc-sd
-        dsp_bl       0x00000000005c0000 0x0000000000040000   2   /dev/misc-sd
-        mbr          0x0000000000004000 0x0000000000000000   2   /dev/block/mmcblk0
-        ebr1         0x0000000000004000 0x0000000000004000   2   /dev/block/mmcblk0p1
-        pmt          0x0000000000400000 0x0000000000008000   2   /dev/block/mmcblk0
-        nvram        0x0000000000500000 0x0000000000408000   2   /dev/block/mmcblk0
-        seccfg       0x0000000000020000 0x0000000000908000   2   /dev/block/mmcblk0
-        uboot        0x0000000000060000 0x0000000000928000   2   /dev/block/mmcblk0
-        bootimg      0x0000000000600000 0x0000000000988000   2   /dev/block/mmcblk0
-        recovery     0x0000000000600000 0x0000000000f88000   2   /dev/block/mmcblk0
-        sec_ro       0x0000000000600000 0x0000000001588000   2   /dev/block/mmcblk0p2
-        misc         0x0000000000060000 0x0000000001b88000   2   /dev/block/mmcblk0
-        logo         0x0000000000300000 0x0000000001be8000   2   /dev/block/mmcblk0
-        expdb        0x0000000000200000 0x0000000001ee8000   2   /dev/block/mmcblk0
-        android      0x0000000020100000 0x00000000020e8000   2   /dev/block/mmcblk0p3
-        cache        0x0000000020100000 0x00000000221e8000   2   /dev/block/mmcblk0p4
-        usrdata      0x0000000020100000 0x00000000422e8000   2   /dev/block/mmcblk0p5
-        fat          0x00000000854f8000 0x00000000623e8000   2   /dev/block/mmcblk0p6
-        bmtpool      0x0000000001500000 0x00000000ff9f00a8   2   /dev/block/mmcblk0
-        Part_Name:Partition name you should open;
-        Size:size of partition
-        StartAddr:Start Address of partition;
-        Type:Type of partition(MTD=1,EMMC=2)
-        MapTo:actual device you operate
-*/
-        fp = fopen("/proc/dumchar_info", "rt");
-        if (fp != NULL) {
-            while (fgets(line, sizeof(line), fp) != NULL)
-            {
-                char label[32], device[32];
-                unsigned long size = 0;
-
-                sscanf(line, "%s %lx %*lx %*lu %s", label, &size, device);
-
-                // Skip header, annotation  and blank lines
-                if ((strncmp(device, "/dev/", 5) != 0) || (strlen(line) < 8))
-                    continue;
-
-                sprintf(tmpdevice, "/dev/");
-                strcat(tmpdevice, label);
-                if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
-                    Total_Size = size;
-                    fclose(fp);
-                    return 0;
-                }
-                if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
-                    Total_Size = size;
-                    fclose(fp);
-                    return 0;
-                }
-            }
-            fclose(fp);
-        }
-/*
-        --> Try mtd / emmc devices (cat /proc/partitions):
-        major minor #blocks name
-        179  0 15388672 mmcblk0
-        179  1    65536 mmcblk0p1
-        179  2      512 mmcblk0p2
-        179  3      512 mmcblk0p3
-        179  4     2048 mmcblk0p4
-        179  5      512 mmcblk0p5
-        179  6    22528 mmcblk0p6
-        179  7    22528 mmcblk0p7
-*/
-        fp = fopen("/proc/partitions", "rt");
-        if (fp != NULL) {
-            readlink_device_blk(Path);
-            while (fgets(line, sizeof(line), fp) != NULL)
-            {
-                unsigned long major, minor, blocks;
-                char device[512];
-
-                if (strlen(line) < 7 || line[0] == 'm')
-                    continue;
-
-                sscanf(line + 1, "%lu %lu %lu %s", &major, &minor, &blocks, device);
-                sprintf(tmpdevice, "/dev/block/");
-                strcat(tmpdevice, device);
-
-                if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
-                    Total_Size = blocks * 1024ULL;
-                    //LOGI("%s(%s)=%llu\n", Path, volume->blk_device, Total_Size); // debug
-                    fclose(fp);
-                    return 0;
-                }
-                else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
-                    Total_Size = blocks * 1024ULL;
-                    fclose(fp);
-                    return 0;
-                }
-                else if (mmcblk_from_link != NULL && strcmp(tmpdevice, mmcblk_from_link) == 0) {
-                    // get size from blk_device symlink to /dev/block/xxx
-                    Total_Size = blocks * 1024ULL;
-                    fclose(fp);
-                    return 0;
-                }
-            }
-            fclose(fp);
-        }
+    if (volume == NULL) {
+        LOGE("Failed to find partition size '%s'\n", Path);
+        LOGE("  > invalid volume\n", Path);
+        return -1;
     }
 
-    LOGE("Failed to find partition size '%s'\n", Path);
-    return -1;
+    // In this case, we'll first get the partitions we care about (with labels)
+/*
+    --> Start by checking if it is an MTK based device (cat /proc/dumchar_info)
+    Part_Name    Size               StartAddr         Type   MapTo
+    preloader    0x0000000000040000 0x0000000000000000   2   /dev/misc-sd
+    dsp_bl       0x00000000005c0000 0x0000000000040000   2   /dev/misc-sd
+    mbr          0x0000000000004000 0x0000000000000000   2   /dev/block/mmcblk0
+    ebr1         0x0000000000004000 0x0000000000004000   2   /dev/block/mmcblk0p1
+    pmt          0x0000000000400000 0x0000000000008000   2   /dev/block/mmcblk0
+    nvram        0x0000000000500000 0x0000000000408000   2   /dev/block/mmcblk0
+    seccfg       0x0000000000020000 0x0000000000908000   2   /dev/block/mmcblk0
+    uboot        0x0000000000060000 0x0000000000928000   2   /dev/block/mmcblk0
+    bootimg      0x0000000000600000 0x0000000000988000   2   /dev/block/mmcblk0
+    recovery     0x0000000000600000 0x0000000000f88000   2   /dev/block/mmcblk0
+    sec_ro       0x0000000000600000 0x0000000001588000   2   /dev/block/mmcblk0p2
+    misc         0x0000000000060000 0x0000000001b88000   2   /dev/block/mmcblk0
+    logo         0x0000000000300000 0x0000000001be8000   2   /dev/block/mmcblk0
+    expdb        0x0000000000200000 0x0000000001ee8000   2   /dev/block/mmcblk0
+    android      0x0000000020100000 0x00000000020e8000   2   /dev/block/mmcblk0p3
+    cache        0x0000000020100000 0x00000000221e8000   2   /dev/block/mmcblk0p4
+    usrdata      0x0000000020100000 0x00000000422e8000   2   /dev/block/mmcblk0p5
+    fat          0x00000000854f8000 0x00000000623e8000   2   /dev/block/mmcblk0p6
+    bmtpool      0x0000000001500000 0x00000000ff9f00a8   2   /dev/block/mmcblk0
+    Part_Name:Partition name you should open;
+    Size:size of partition
+    StartAddr:Start Address of partition;
+    Type:Type of partition(MTD=1,EMMC=2)
+    MapTo:actual device you operate
+*/
+    fp = fopen("/proc/dumchar_info", "rt");
+    if (fp != NULL) {
+        while (fgets(line, sizeof(line), fp) != NULL)
+        {
+            char label[32], device[32];
+            unsigned long size = 0;
+
+            sscanf(line, "%s %lx %*lx %*lu %s", label, &size, device);
+
+            // Skip header, annotation  and blank lines
+            if ((strncmp(device, "/dev/", 5) != 0) || (strlen(line) < 8))
+                continue;
+
+            sprintf(tmpdevice, "/dev/");
+            strcat(tmpdevice, label);
+            if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
+                Total_Size = size;
+                fclose(fp);
+                return 0;
+            }
+            if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
+                Total_Size = size;
+                fclose(fp);
+                return 0;
+            }
+        }
+
+        fclose(fp);
+    }
+
+/*  It is not an MTK device entry:
+    --> Try mtd / emmc devices (cat /proc/partitions):
+    major minor #blocks name
+    179  0 15388672 mmcblk0
+    179  1    65536 mmcblk0p1
+    179  2      512 mmcblk0p2
+    179  3      512 mmcblk0p3
+    179  4     2048 mmcblk0p4
+    179  5      512 mmcblk0p5
+    179  6    22528 mmcblk0p6
+    179  7    22528 mmcblk0p7
+*/
+    int ret = -1;
+    fp = fopen("/proc/partitions", "rt");
+    if (fp != NULL) {
+        // try to read blk_device link target for devices not using /dev/block/xxx in recovery.fstab
+        char* mmcblk_from_link;
+        while (fgets(line, sizeof(line), fp) != NULL)
+        {
+            unsigned long major, minor, blocks;
+            char device[512];
+
+            if (strlen(line) < 7 || line[0] == 'm')
+                continue;
+
+            sscanf(line + 1, "%lu %lu %lu %s", &major, &minor, &blocks, device);
+            sprintf(tmpdevice, "/dev/block/");
+            strcat(tmpdevice, device);
+
+            if (volume->blk_device != NULL && strcmp(tmpdevice, volume->blk_device) == 0) {
+                Total_Size = blocks * 1024ULL;
+                //LOGI("%s(%s)=%llu\n", Path, volume->blk_device, Total_Size); // debug
+                ret = 0;
+            }
+            else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
+                Total_Size = blocks * 1024ULL;
+                ret = 0;
+            }
+            else if ((mmcblk_from_link = readlink_device_blk(Path)) != NULL && strcmp(tmpdevice, mmcblk_from_link) == 0) {
+                // get size from blk_device symlink to /dev/block/xxx
+                free(mmcblk_from_link);
+                Total_Size = blocks * 1024ULL;
+                ret = 0;
+            }
+        }
+
+        fclose(fp);
+    }
+
+    if (ret != 0)
+        LOGE("Failed to find partition size '%s'\n", Path);
+    return ret;
 }
 //----- End partition size
 

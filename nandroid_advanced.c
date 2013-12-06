@@ -326,13 +326,17 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     int ret = 0;
     char tmp[PATH_MAX];
     char* device_mmcblk;
-    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL)
+    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL) {
         sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device, vol->mount_point);
+    }
     else if (vol->blk_device2 != NULL &&
-            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL))
+            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL)) {
         sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, vol->blk_device2, vol->mount_point);
-    else if ((device_mmcblk = readlink_device_blk(root)) != NULL)
+    }
+    else if ((device_mmcblk = readlink_device_blk(root)) != NULL) {
         sprintf(tmp, "raw-backup.sh -b %s %s %s", backup_path, device_mmcblk, vol->mount_point);
+        free(device_mmcblk);
+    }
     else {
         LOGE("invalid device! Skipping raw backup of %s\n", root);
         return 0;
@@ -392,13 +396,17 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root)
     char* device_mmcblk;
 
     ui_print("Restoring %s to %s\n", filename, vol->mount_point);
-    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL)
+    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device, vol->mount_point);
+    }
     else if (vol->blk_device2 != NULL &&
-            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL))
+            (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL)) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device2, vol->mount_point);
-    else if ((device_mmcblk = readlink_device_blk(root)) != NULL)
+    }
+    else if ((device_mmcblk = readlink_device_blk(root)) != NULL) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, device_mmcblk, vol->mount_point);
+        free(device_mmcblk);
+    }
     else {
         LOGE("invalid device! Skipping raw restore of %s\n", root);
         return 0;
