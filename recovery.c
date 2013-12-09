@@ -72,13 +72,16 @@ static const struct option OPTIONS[] = {
 
 #define LAST_LOG_FILE "/cache/recovery/last_log"
 
+static const char *CACHE_LOG_DIR = "/cache/recovery";
 static const char *COMMAND_FILE = "/cache/recovery/command";
 static const char *INTENT_FILE = "/cache/recovery/intent";
 static const char *LOG_FILE = "/cache/recovery/log";
+static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
 static const char *CACHE_ROOT = "/cache";
 static const char *SDCARD_ROOT = "/sdcard";
 static int allow_display_toggle = 0;
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
+static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
 extern UIParameters ui_parameters;    // from ui.c
@@ -258,15 +261,13 @@ set_sdcard_update_bootloader_message() {
 static long tmplog_offset = 0;
 
 static void
-copy_log_file(const char* destination, int append) {
+copy_log_file(const char* source, const char* destination, int append) {
     FILE *log = fopen_path(destination, append ? "a" : "w");
     if (log == NULL) {
         LOGE("Can't open %s\n", destination);
     } else {
-        FILE *tmplog = fopen(TEMPORARY_LOG_FILE, "r");
-        if (tmplog == NULL) {
-            LOGE("Can't open %s\n", TEMPORARY_LOG_FILE);
-        } else {
+        FILE *tmplog = fopen(source, "r");
+        if (tmplog != NULL) {
             if (append) {
                 fseek(tmplog, tmplog_offset, SEEK_SET);  // Since last write
             }
@@ -275,7 +276,7 @@ copy_log_file(const char* destination, int append) {
             if (append) {
                 tmplog_offset = ftell(tmplog);
             }
-            check_and_fclose(tmplog, TEMPORARY_LOG_FILE);
+            check_and_fclose(tmplog, source);
         }
         check_and_fclose(log, destination);
     }
@@ -297,6 +298,19 @@ rotate_last_logs(int max) {
     }
 }
 
+static void
+copy_logs() {
+    // Copy logs to cache so the system can find out what happened.
+    copy_log_file(TEMPORARY_LOG_FILE, LOG_FILE, true);
+    copy_log_file(TEMPORARY_LOG_FILE, LAST_LOG_FILE, false);
+    copy_log_file(TEMPORARY_INSTALL_FILE, LAST_INSTALL_FILE, false);
+    chmod(LOG_FILE, 0600);
+    chown(LOG_FILE, 1000, 1000);   // system user
+    chmod(LAST_LOG_FILE, 0640);
+    chmod(LAST_INSTALL_FILE, 0644);
+    sync();
+}
+
 // clear the recovery command and prepare to boot a (hopefully working) system,
 // copy our log file to cache as well (for the system to read), and
 // record any intent we were asked to communicate back to the system.
@@ -314,10 +328,7 @@ finish_recovery(const char *send_intent) {
         }
     }
 
-    // Copy logs to cache so the system can find out what happened.
-    copy_log_file(LOG_FILE, true);
-    copy_log_file(LAST_LOG_FILE, false);
-    chmod(LAST_LOG_FILE, 0640);
+    copy_logs();
 
     // Reset to normal system boot so recovery won't cycle indefinitely.
     struct bootloader_message boot;
@@ -333,20 +344,96 @@ finish_recovery(const char *send_intent) {
     sync();  // For good measure.
 }
 
-/*static*/ int //to be able to call it from ors menu
+typedef struct _saved_log_file {
+    char* name;
+    struct stat st;
+    unsigned char* data;
+    struct _saved_log_file* next;
+} saved_log_file;
+
+// remove static to be able to call it from ors menu
+int
 erase_volume(const char *volume) {
+    bool is_cache = (strcmp(volume, CACHE_ROOT) == 0);
+
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
+
+    saved_log_file* head = NULL;
+
+    if (is_cache) {
+        // If we're reformatting /cache, we load any
+        // "/cache/recovery/last*" files into memory, so we can restore
+        // them after the reformat.
+
+        ensure_path_mounted(volume);
+
+        DIR* d;
+        struct dirent* de;
+        d = opendir(CACHE_LOG_DIR);
+        if (d) {
+            char path[PATH_MAX];
+            strcpy(path, CACHE_LOG_DIR);
+            strcat(path, "/");
+            int path_len = strlen(path);
+            while ((de = readdir(d)) != NULL) {
+                if (strncmp(de->d_name, "last", 4) == 0) {
+                    saved_log_file* p = (saved_log_file*) malloc(sizeof(saved_log_file));
+                    strcpy(path+path_len, de->d_name);
+                    p->name = strdup(path);
+                    if (stat(path, &(p->st)) == 0) {
+                        // truncate files to 512kb
+                        if (p->st.st_size > (1 << 19)) {
+                            p->st.st_size = 1 << 19;
+                        }
+                        p->data = (unsigned char*) malloc(p->st.st_size);
+                        FILE* f = fopen(path, "rb");
+                        fread(p->data, 1, p->st.st_size, f);
+                        fclose(f);
+                        p->next = head;
+                        head = p;
+                    } else {
+                        free(p);
+                    }
+                }
+            }
+            closedir(d);
+        } else {
+            if (errno != ENOENT) {
+                printf("opendir failed: %s\n", strerror(errno));
+            }
+        }
+    }
+
     ui_print("Formatting %s...\n", volume);
 
-    if (strcmp(volume, "/cache") == 0) {
+    ensure_path_unmounted(volume);
+    int result = format_volume(volume);
+
+    if (is_cache) {
+        while (head) {
+            FILE* f = fopen_path(head->name, "wb");
+            if (f) {
+                fwrite(head->data, 1, head->st.st_size, f);
+                fclose(f);
+                chmod(head->name, head->st.st_mode);
+                chown(head->name, head->st.st_uid, head->st.st_gid);
+            }
+            free(head->name);
+            free(head->data);
+            saved_log_file* temp = head->next;
+            free(head);
+            head = temp;
+        }
+
         // Any part of the log we'd copied to cache is now gone.
         // Reset the pointer so we copy from the beginning of the temp
         // log.
         tmplog_offset = 0;
+        copy_logs();
     }
 
-    return format_volume(volume);
+    return result;
 }
 
 static char*
@@ -466,7 +553,7 @@ get_menu_selection(const char** headers, char** items, int menu_only,
     // throw away keys pressed previously, so user doesn't
     // accidentally trigger menu items.
     ui_clear_key_queue();
-    
+
     int item_count = ui_start_menu(headers, items, initial_selection);
     int selected = initial_selection;
     int chosen_item = -1; // NO_ACTION
@@ -690,7 +777,8 @@ update_directory(const char* path, const char* unmount_when_done) {
     return result;
 }
 
-/*static*/ void //so we can use it in ors menu
+// remove static to be able to call it from ors menu
+void
 wipe_data(int confirm) {
     if (confirm && !confirm_selection( "Confirm wipe of all user data?", "Yes - Wipe all user data"))
         return;
@@ -738,7 +826,7 @@ prompt_and_wait() {
     for (;;) {
         finish_recovery(NULL);
         ui_reset_progress();
-        
+
         ui_root_menu = 1;
         // ui_menu_level is a legacy variable that i am keeping around to prevent build breakage.
         ui_menu_level = 0;
@@ -794,7 +882,7 @@ prompt_and_wait() {
                 case ITEM_ADVANCED:
                     ret = show_advanced_menu();
                     break;
-                    
+
                 case ITEM_PHILZ_MENU:
                     show_philz_settings_menu();
                     break;
@@ -978,7 +1066,7 @@ main(int argc, char **argv) {
     setup_legacy_storage_paths();
     LOGI("Processing arguments.\n");
     ensure_path_mounted(LAST_LOG_FILE);
-    rotate_last_logs(5);
+    rotate_last_logs(10);
     get_args(&argc, &argv);
 
     int previous_runs = 0;
@@ -995,7 +1083,7 @@ main(int argc, char **argv) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
-        case 'w': 
+        case 'w':
 #ifndef BOARD_RECOVERY_ALWAYS_WIPES
         wipe_data = wipe_cache = 1;
 #endif
@@ -1022,7 +1110,7 @@ main(int argc, char **argv) {
 
     if (!sehandle) {
         fprintf(stderr, "Warning: No file_contexts\n");
-        LOGI("Warning:  No file_contexts\n");
+        ui_print("Warning:  No file_contexts\n");
     }
 
     LOGI("device_recovery_start()\n");
@@ -1057,7 +1145,10 @@ main(int argc, char **argv) {
 
     if (update_package != NULL) {
         status = install_package(update_package);
-        if (status != INSTALL_SUCCESS) ui_print("Installation aborted.\n");
+        if (status != INSTALL_SUCCESS) {
+            copy_logs();
+            ui_print("Installation aborted.\n");
+        }
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
         ignore_data_media_workaround(1);
@@ -1065,10 +1156,16 @@ main(int argc, char **argv) {
         ignore_data_media_workaround(0);
         if (has_datadata() && erase_volume("/datadata")) status = INSTALL_ERROR;
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
-        if (status != INSTALL_SUCCESS) ui_print("Data wipe failed.\n");
+        if (status != INSTALL_SUCCESS) {
+            copy_logs();
+            ui_print("Data wipe failed.\n");
+        }
     } else if (wipe_cache) {
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
-        if (status != INSTALL_SUCCESS) ui_print("Cache wipe failed.\n");
+        if (status != INSTALL_SUCCESS) {
+            copy_logs();
+            ui_print("Cache wipe failed.\n");
+        }
     } else {
         LOGI("Checking for extendedcommand & OpenRecoveryScript...\n");
         status = INSTALL_ERROR;  // No command specified

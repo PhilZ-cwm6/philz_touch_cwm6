@@ -254,7 +254,7 @@ static void draw_text_line(int row, const char* t) {
 #ifdef NOT_ENOUGH_RAINBOWS
     if (ui_get_rainbow_mode()) ui_rainbow_mode();
 #endif
-    gr_text(0, (row+1)*CHAR_HEIGHT-1, t);
+    gr_text(0, (row+1)*CHAR_HEIGHT-1, t, 0);
   }
 }
 
