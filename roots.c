@@ -318,9 +318,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     mkdir(mount_point, 0755);  // in case it doesn't already exist
 
     if (fs_mgr_is_voldmanaged(v)) {
-        return vold_mount_volume(mount_point, 1) == CommandOkay ? 0 : -1;
+        result = vold_mount_volume(mount_point, 1) == CommandOkay ? 0 : -1;
+        if (result == 0) return 0;
+    }
 
-    } else if (strcmp(v->fs_type, "yaffs2") == 0) {
+    if (strcmp(v->fs_type, "yaffs2") == 0) {
         // mount an MTD partition as a YAFFS2 filesystem.
         mtd_scan_partitions();
         const MtdPartition* partition;
@@ -334,7 +336,8 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     } else if (strcmp(v->fs_type, "ext4") == 0 ||
                strcmp(v->fs_type, "ext3") == 0 ||
                strcmp(v->fs_type, "rfs") == 0 ||
-               strcmp(v->fs_type, "vfat") == 0) {
+               strcmp(v->fs_type, "vfat") == 0 ||
+               strcmp(v->fs_type, "auto") == 0) {
         // LOGE("main pass: %s %s %s %s\n", v->blk_device, mount_point, v->fs_type, v->fs_type2); // debug
         if ((result = try_mount(v->blk_device, mount_point, v->fs_type, v->fs_options)) == 0)
             return 0;

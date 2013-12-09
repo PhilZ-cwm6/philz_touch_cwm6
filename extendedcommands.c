@@ -1320,8 +1320,9 @@ void format_sdcard(const char* volume) {
                             NULL
     };
 
-    int ret = -1;
     char cmd[PATH_MAX];
+    const char *device = NULL;
+    int ret = -1;
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     if (chosen_item < 0) // REFRESH or GO_BACK
         return;
@@ -1331,40 +1332,41 @@ void format_sdcard(const char* volume) {
     if (ensure_path_unmounted(v->mount_point) != 0)
         return;
 
+    // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
+    device = v->blk_device2;
+    if (device == NULL)
+        device = v->blk_device;
+
     switch (chosen_item)
     {
         case 0:
+            // start of cm-11.0, this will either format to exfat if it is the actual fsytpe or default to fat32 if card has any other fstype
             ret = format_volume(v->mount_point);
             break;
         case 1:
         case 2:
         case 3:
         case 4:
-            if (fs_mgr_is_voldmanaged(v)) {
+            // for now, disable vold_custom_format_volume() call as minivold doesn't support anymore custom format
+            if (0 && fs_mgr_is_voldmanaged(v)) {
                 ret = vold_custom_format_volume(v->mount_point, list[chosen_item], 1) == CommandOkay ? 0 : -1;
             } else if (strcmp(list[chosen_item], "vfat") == 0) {
-                sprintf(cmd, "/sbin/newfs_msdos -F 32 -O android -c 8 %s", v->blk_device);
+                sprintf(cmd, "/sbin/newfs_msdos -F 32 -O android -c 8 %s", device);
                 ret = __system(cmd);
             } else if (strcmp(list[chosen_item], "exfat") == 0) {
-                sprintf(cmd, "/sbin/mkfs.exfat %s", v->blk_device);
+                sprintf(cmd, "/sbin/mkfs.exfat %s", device);
                 ret = __system(cmd);
             } else if (strcmp(list[chosen_item], "ntfs") == 0) {
-                sprintf(cmd, "/sbin/mkntfs -f %s", v->blk_device);
+                sprintf(cmd, "/sbin/mkntfs -f %s", device);
                 ret = __system(cmd);
             } else if (strcmp(list[chosen_item], "ext4") == 0) {
-                ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+                ret = make_ext4fs(device, v->length, volume, sehandle);
             }
             break;
         case 5:
         case 6:
-            {
-                // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
-                const char *device = v->blk_device2;
-                if (device == NULL)
-                    device = v->blk_device;
-                ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
-                break;
-            }
+            ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
+            break;
     }
 
     if (ret)
