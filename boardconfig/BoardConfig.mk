@@ -148,15 +148,15 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy Note 8.0 - n5100
-else ifeq ($(TARGET_PRODUCT), cm_n5100)
+#Galaxy Note 8.0 GSM (n5100) and Wifi (n5110)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
     TARGET_COMMON_NAME := Galaxy Note 8.0
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    RECOVERY_TOUCHSCREEN_SWAP_XY := true
-    RECOVERY_TOUCHSCREEN_FLIP_Y := true
+    #RECOVERY_TOUCHSCREEN_SWAP_XY := true
+    #RECOVERY_TOUCHSCREEN_FLIP_Y := true
 
 #Galaxy Note 10.1 GSM (n8000) and classic (n8013)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)

@@ -152,7 +152,7 @@ int install_zip(const char* packagefilepath)
 
 #ifdef ENABLE_LOKI
     if (loki_support_enabled) {
-        ui_print("Checking if loki-fying is needed");
+        ui_print("Checking if loki-fying is needed\n");
         status = loki_check();
         if (status != INSTALL_SUCCESS) {
             ui_set_background(BACKGROUND_ICON_ERROR);
