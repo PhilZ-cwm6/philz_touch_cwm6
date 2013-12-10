@@ -336,8 +336,7 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     } else if (strcmp(v->fs_type, "ext4") == 0 ||
                strcmp(v->fs_type, "ext3") == 0 ||
                strcmp(v->fs_type, "rfs") == 0 ||
-               strcmp(v->fs_type, "vfat") == 0 ||
-               strcmp(v->fs_type, "auto") == 0) {
+               strcmp(v->fs_type, "vfat") == 0) {
         // LOGE("main pass: %s %s %s %s\n", v->blk_device, mount_point, v->fs_type, v->fs_type2); // debug
         if ((result = try_mount(v->blk_device, mount_point, v->fs_type, v->fs_options)) == 0)
             return 0;
@@ -346,10 +345,16 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         if ((result = try_mount(v->blk_device2, mount_point, v->fs_type2, v->fs_options2)) == 0)
             return 0;
         return result;
+    } else if (strcmp(v->fs_type, "auto") == 0) {
+        // either we are using fstab with non vold managed external storage or vold failed to mount a storage (ext2/ext4, some vfat systems)
+        // on vold managed devices, we need the blk_device2
+        char mount_cmd[PATH_MAX];
+        sprintf(mount_cmd, "mount %s %s", v->blk_device2 != NULL ? v->blk_device2 : v->blk_device, mount_point);
+        return __system(mount_cmd);
     } else {
         // let's try mounting with the mount binary and hope for the best.
-        // case called by ensure_path_mounted_at_mount_point("/emmc", "/sdcard") in edifyscripting.c
-        // for sdcard marker check on devices where /sdcard is external storage
+        // case called by ensure_path_mounted_at_mount_point("/emmc", "/sdcard") in edifyscripting.c (this now obsolete)
+        // however, keep the code for clarity and eventual dual boot support using preload or other partitions in future
         // keep both alternatives to not break things for MTD devices when using v->blk_device on system mount command
         char mount_cmd[PATH_MAX];
         if (strcmp(v->mount_point, mount_point) != 0)
