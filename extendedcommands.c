@@ -533,23 +533,35 @@ void show_nandroid_delete_menu(const char* path)
         return;
     }
 
-    static const char* headers[] = {  "Choose an image to delete",
+    static const char* headers[] = {  "Choose a backup to delete",
                                 NULL
     };
 
+    char backup_path[PATH_MAX];
     char tmp[PATH_MAX];
-    sprintf(tmp, "%s/clockworkmod/backup/", path);
-    char* file = choose_file_menu(tmp, NULL, headers);
-    if (file == NULL)
-        return;
 
-    if (confirm_selection("Confirm delete?", "Yes - Delete")) {
-        // nandroid_restore(file, 1, 1, 1, 1, 1, 0);
-        sprintf(tmp, "rm -rf %s", file);
-        __system(tmp);
+    if (twrp_backup_mode) {
+        char device_id[PROPERTY_VALUE_MAX];
+        get_device_id(device_id);
+        sprintf(backup_path, "%s/%s/%s", path, TWRP_BACKUP_PATH, device_id);
+    } else {
+        sprintf(backup_path, "%s/%s", path, CWM_BACKUP_PATH);    
     }
 
-    free(file);
+    for(;;)
+    {
+        char* file = choose_file_menu(backup_path, NULL, headers);
+        if (file == NULL)
+            return;
+
+        sprintf(tmp, "Yes - Delete %s", basename(file));
+        if (confirm_selection("Confirm delete?", tmp)) {
+            sprintf(tmp, "rm -rf '%s'", file);
+            __system(tmp);
+        }
+
+        free(file);
+    }
 }
 
 static int control_usb_storage(bool on)
@@ -1010,6 +1022,7 @@ int show_partition_menu()
     return chosen_item;
 }
 
+#if 0
 void show_nandroid_advanced_restore_menu(const char* path)
 {
     if (ensure_path_mounted(path) != 0) {
@@ -1084,6 +1097,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
 
     free(file);
 }
+#endif
 
 static void run_dedupe_gc() {
     char path[PATH_MAX];
@@ -1169,13 +1183,16 @@ static void add_nandroid_options_for_volume(char** menu, char* path, int offset)
     sprintf(buf, "Delete from %s", path);
     menu[offset + 2] = strdup(buf);
 
-    sprintf(buf, "Advanced Restore from %s", path);
+    sprintf(buf, "Custom Backup to %s", path);
     menu[offset + 3] = strdup(buf);
+
+    sprintf(buf, "Custom Restore from %s", path);
+    menu[offset + 4] = strdup(buf);
 }
 
 // number of actions added for each volume by add_nandroid_options_for_volume()
 // these go on top of menu list
-#define NANDROID_ACTIONS_NUM 4
+#define NANDROID_ACTIONS_NUM 5
 // number of fixed bottom entries after volume actions
 #define NANDROID_FIXED_ENTRIES 3
 
@@ -1209,7 +1226,7 @@ int show_nandroid_menu()
     }
 
     // fixed bottom entries
-    list[offset] = "Custom Backup and Restore";
+    list[offset]     = "Clone ROM to update.zip";
     list[offset + 1] = "Free Unused Backup Data";
     list[offset + 2] = "Misc Nandroid Settings";
     offset += NANDROID_FIXED_ENTRIES;
@@ -1230,9 +1247,11 @@ int show_nandroid_menu()
 
         // fixed bottom entries
         if (chosen_item == action_entries_num) {
-            is_custom_backup = 1;
-            custom_backup_restore_menu();
-            is_custom_backup = 0;            
+#ifdef PHILZ_TOUCH_RECOVERY
+            custom_rom_menu();
+#else
+            ui_print("Unsupported in open source version!\n");
+#endif
         } else if (chosen_item == (action_entries_num + 1)) {
             run_dedupe_gc();
         } else if (chosen_item == (action_entries_num + 2)) {
@@ -1280,7 +1299,10 @@ int show_nandroid_menu()
                     show_nandroid_delete_menu(chosen_path);
                     break;
                 case 3:
-                    show_nandroid_advanced_restore_menu(chosen_path);
+                    custom_backup_menu(chosen_path);
+                    break;
+                case 4:
+                    custom_restore_menu(chosen_path);
                     break;
                 default:
                     break;
@@ -1737,7 +1759,7 @@ void process_volumes() {
                 count--;
             }
             if (count == 0)
-                LOGE("could not unmount /data after /data/media setup");
+                LOGE("could not unmount /data after /data/media setup\n");
         }
     }
 

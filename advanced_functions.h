@@ -41,9 +41,12 @@ int copy_a_file(const char* file_in, const char* file_out);
 int show_custom_zip_menu();
 void set_custom_zip_path();
 
-// misc nandroid settings
+// misc nandroid settings and functions
+void custom_backup_menu(const char* backup_volume);
+void custom_restore_menu(const char* backup_volume);
 void misc_nandroid_menu();
 void get_rom_name(char *rom_name);
+void get_device_id(char *device_id); // twrp backup folder for device
 
 // multi zip installer
 void show_multi_flash_menu();

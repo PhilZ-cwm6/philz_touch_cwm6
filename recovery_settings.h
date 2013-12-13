@@ -15,6 +15,7 @@
 #define EFS_BACKUP_PATH     "clockworkmod/backup/.efs_backup"
 #define MODEM_BIN_PATH      "clockworkmod/backup/.modem_bin"
 #define RADIO_BIN_PATH      "clockworkmod/backup/.radio_bin"
+#define CWM_BACKUP_PATH     "clockworkmod/backup"
 #define TWRP_BACKUP_PATH    "TWRP/BACKUPS"
 #define CUSTOM_ROM_PATH     "clockworkmod/custom_rom"
 
