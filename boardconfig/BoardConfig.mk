@@ -148,6 +148,15 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
+#Galaxy Note 3 LTE - lt03ltexx (n9005)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_lt03ltexx cm_lt03wifiue),)
+    TARGET_COMMON_NAME := Note 3 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BOARD_USE_FB2PNG := false
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Galaxy Note 8.0 GSM (n5100) and Wifi (n5110)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
     TARGET_COMMON_NAME := Galaxy Note 8.0
@@ -230,6 +239,11 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_crespo cm_crespo4g),)
 #Google Nexus 4 (LGE) - mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
     TARGET_COMMON_NAME := Nexus 4
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Google Nexus 5 (LGE) - hammerhead
+else ifeq ($(TARGET_PRODUCT), cm_hammerhead)
+    TARGET_COMMON_NAME := Nexus 5
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Google Nexus 7 (ASUS) - tilapia (3G) and grouper (wifi)
