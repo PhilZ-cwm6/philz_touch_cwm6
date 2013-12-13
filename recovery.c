@@ -1042,7 +1042,7 @@ main(int argc, char **argv) {
     // If these fail, there's not really anywhere to complain...
     freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
     freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
-    printf("Starting recovery on %s (UTC)\n", ctime(&start));
+    printf("Starting recovery on (UTC) %s\n", ctime(&start));
 
     device_ui_init(&ui_parameters);
     ui_init();

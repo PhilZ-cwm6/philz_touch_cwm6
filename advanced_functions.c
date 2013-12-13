@@ -1275,10 +1275,10 @@ static void show_custom_ors_menu() {
 static void format_filename(char *valid_path, int max_len) {
     // remove non allowed chars (invalid file names) and limit valid_path filename to max_len chars
     // we could use a whitelist: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-
-    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|";
+    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|&";
     int i = 0;
     for(i=0; valid_path[i] != '\0' && i < max_len; i++) {
-        int j = 0;
+        size_t j = 0;
         while (j < strlen(invalid_fn)) {
             if (valid_path[i] == invalid_fn[j])
                 valid_path[i] = '_';
