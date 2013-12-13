@@ -285,6 +285,40 @@ done:
     return StringValue(result);
 }
 
+Value* RenameFn(const char* name, State* state, int argc, Expr* argv[]) {
+    char* result = NULL;
+    if (argc != 2) {
+        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
+    }
+
+    char* src_name;
+    char* dst_name;
+
+    if (ReadArgs(state, argv, 2, &src_name, &dst_name) < 0) {
+        return NULL;
+    }
+    if (strlen(src_name) == 0) {
+        ErrorAbort(state, "src_name argument to %s() can't be empty", name);
+        goto done;
+    }
+    if (strlen(dst_name) == 0) {
+        ErrorAbort(state, "dst_name argument to %s() can't be empty",
+                   name);
+        goto done;
+    }
+
+    if (rename(src_name, dst_name) != 0) {
+        ErrorAbort(state, "Rename of %s() to %s() failed, error %s()",
+          src_name, dst_name, strerror(errno));
+    } else {
+        result = dst_name;
+    }
+
+done:
+    free(src_name);
+    if (result != dst_name) free(dst_name);
+    return StringValue(result);
+}
 
 Value* DeleteFn(const char* name, State* state, int argc, Expr* argv[]) {
     char** paths = malloc(argc * sizeof(char*));
@@ -782,7 +816,11 @@ static int ApplyParsedPerms(
 
     if (parsed.has_capabilities && S_ISREG(statptr->st_mode)) {
         if (parsed.capabilities == 0) {
-            if ((removexattr(filename, XATTR_NAME_CAPS) == -1) && (errno != ENODATA)) {
+            if ((removexattr(filename, XATTR_NAME_CAPS) == -1) && ((errno != ENODATA)
+#ifdef RECOVERY_CANT_USE_CONFIG_EXT4_FS_XATTR
+                 && (errno != EOPNOTSUPP)
+#endif
+               )) {
                 // Report failure unless it's ENODATA (attribute not set)
                 printf("ApplyParsedPerms: removexattr of %s to %" PRIx64 " failed: %s\n",
                        filename, parsed.capabilities, strerror(errno));
@@ -796,7 +834,11 @@ static int ApplyParsedPerms(
             cap_data.data[0].inheritable = 0;
             cap_data.data[1].permitted = (uint32_t) (parsed.capabilities >> 32);
             cap_data.data[1].inheritable = 0;
-            if (setxattr(filename, XATTR_NAME_CAPS, &cap_data, sizeof(cap_data), 0) < 0) {
+            if (setxattr(filename, XATTR_NAME_CAPS, &cap_data, sizeof(cap_data), 0) < 0
+#ifdef RECOVERY_CANT_USE_CONFIG_EXT4_FS_XATTR
+                 && (errno != EOPNOTSUPP)
+#endif
+               ) {
                 printf("ApplyParsedPerms: setcap of %s to %" PRIx64 " failed: %s\n",
                        filename, parsed.capabilities, strerror(errno));
                 bad++;
@@ -1372,6 +1414,7 @@ void RegisterInstallFunctions() {
 
     RegisterFunction("read_file", ReadFileFn);
     RegisterFunction("sha1_check", Sha1CheckFn);
+    RegisterFunction("rename", RenameFn);
 
     RegisterFunction("wipe_cache", WipeCacheFn);
 
