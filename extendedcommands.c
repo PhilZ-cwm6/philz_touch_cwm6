@@ -1270,30 +1270,27 @@ int show_nandroid_menu()
                 case 0:
                     {
                         char backup_path[PATH_MAX];
-                        char rom_name[PROPERTY_VALUE_MAX] = "noname";
-                        get_rom_name(rom_name);
-
-                        time_t t = time(NULL);
-                        struct tm *timeptr = localtime(&t);
-                        if (timeptr == NULL)
-                        {
-                            struct timeval tp;
-                            gettimeofday(&tp, NULL);
-                            sprintf(backup_path, "%s/clockworkmod/backup/%ld_%s", chosen_path, tp.tv_sec, rom_name);
+                        if (twrp_backup_mode) {
+                            int fmt = nandroid_get_default_backup_format();
+                            if (fmt != NANDROID_BACKUP_FORMAT_TAR && fmt != NANDROID_BACKUP_FORMAT_TGZ)
+                                LOGE("TWRP backup format must be tar(.gz)!\n");
+                            else {
+                                get_twrp_backup_path(chosen_path, backup_path);
+                                twrp_backup(backup_path);
+                            }
+                        } else {
+                            get_cwm_backup_path(chosen_path, backup_path);
+                            nandroid_backup(backup_path);
                         }
-                        else
-                        {
-                            char path_fmt[PATH_MAX];
-                            strftime(path_fmt, sizeof(path_fmt), "clockworkmod/backup/%F.%H.%M.%S", timeptr);
-                            // this sprintf results in:
-                            // clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
-                            sprintf(backup_path, "%s/%s_%s", chosen_path, path_fmt, rom_name);
-                        }
-                        nandroid_backup(backup_path);
                     }
                     break;
                 case 1:
-                    show_nandroid_restore_menu(chosen_path);
+                    {
+                        if (twrp_backup_mode)
+                            show_twrp_restore_menu(chosen_path);
+                        else
+                            show_nandroid_restore_menu(chosen_path);
+                    }
                     break;
                 case 2:
                     show_nandroid_delete_menu(chosen_path);

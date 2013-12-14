@@ -42,8 +42,11 @@ int show_custom_zip_menu();
 void set_custom_zip_path();
 
 // misc nandroid settings and functions
+void show_twrp_restore_menu(const char* backup_volume);
 void custom_backup_menu(const char* backup_volume);
 void custom_restore_menu(const char* backup_volume);
+void get_twrp_backup_path(const char* backup_volume, char *backup_path);
+void get_cwm_backup_path(const char* backup_volume, char *backup_path);
 void misc_nandroid_menu();
 void get_rom_name(char *rom_name);
 void get_device_id(char *device_id); // twrp backup folder for device

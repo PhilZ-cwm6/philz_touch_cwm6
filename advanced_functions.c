@@ -1007,7 +1007,7 @@ int run_ors_script(const char* ors_script) {
                 } else if (twrp_backup_mode) {
                     get_twrp_backup_path(backup_volume, backup_path);
                 } else {
-                    get_custom_backup_path(backup_volume, backup_path);
+                    get_cwm_backup_path(backup_volume, backup_path);
                 }
                 if (0 != (ret_val = ors_backup_command(backup_path, value1)))
                     ui_print("Backup failed !!\n");
@@ -1886,8 +1886,6 @@ void reset_custom_job_settings(int custom_job) {
         backup_data = 1, backup_cache = 1;
         backup_wimax = 0;
         backup_sdext = 0;
-        if (twrp_backup_mode)
-            backup_wimax = 0;
     } else {
         backup_boot = 1, backup_recovery = 1, backup_system = 1;
         backup_data = 1, backup_cache = 1;
@@ -1936,7 +1934,7 @@ static void ui_print_backup_list() {
     ui_print("!\n");
 }
 
-void get_custom_backup_path(const char* backup_volume, char *backup_path) {
+void get_cwm_backup_path(const char* backup_volume, char *backup_path) {
     char rom_name[PROPERTY_VALUE_MAX] = "noname";
     get_rom_name(rom_name);
 
@@ -1948,42 +1946,43 @@ void get_custom_backup_path(const char* backup_volume, char *backup_path) {
         if (backup_efs)
             sprintf(backup_path, "%s/%s/%d", backup_volume, EFS_BACKUP_PATH, tp.tv_sec);
         else
-            sprintf(backup_path, "%s/%s/%d_%s", backup_volume, "clockworkmod/backup", tp.tv_sec, rom_name);
+            sprintf(backup_path, "%s/%s/%d_%s", backup_volume, CWM_BACKUP_PATH, tp.tv_sec, rom_name);
     } else {
         char tmp[PATH_MAX];
         strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
         if (backup_efs)
             sprintf(backup_path, "%s/%s/%s", backup_volume, EFS_BACKUP_PATH, tmp);
         else
-            sprintf(backup_path, "%s/%s/%s_%s", backup_volume, "clockworkmod/backup", tmp, rom_name);
+            sprintf(backup_path, "%s/%s/%s_%s", backup_volume, CWM_BACKUP_PATH, tmp, rom_name);
     }
 }
 
-static void twrp_restore_handler(const char* backup_volume, const char* backup_folder)
+void show_twrp_restore_menu(const char* backup_volume)
 {
     char backup_path[PATH_MAX];
-    sprintf(backup_path, "%s/%s", backup_volume, backup_folder);
+    sprintf(backup_path, "%s/%s/", backup_volume, TWRP_BACKUP_PATH);
     if (ensure_path_mounted(backup_path) != 0) {
         LOGE("Can't mount %s\n", backup_path);
         return;
     }
 
-    static const char* headers[] = {  "Choose a backup to restore",
-                                NULL
+    static const char* headers[] = {
+            "Choose a backup to restore",
+            NULL
     };
 
-    char tmp[PATH_MAX];
     char device_id[PROPERTY_VALUE_MAX];
     get_device_id(device_id);
-    sprintf(tmp, "%s/%s", backup_path, device_id);
+    strcat(backup_path, device_id);
 
-    char* file = choose_file_menu(tmp, "", headers);
+    char* file = choose_file_menu(backup_path, "", headers);
     if (file == NULL) {
         if (no_files_found)
-            ui_print("Nothing to restore in %s !\n", tmp);
+            ui_print("Nothing to restore in %s !\n", backup_path);
         return;
     }
 
+    char tmp[PATH_MAX];
     char *backup_source;
     backup_source = dirname(file);
     ui_print("%s will be restored to selected partitions!\n", backup_source);
@@ -2149,7 +2148,7 @@ static void validate_backup_job(const char* backup_volume, int is_backup) {
         } else if (backup_efs && (sum + backup_modem + backup_radio) != 0) {
             ui_print("efs must be backed up alone!\n");
         } else {
-            get_custom_backup_path(backup_volume, backup_path);
+            get_cwm_backup_path(backup_volume, backup_path);
             nandroid_backup(backup_path);
         }
     }
@@ -2168,7 +2167,7 @@ static void validate_backup_job(const char* backup_volume, int is_backup) {
                 custom_restore_handler(backup_volume, RADIO_BIN_PATH);
         }
         else if (twrp_backup_mode)
-            twrp_restore_handler(backup_volume, TWRP_BACKUP_PATH);
+            show_twrp_restore_menu(backup_volume);
         else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
             ui_print("efs must be restored alone!\n");
         else if (backup_efs && (sum + backup_modem + backup_radio) == 0)
