@@ -129,9 +129,12 @@ toggle_signature_check()
 }
 
 #ifdef ENABLE_LOKI
-int loki_support_enabled = 1;
+int loki_support_enabled = 0;
 void toggle_loki_support() {
-    loki_support_enabled = !loki_support_enabled;
+    char value[3];
+    loki_support_enabled ^= 1;
+    sprintf(value, "%d", loki_support_enabled);
+    write_config_file(PHILZ_SETTINGS_FILE, "loki_support_enabled", value);
     ui_print("Loki Support: %s\n", loki_support_enabled ? "Enabled" : "Disabled");
 }
 #endif

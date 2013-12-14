@@ -2885,6 +2885,17 @@ static void check_root_and_recovery_settings() {
         check_root_and_recovery = 1;
 }
 
+#ifdef ENABLE_LOKI
+void check_loki_support_action() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "loki_support_enabled", value, "0");
+    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
+        loki_support_enabled = 1;
+    else
+        loki_support_enabled = 0;
+}
+#endif
+
 // refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
@@ -2953,6 +2964,9 @@ void refresh_recovery_settings(int unmount) {
     check_nandroid_preload();
     check_nandroid_md5sum();
     check_show_nand_size_progress();
+#ifdef ENABLE_LOKI
+    check_loki_support_action();
+#endif
 #ifdef PHILZ_TOUCH_RECOVERY
     refresh_touch_gui_settings();
 #endif

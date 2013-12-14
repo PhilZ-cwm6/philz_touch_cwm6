@@ -50,7 +50,6 @@ void ui_increment_frame();
 void ui_nolog_lines(int lines);
 
 #ifdef ENABLE_LOKI
-// Toggle for loki support
 extern int loki_support_enabled;
 int loki_check();
 #endif
