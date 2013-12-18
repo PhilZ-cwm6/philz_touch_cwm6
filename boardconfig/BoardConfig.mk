@@ -26,7 +26,8 @@
 #                               it forces default touch sensitivity to a lower value. It can be altered in GUI Settings
 #   - BOOTLOADER_CMD_ARG:       This will override ro.bootloader.mode. Mostly used for Samsung devices to access download mode
 #   - TARGET_COMMON_NAME:       The device name that will be displayed on recovery start and in About dialogue
-#   - BRIGHTNESS_SYS_FILE:      Needed to be able to alter screen brightness
+#   - BRIGHTNESS_SYS_FILE := "path"
+#                               Needed to be able to alter screen brightness (touch only)
 #
 
 
@@ -36,6 +37,7 @@ ifeq ($(TARGET_PRODUCT), cm_i9100)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
     BOARD_HAS_LOW_RESOLUTION := true
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
 #Galaxy S2 - i9100g
@@ -51,6 +53,7 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
     TARGET_COMMON_NAME := n7000
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
 #Galaxy R / Z - i9103 (cm 10.1 only)
@@ -83,6 +86,13 @@ else ifeq ($(TARGET_PRODUCT), cm_ariesve)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Galaxy S - i9000 (galaxysmtd)
+else ifeq ($(TARGET_PRODUCT), cm_galaxysmtd)
+    TARGET_COMMON_NAME := Galaxy i9000
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s5p_bl/brightness"
 
 #Galaxy W I8150 (ancora)
 else ifeq ($(TARGET_PRODUCT), cm_ancora)
@@ -125,8 +135,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy S3 T-Mobile - SGH-T999 (d2tmo, d2att, d2spr) // Galaxy S Relay 4G - SGH-T699 (apexqtmo)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att apexqtmo),)
+#Samsung S3 T-Mobile SGH-T999 (d2tmo), SPH-L710 (d2spr), SPH-L710 (d2att), SGH-I535 (d2vzw) // Galaxy S Relay 4G - SGH-T699 (apexqtmo)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_apexqtmo),)
     TARGET_COMMON_NAME := $(TARGET_PRODUCT)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
@@ -148,9 +158,10 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy Note 3 LTE - lt03ltexx (n9005)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_lt03ltexx cm_lt03wifiue),)
+#Galaxy Note 3 LTE - N9005 (hlte)
+else ifeq ($(TARGET_PRODUCT), cm_hlte)
     TARGET_COMMON_NAME := Note 3 ($(TARGET_PRODUCT))
+    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
@@ -174,6 +185,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+
+#Galaxy Note 10.1 2014 LTE (lt03ltexx)
+else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
+    TARGET_COMMON_NAME := Note 10.1 2014 ($(TARGET_PRODUCT))
+    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BOARD_USE_FB2PNG := false
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Galaxy S4 International - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
@@ -337,6 +358,11 @@ else ifeq ($(TARGET_PRODUCT), cm_p930)
 #LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802) - G2 CAN (d803) - G2 Verizon (vs980) - G2 Sprint (ls980)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_d803 cm_vs980 cm_ls980),)
     TARGET_COMMON_NAME := LG G2 ($(TARGET_PRODUCT))
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#LG G Pad 8.3 (v500)
+else ifeq ($(TARGET_PRODUCT), cm_v500)
+    TARGET_COMMON_NAME := LG G Pad 8.3
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Micromax A57 - a57 (no cm tree)
