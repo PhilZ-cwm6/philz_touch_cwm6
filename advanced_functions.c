@@ -1298,8 +1298,9 @@ static void format_filename(char *valid_path, int max_len) {
 void get_rom_name(char *rom_name) {
     const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.build.display.id", NULL };
     const char *key;
-    sprintf(rom_name, "noname");
     int i = 0;
+
+    sprintf(rom_name, "noname");
     while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
         if (read_config_file("/system/build.prop", key, rom_name, "noname") < 0) {
             ui_print("failed to open /system/build.prop!\n");
@@ -1308,6 +1309,7 @@ void get_rom_name(char *rom_name) {
         }
         i++;
     }
+
     if (strcmp(rom_name, "noname") != 0) {
         format_filename(rom_name, MAX_ROM_NAME_LENGTH);
     }
