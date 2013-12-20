@@ -1570,7 +1570,7 @@ int show_advanced_menu()
     list[1] = "Report Error";
     list[2] = "Key Test";
     list[3] = "Show log";
-    list[4] = strdup("Datamedia Not Supported");
+    list[4] = NULL;
 #ifdef ENABLE_LOKI
     list[5] = "Toggle Loki Support";
 #endif
@@ -1659,7 +1659,6 @@ int show_advanced_menu()
                     setup_data_media();
                     ui_print("Reboot to apply settings!\n");
                 }
-                else ui_print("datamedia not supported\n");
                 break;
 #ifdef ENABLE_LOKI
             case 5:
@@ -1672,7 +1671,8 @@ int show_advanced_menu()
         }
     }
 
-    free(list[4]);
+    if (list[4] != NULL)
+        free(list[4]);
     for(; j > 0; --j) {
         free(list[FIXED_ADVANCED_ENTRIES + j - 1]);
     }
