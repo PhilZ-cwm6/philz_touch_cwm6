@@ -40,24 +40,8 @@ ifeq ($(TARGET_PRODUCT), cm_i9100)
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy S2 - i9100g
-else ifeq ($(TARGET_PRODUCT), cm_i9100g)
-    TARGET_COMMON_NAME := i9100G
-    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-    BOOTLOADER_CMD_ARG := "download"
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-
-#Galaxy Note - n7000
-else ifeq ($(TARGET_PRODUCT), cm_n7000)
-    TARGET_COMMON_NAME := n7000
-    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-    BOOTLOADER_CMD_ARG := "download"
-    KERNEL_EXFAT_MODULE_NAME := "exfat"
-    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-
 #Galaxy R / Z - i9103 (cm 10.1 only)
-else ifeq ($(TARGET_PRODUCT), cm_i9103)
+ifeq ($(TARGET_PRODUCT), cm_i9103)
     TARGET_COMMON_NAME := i9103
     BOARD_UMS_LUNFILE := "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -80,19 +64,19 @@ else ifeq ($(TARGET_PRODUCT), cm_i9082)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
-#Galaxy S Plus - i9001 (ariesve)
-else ifeq ($(TARGET_PRODUCT), cm_ariesve)
-    TARGET_COMMON_NAME := Galaxy i9001
-    BOOTLOADER_CMD_ARG := "download"
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-
 #Galaxy S - i9000 (galaxysmtd)
 else ifeq ($(TARGET_PRODUCT), cm_galaxysmtd)
     TARGET_COMMON_NAME := Galaxy i9000
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s5p_bl/brightness"
+
+#Galaxy S Plus - i9001 (ariesve)
+else ifeq ($(TARGET_PRODUCT), cm_ariesve)
+    TARGET_COMMON_NAME := Galaxy i9001
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Galaxy W I8150 (ancora)
 else ifeq ($(TARGET_PRODUCT), cm_ancora)
@@ -114,6 +98,32 @@ else ifeq ($(TARGET_PRODUCT), cm_i577)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Galaxy S2 International - i9100
+else ifeq ($(TARGET_PRODUCT), cm_i9100)
+    TARGET_COMMON_NAME := i9100
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+    BOARD_HAS_LOW_RESOLUTION := true
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+
+#Galaxy S2 - i9100g
+else ifeq ($(TARGET_PRODUCT), cm_i9100g)
+    TARGET_COMMON_NAME := i9100G
+    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_HAS_LOW_RESOLUTION := true
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+
+#Galaxy Note - n7000
+else ifeq ($(TARGET_PRODUCT), cm_n7000)
+    TARGET_COMMON_NAME := n7000
+    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
 
 #Galaxy S2 HD LTE (SGH-I757M) - celoxhd
 else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
