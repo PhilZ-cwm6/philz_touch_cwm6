@@ -842,11 +842,20 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             backup_recovery = 1;
             ui_print("Recovery\n");
         } else if (value1[i] == '1') {
-            ui_print("%s\n", "Option for special1 ignored in CWMR");
+            extra_partition[0].backup_state = 1;
+            ui_print("%s1\n", EXTRA_PARTITIONS_PATH);
         } else if (value1[i] == '2') {
-            ui_print("%s\n", "Option for special2 ignored in CWMR");
+            extra_partition[1].backup_state = 1;
+            ui_print("%s2\n", EXTRA_PARTITIONS_PATH);
         } else if (value1[i] == '3') {
-            ui_print("%s\n", "Option for special3 ignored in CWMR");
+            extra_partition[2].backup_state = 1;
+            ui_print("%s3\n", EXTRA_PARTITIONS_PATH);
+        } else if (value1[i] == '4') {
+            extra_partition[3].backup_state = 1;
+            ui_print("%s4\n", EXTRA_PARTITIONS_PATH);
+        } else if (value1[i] == '5') {
+            extra_partition[4].backup_state = 1;
+            ui_print("%s5\n", EXTRA_PARTITIONS_PATH);
         } else if (value1[i] == 'B' || value1[i] == 'b') {
             backup_boot = 1;
             ui_print("Boot\n");
@@ -1055,11 +1064,20 @@ int run_ors_script(const char* ors_script) {
                             backup_recovery = 1;
                             ui_print("Recovery\n");
                         } else if (value2[i] == '1') {
-                            ui_print("%s\n", "Option for special1 ignored in CWMR");
+                            extra_partition[0].backup_state = 1;
+                            ui_print("%s1\n", EXTRA_PARTITIONS_PATH);
                         } else if (value2[i] == '2') {
-                            ui_print("%s\n", "Option for special2 ignored in CWMR");
+                            extra_partition[1].backup_state = 1;
+                            ui_print("%s2\n", EXTRA_PARTITIONS_PATH);
                         } else if (value2[i] == '3') {
-                            ui_print("%s\n", "Option for special3 ignored in CWMR");
+                            extra_partition[2].backup_state = 1;
+                            ui_print("%s3\n", EXTRA_PARTITIONS_PATH);
+                        } else if (value2[i] == '4') {
+                            extra_partition[3].backup_state = 1;
+                            ui_print("%s4\n", EXTRA_PARTITIONS_PATH);
+                        } else if (value2[i] == '5') {
+                            extra_partition[4].backup_state = 1;
+                            ui_print("%s5\n", EXTRA_PARTITIONS_PATH);
                         } else if (value2[i] == 'B' || value2[i] == 'b') {
                             backup_boot = 1;
                             ui_print("Boot\n");
@@ -1901,6 +1919,11 @@ void reset_custom_job_settings(int custom_job) {
     backup_efs = 0;
     backup_misc = 0;
     backup_data_media = 0;
+    extra_partition[0].backup_state = 0;
+    extra_partition[1].backup_state = 0;
+    extra_partition[2].backup_state = 0;
+    extra_partition[3].backup_state = 0;
+    extra_partition[4].backup_state = 0;
     ignore_android_secure = 0;
     reboot_after_nandroid = 0;
 }
@@ -1933,6 +1956,14 @@ static void ui_print_backup_list() {
         ui_print(" - misc");
     if (backup_data_media)
         ui_print(" - data/media");
+
+    // check extra partitions
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        if (extra_partition[i].backup_state)
+            ui_print(" - %s%d", EXTRA_PARTITIONS_PATH, i+1);
+    }
+
     ui_print("!\n");
 }
 
@@ -2132,6 +2163,14 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
 static void validate_backup_job(const char* backup_volume, int is_backup) {
     int sum = backup_boot + backup_recovery + backup_system + backup_preload + backup_data +
                 backup_cache + backup_sdext + backup_wimax + backup_misc + backup_data_media;
+
+    // add extra partitions to the sum
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        if (extra_partition[i].backup_state)
+            ++sum;
+    }
+
     if (0 == (sum + backup_efs + backup_modem + backup_radio)) {
         ui_print("Select at least one partition to restore!\n");
         return;
@@ -2203,6 +2242,11 @@ void custom_restore_menu(const char* backup_volume) {
         NULL,    // LIST_ITEM_MISC
         NULL,    // LIST_ITEM_DATAMEDIA
         NULL,    // LIST_ITEM_WIMAX
+        NULL,    // LIST_ITEM_EXTRA_1
+        NULL,    // LIST_ITEM_EXTRA_2
+        NULL,    // LIST_ITEM_EXTRA_3
+        NULL,    // LIST_ITEM_EXTRA_4
+        NULL,    // LIST_ITEM_EXTRA_5
         NULL
     };
 
@@ -2223,6 +2267,7 @@ void custom_restore_menu(const char* backup_volume) {
     char item_datamedia[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
 
+    char tmp[PATH_MAX];
     is_custom_backup = 1;
     reset_custom_job_settings(1);
     for (;;)
@@ -2263,7 +2308,6 @@ void custom_restore_menu(const char* backup_volume) {
         else ui_format_gui_menu(item_data, "Restore data", "( )");
         list[LIST_ITEM_DATA] = item_data;
 
-        char tmp[PATH_MAX];
         set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Restore and-sec", dirname(tmp));
@@ -2337,9 +2381,26 @@ void custom_restore_menu(const char* backup_volume) {
             list[LIST_ITEM_WIMAX] = NULL;
         }
 
+        // show extra partitions menu if available
+        int i;
+        for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i)
+        {
+            sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+            if (volume_for_path(tmp) != NULL) {
+                sprintf(tmp, "Restore %s%d", EXTRA_PARTITIONS_PATH, i+1);
+                if (extra_partition[i].backup_state)
+                    ui_format_gui_menu(extra_partition[i].menu_label, tmp, "(x)");
+                else ui_format_gui_menu(extra_partition[i].menu_label, tmp, "( )");
+                list[LIST_ITEM_EXTRA_1 + i] = extra_partition[i].menu_label;
+            } else {
+                list[LIST_ITEM_EXTRA_1 + i] = NULL;
+            }
+        }
+
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
-        if (chosen_item == GO_BACK)
+        if (chosen_item < 0)
             break;
+
         switch (chosen_item)
         {
             case LIST_ITEM_VALIDATE:
@@ -2406,6 +2467,9 @@ void custom_restore_menu(const char* backup_volume) {
                 if (!twrp_backup_mode)
                     backup_wimax ^= 1;
                 break;
+            default: // extra partitions toggle
+                extra_partition[chosen_item - LIST_ITEM_EXTRA_1].backup_state ^= 1;
+                break;
         }
     }
 
@@ -2438,6 +2502,11 @@ void custom_backup_menu(const char* backup_volume)
         NULL,    // LIST_ITEM_MISC
         NULL,    // LIST_ITEM_DATAMEDIA
         NULL,    // LIST_ITEM_WIMAX
+        NULL,    // LIST_ITEM_EXTRA_1
+        NULL,    // LIST_ITEM_EXTRA_2
+        NULL,    // LIST_ITEM_EXTRA_3
+        NULL,    // LIST_ITEM_EXTRA_4
+        NULL,    // LIST_ITEM_EXTRA_5
         NULL
     };
 
@@ -2458,6 +2527,7 @@ void custom_backup_menu(const char* backup_volume)
     char item_datamedia[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
 
+    char tmp[PATH_MAX];
     is_custom_backup = 1;
     reset_custom_job_settings(1);
     for (;;)
@@ -2498,7 +2568,6 @@ void custom_backup_menu(const char* backup_volume)
         else ui_format_gui_menu(item_data, "Backup data", "( )");
         list[LIST_ITEM_DATA] = item_data;
 
-        char tmp[PATH_MAX];
         set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Backup and-sec", dirname(tmp));
@@ -2572,9 +2641,26 @@ void custom_backup_menu(const char* backup_volume)
             list[LIST_ITEM_WIMAX] = NULL;
         }
 
+        // show extra partitions menu if available
+        int i;
+        for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i)
+        {
+            sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+            if (volume_for_path(tmp) != NULL) {
+                sprintf(tmp, "Backup %s%d", EXTRA_PARTITIONS_PATH, i+1);
+                if (extra_partition[i].backup_state)
+                    ui_format_gui_menu(extra_partition[i].menu_label, tmp, "(x)");
+                else ui_format_gui_menu(extra_partition[i].menu_label, tmp, "( )");
+                list[LIST_ITEM_EXTRA_1 + i] = extra_partition[i].menu_label;
+            } else {
+                list[LIST_ITEM_EXTRA_1 + i] = NULL;
+            }
+        }
+
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
-        if (chosen_item == GO_BACK)
+        if (chosen_item < 0)
             break;
+
         switch (chosen_item)
         {
             case LIST_ITEM_VALIDATE:
@@ -2628,6 +2714,9 @@ void custom_backup_menu(const char* backup_volume)
             case LIST_ITEM_WIMAX:
                 if (!twrp_backup_mode)
                     backup_wimax ^= 1;
+                break;
+            default: // extra partitions toggle
+                extra_partition[chosen_item - LIST_ITEM_EXTRA_1].backup_state ^= 1;
                 break;
         }
     }
@@ -3012,6 +3101,14 @@ static void check_show_nand_size_progress() {
         show_nandroid_size_progress = 1;
 }
 
+static void initialize_extra_partitions_state() {
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        extra_partition[i].menu_label[0] = '\0';
+        extra_partition[i].backup_state = 0;
+    }
+}
+
 void refresh_recovery_settings(int unmount) {
     check_auto_restore_settings();
     check_root_and_recovery_settings();
@@ -3020,6 +3117,7 @@ void refresh_recovery_settings(int unmount) {
     check_nandroid_preload();
     check_nandroid_md5sum();
     check_show_nand_size_progress();
+    initialize_extra_partitions_state();
 #ifdef ENABLE_LOKI
     check_loki_support_action();
 #endif

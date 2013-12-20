@@ -109,27 +109,34 @@ int check_backup_size(const char* backup_path) {
     Backup_Size = 0;
 
     // backable partitions
-    static const char* Partitions_List[] = {"/recovery",
-                    BOOT_PARTITION_MOUNT_POINT,
-                    "/wimax",
-                    "/modem",
-                    "/radio",
-                    "/efs",
-                    "/misc",
-                    "/system",
-                    "/preload",
-                    "/data",
-                    "/datadata",
-                    "/cache",
-                    "/sd-ext",
-                    NULL
+    static const char* Partitions_List[] = {
+            "/recovery",
+            BOOT_PARTITION_MOUNT_POINT,
+            "/wimax",
+            "/modem",
+            "/radio",
+            "/efs",
+            "/misc",
+            "/system",
+            "/preload",
+            "/data",
+            "/datadata",
+            "/cache",
+            "/sd-ext",
+            EXTRA_PARTITIONS_PATH"1",
+            EXTRA_PARTITIONS_PATH"2",
+            EXTRA_PARTITIONS_PATH"3",
+            EXTRA_PARTITIONS_PATH"4",
+            EXTRA_PARTITIONS_PATH"5",
+            NULL
     };
 
     int preload_status = 0;
     if ((is_custom_backup && backup_preload) || (!is_custom_backup && nandroid_add_preload))
         preload_status = 1;
 
-    int backup_status[] = {backup_recovery,
+    int backup_status[] = {
+            backup_recovery,
             backup_boot,
             backup_wimax,
             backup_modem,
@@ -142,6 +149,11 @@ int check_backup_size(const char* backup_path) {
             backup_data,
             backup_cache,
             backup_sdext,
+            extra_partition[0].backup_state,
+            extra_partition[1].backup_state,
+            extra_partition[2].backup_state,
+            extra_partition[3].backup_state,
+            extra_partition[4].backup_state
     };
 
     LOGI("Checking needed space for backup '%s'\n", backup_path);
@@ -753,6 +765,14 @@ int twrp_backup(const char* backup_path) {
         }
     }
 
+    // handle extra partitions
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+            return ret;
+    }
+
     if (enable_md5sum) {
         if (0 != (ret = gen_twrp_md5sum(backup_path)))
             return ret;
@@ -921,6 +941,14 @@ int twrp_restore(const char* backup_path)
 
     if (backup_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
         return ret;
+
+    // handle extra partitions
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+            return ret;
+    }
 
     finish_nandroid_job();
     show_restore_stats();

@@ -28,17 +28,15 @@
 #   - TARGET_COMMON_NAME:       The device name that will be displayed on recovery start and in About dialogue
 #   - BRIGHTNESS_SYS_FILE := "path"
 #                               Needed to be able to alter screen brightness (touch only)
-#
-
-
-#Galaxy S2 International - i9100
-ifeq ($(TARGET_PRODUCT), cm_i9100)
-    TARGET_COMMON_NAME := i9100
-    BOOTLOADER_CMD_ARG := "download"
-    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-    BOARD_HAS_LOW_RESOLUTION := true
-    KERNEL_EXFAT_MODULE_NAME := "exfat"
-    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+#   - EXTRA_PARTITIONS_PATH := "path" [optional], default is "extra_part"
+#                               This will override the default "/extra_part" mount point for extra partitions
+#                               in your fstab, partition mount point must be "/extra_part1", "/extra_part2",...., "/extra_part5"
+#                               you can add this way up to 5 special partitions for nandroid backup/restore custom jobs
+#                               this flag will just override the default "/extra_part". You still have to append a 1 to 5 digit to the name in fstab
+#                               exp: EXTRA_PARTITIONS_PATH := "/efs"
+#                               in recovery.fstab, we must put: /dev/block/xxx  /efs1   ext4    options
+#                                                               /dev/block/xxx  /efs2   ext4    options
+#                               up to 5 partitions:             /dev/block/xxx  /efs5   ext4    options
 
 #Galaxy R / Z - i9103 (cm 10.1 only)
 ifeq ($(TARGET_PRODUCT), cm_i9103)

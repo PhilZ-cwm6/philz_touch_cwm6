@@ -68,8 +68,22 @@ enum {
   LIST_ITEM_EFS,
   LIST_ITEM_MISC,
   LIST_ITEM_DATAMEDIA,
-  LIST_ITEM_WIMAX
+  LIST_ITEM_WIMAX,
+  LIST_ITEM_EXTRA_1,
+  LIST_ITEM_EXTRA_2,
+  LIST_ITEM_EXTRA_3,
+  LIST_ITEM_EXTRA_4,
+  LIST_ITEM_EXTRA_5
 };
+
+#ifndef EXTRA_PARTITIONS_PATH
+#define EXTRA_PARTITIONS_PATH   "/extra_part"
+#endif
+#define EXTRA_PARTITIONS_NUM    5
+struct extra_partitions_list {
+    char menu_label[64];
+    int backup_state;
+} extra_partition[EXTRA_PARTITIONS_NUM];
 
 // multi zip installer
 void show_multi_flash_menu();

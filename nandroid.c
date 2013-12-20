@@ -635,6 +635,14 @@ int nandroid_backup(const char* backup_path)
     if (backup_data_media && 0 != (ret = nandroid_backup_datamedia(backup_path)))
         return ret;
 
+    // handle extra partitions
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+            return ret;
+    }
+
     if (enable_md5sum) {
         ui_print("Generating md5 sum...\n");
         sprintf(tmp, "nandroid-md5.sh %s", backup_path);
@@ -1207,6 +1215,14 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     if (backup_data_media && 0 != (ret = nandroid_restore_datamedia(backup_path)))
         return ret;
+
+    // handle extra partitions
+    int i;
+    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
+        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+            return ret;
+    }
 
     finish_nandroid_job();
     show_restore_stats();
