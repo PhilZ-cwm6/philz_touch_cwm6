@@ -240,11 +240,27 @@ else ifeq ($(TARGET_PRODUCT), cm_p3100)
 
 #Galaxy Tab 2 - p5100 / p5110
 else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
-    TARGET_COMMON_NAME := p5100
+    TARGET_COMMON_NAME := Galaxy Tab 2 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+
+#Galaxy Premier I9260 - superior
+else ifeq ($(TARGET_PRODUCT), cm_superior)
+    TARGET_COMMON_NAME := Galaxy Premier I9260
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+
+#Samsung Galaxy Mega 6.3 I9200 - SGH-i527 (meliusltexx) & Galaxy Mega 5.8 I9150 (melius3gxx)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx cm_melius3gxx),)
+    TARGET_COMMON_NAME := Galaxy Mega ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
 
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
