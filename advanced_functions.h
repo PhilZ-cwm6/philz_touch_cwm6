@@ -51,6 +51,26 @@ void misc_nandroid_menu();
 void get_rom_name(char *rom_name);
 void get_device_id(char *device_id); // twrp backup folder for device
 
+// custom backup and restore menu items
+enum {
+  LIST_ITEM_VALIDATE,
+  LIST_ITEM_REBOOT,
+  LIST_ITEM_BOOT,
+  LIST_ITEM_RECOVERY,
+  LIST_ITEM_SYSTEM,
+  LIST_ITEM_PRELOAD,
+  LIST_ITEM_DATA,
+  LIST_ITEM_ANDSEC,
+  LIST_ITEM_CACHE,
+  LIST_ITEM_SDEXT,
+  LIST_ITEM_MODEM,
+  LIST_ITEM_RADIO,
+  LIST_ITEM_EFS,
+  LIST_ITEM_MISC,
+  LIST_ITEM_DATAMEDIA,
+  LIST_ITEM_WIMAX
+};
+
 // multi zip installer
 void show_multi_flash_menu();
 

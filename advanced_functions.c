@@ -2021,13 +2021,13 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
         }
         file = choose_file_menu(backup_path, ".img", headers);
         if (file == NULL) {
-            //either no valid files found or we selected no files by pressing back menu
+            // either no valid files found or we selected no files by pressing back menu
             if (no_files_found)
                 ui_print("Nothing to restore in %s !\n", backup_path);
             return;
         }
 
-        //restore efs raw image
+        // restore efs raw image
         backup_source = basename(file);
         ui_print("%s will be flashed to /efs!\n", backup_source);
         sprintf(tmp, "Yes - Restore %s", backup_source);
@@ -2051,7 +2051,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
             ui_print("Either select efs.img to restore it,\n");
             ui_print("or remove it to restore nandroid source.\n");
         } else {
-            //restore efs from nandroid tar format
+            // restore efs from nandroid tar format
             ui_print("%s will be restored to /efs!\n", file);
             sprintf(tmp, "Yes - Restore %s", basename(file));
             if (confirm_selection(confirm_install, tmp))
@@ -2060,13 +2060,13 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
     } else if (backup_modem == RAW_BIN_FILE) {
         file = choose_file_menu(backup_path, ".bin", headers);
         if (file == NULL) {
-            //either no valid files found or we selected no files by pressing back menu
+            // either no valid files found or we selected no files by pressing back menu
             if (no_files_found)
                 ui_print("Nothing to restore in %s !\n", backup_path);
             return;
         }
 
-        //restore modem.bin raw image
+        // restore modem.bin raw image
         backup_source = basename(file);
         Volume *vol = volume_for_path("/modem");
         if (vol != NULL) {
@@ -2179,12 +2179,35 @@ static void validate_backup_job(const char* backup_volume, int is_backup) {
     }
 }
 
-// we'd better do some malloc here... later
 void custom_restore_menu(const char* backup_volume) {
-    static const char* headers[] = {  "Custom restore job",
-                                NULL
+    const char* headers[] = {
+            "Custom restore job from",
+            backup_volume,
+            NULL
     };
 
+    char* list[] = {
+        ">> Start Custom Restore Job", // LIST_ITEM_VALIDATE
+        NULL,    // LIST_ITEM_REBOOT
+        NULL,    // LIST_ITEM_BOOT
+        NULL,    // LIST_ITEM_RECOVERY
+        NULL,    // LIST_ITEM_SYSTEM
+        NULL,    // LIST_ITEM_PRELOAD
+        NULL,    // LIST_ITEM_DATA
+        NULL,    // LIST_ITEM_ANDSEC
+        NULL,    // LIST_ITEM_CACHE
+        NULL,    // LIST_ITEM_SDEXT
+        NULL,    // LIST_ITEM_MODEM
+        NULL,    // LIST_ITEM_RADIO
+        NULL,    // LIST_ITEM_EFS
+        NULL,    // LIST_ITEM_MISC
+        NULL,    // LIST_ITEM_DATAMEDIA
+        NULL,    // LIST_ITEM_WIMAX
+        NULL
+    };
+
+    // we'd better use pointer and malloc, but this way no need to bother with free for now
+    char item_reboot[MENU_MAX_COLS];
     char item_boot[MENU_MAX_COLS];
     char item_recovery[MENU_MAX_COLS];
     char item_system[MENU_MAX_COLS];
@@ -2198,193 +2221,190 @@ void custom_restore_menu(const char* backup_volume) {
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
     char item_datamedia[MENU_MAX_COLS];
-    char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
-    char* list[] = {
-        ">> Start Custom Restore Job <<",
-        item_boot,
-        item_recovery,
-        item_system,
-        item_preload,
-        item_data,
-        item_andsec,
-        item_cache,
-        item_sdext,
-        item_modem,
-        item_radio,
-        item_efs,
-        item_misc,
-        item_datamedia,
-        item_reboot,
-        NULL,
-        NULL
-    };
-
-    char tmp[PATH_MAX];
-    if (0 == get_partition_device("wimax", tmp)) {
-        // show wimax restore option
-        list[15] = "show wimax menu";
-    }
 
     is_custom_backup = 1;
     reset_custom_job_settings(1);
-    for (;;) {
-        if (backup_boot) ui_format_gui_menu(item_boot, "Restore boot", "(x)");
-        else ui_format_gui_menu(item_boot, "Restore boot", "( )");
+    for (;;)
+    {
+        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, ">> Reboot once done", "(x)");
+        else ui_format_gui_menu(item_reboot, ">> Reboot once done", "( )");
+        list[LIST_ITEM_REBOOT] = item_reboot;
 
-        if (backup_recovery) ui_format_gui_menu(item_recovery, "Restore recovery", "(x)");
-        else ui_format_gui_menu(item_recovery, "Restore recovery", "( )");
+        if (volume_for_path("/boot") != NULL) {
+            if (backup_boot) ui_format_gui_menu(item_boot, "Restore boot", "(x)");
+            else ui_format_gui_menu(item_boot, "Restore boot", "( )");
+            list[LIST_ITEM_BOOT] = item_boot;
+        } else {
+            list[LIST_ITEM_BOOT] = NULL;
+        }
+
+        if (volume_for_path("/recovery") != NULL) {
+            if (backup_recovery) ui_format_gui_menu(item_recovery, "Restore recovery", "(x)");
+            else ui_format_gui_menu(item_recovery, "Restore recovery", "( )");
+            list[LIST_ITEM_RECOVERY] = item_recovery;
+        } else {
+            list[LIST_ITEM_RECOVERY] = NULL;
+        }
 
         if (backup_system) ui_format_gui_menu(item_system, "Restore system", "(x)");
         else ui_format_gui_menu(item_system, "Restore system", "( )");
+        list[LIST_ITEM_SYSTEM] = item_system;
 
-        if (volume_for_path("/preload") == NULL)
-            ui_format_gui_menu(item_preload, "Restore preload", "N/A");
-        else if (backup_preload) ui_format_gui_menu(item_preload, "Restore preload", "(x)");
-        else ui_format_gui_menu(item_preload, "Restore preload", "( )");
+        if (volume_for_path("/preload") != NULL) {
+            if (backup_preload) ui_format_gui_menu(item_preload, "Restore preload", "(x)");
+            else ui_format_gui_menu(item_preload, "Restore preload", "( )");
+            list[LIST_ITEM_PRELOAD] = item_preload;
+        } else {
+            list[LIST_ITEM_PRELOAD] = NULL;
+        }
 
         if (backup_data) ui_format_gui_menu(item_data, "Restore data", "(x)");
         else ui_format_gui_menu(item_data, "Restore data", "( )");
+        list[LIST_ITEM_DATA] = item_data;
 
+        char tmp[PATH_MAX];
         set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Restore and-sec", dirname(tmp));
         else ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
+        list[LIST_ITEM_ANDSEC] = item_andsec;
 
         if (backup_cache) ui_format_gui_menu(item_cache, "Restore cache", "(x)");
         else ui_format_gui_menu(item_cache, "Restore cache", "( )");
+        list[LIST_ITEM_CACHE] = item_cache;
 
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Restore sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Restore sd-ext", "( )");
+        list[LIST_ITEM_SDEXT] = item_sdext;
 
-        if (volume_for_path("/modem") == NULL)
-            ui_format_gui_menu(item_modem, "Restore modem", "N/A");
-        else if (backup_modem == RAW_IMG_FILE)
-            ui_format_gui_menu(item_modem, "Restore modem [.img]", "(x)");
-        else if (backup_modem == RAW_BIN_FILE)
-            ui_format_gui_menu(item_modem, "Restore modem [.bin]", "(x)");
-        else ui_format_gui_menu(item_modem, "Restore modem", "( )");
+        if (volume_for_path("/modem") != NULL) {
+            if (backup_modem == RAW_IMG_FILE)
+                ui_format_gui_menu(item_modem, "Restore modem [.img]", "(x)");
+            else if (backup_modem == RAW_BIN_FILE)
+                ui_format_gui_menu(item_modem, "Restore modem [.bin]", "(x)");
+            else ui_format_gui_menu(item_modem, "Restore modem", "( )");
+            list[LIST_ITEM_MODEM] = item_modem;
+        } else {
+            list[LIST_ITEM_MODEM] = NULL;
+        }
 
-        if (volume_for_path("/radio") == NULL)
-            ui_format_gui_menu(item_radio, "Restore radio", "N/A");
-        else if (backup_radio == RAW_IMG_FILE)
-            ui_format_gui_menu(item_radio, "Restore radio [.img]", "(x)");
-        else if (backup_radio == RAW_BIN_FILE)
-            ui_format_gui_menu(item_radio, "Restore radio [.bin]", "(x)");
-        else ui_format_gui_menu(item_radio, "Restore radio", "( )");
+        if (volume_for_path("/radio") != NULL) {
+            if (backup_radio == RAW_IMG_FILE)
+                ui_format_gui_menu(item_radio, "Restore radio [.img]", "(x)");
+            else if (backup_radio == RAW_BIN_FILE)
+                ui_format_gui_menu(item_radio, "Restore radio [.bin]", "(x)");
+            else ui_format_gui_menu(item_radio, "Restore radio", "( )");
+            list[LIST_ITEM_RADIO] = item_radio;
+        } else {
+            list[LIST_ITEM_RADIO] = NULL;
+        }
 
-        if (volume_for_path("/efs") == NULL)
-            ui_format_gui_menu(item_efs, "Restore efs", "N/A");
-        else if (backup_efs == RESTORE_EFS_IMG)
-            ui_format_gui_menu(item_efs, "Restore efs [.img]", "(x)");
-        else if (backup_efs == RESTORE_EFS_TAR)
-            ui_format_gui_menu(item_efs, "Restore efs [.tar]", "(x)");
-        else ui_format_gui_menu(item_efs, "Restore efs", "( )");
+        if (volume_for_path("/efs") != NULL) {
+            if (backup_efs == RESTORE_EFS_IMG)
+                ui_format_gui_menu(item_efs, "Restore efs [.img]", "(x)");
+            else if (backup_efs == RESTORE_EFS_TAR)
+                ui_format_gui_menu(item_efs, "Restore efs [.tar]", "(x)");
+            else ui_format_gui_menu(item_efs, "Restore efs", "( )");
+            list[LIST_ITEM_EFS] = item_efs;
+        } else {
+            list[LIST_ITEM_EFS] = NULL;
+        }
 
-        if (volume_for_path("/misc") == NULL)
-            ui_format_gui_menu(item_misc, "Restore misc", "N/A");
-        else if (backup_misc) ui_format_gui_menu(item_misc, "Restore misc", "(x)");
-        else ui_format_gui_menu(item_misc, "Restore misc", "( )");
+        if (volume_for_path("/misc") != NULL) {
+            if (backup_misc) ui_format_gui_menu(item_misc, "Restore misc", "(x)");
+            else ui_format_gui_menu(item_misc, "Restore misc", "( )");
+            list[LIST_ITEM_MISC] = item_misc;
+        } else {
+            list[LIST_ITEM_MISC] = NULL;
+        }
 
-        if (backup_data_media)
-            ui_format_gui_menu(item_datamedia, "Restore /data/media", "(x)");
-        else ui_format_gui_menu(item_datamedia, "Restore /data/media", "( )");
+        if (is_data_media() && !twrp_backup_mode) {
+            if (backup_data_media)
+                ui_format_gui_menu(item_datamedia, "Restore /data/media", "(x)");
+            else ui_format_gui_menu(item_datamedia, "Restore /data/media", "( )");
+            list[LIST_ITEM_DATAMEDIA] = item_datamedia;
+        } else {
+            list[LIST_ITEM_DATAMEDIA] = NULL;
+        }
 
-        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
-        else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
-
-        if (NULL != list[15]) {
+        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
-            list[15] = item_wimax;
+            list[LIST_ITEM_WIMAX] = item_wimax;
+        } else {
+            list[LIST_ITEM_WIMAX] = NULL;
         }
 
-
-        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
         {
-            case 0:
+            case LIST_ITEM_VALIDATE:
                 validate_backup_job(backup_volume, 0);
                 break;
-            case 1:
+            case LIST_ITEM_REBOOT:
+                reboot_after_nandroid ^= 1;
+                break;
+            case LIST_ITEM_BOOT:
                 backup_boot ^= 1;
                 break;
-            case 2:
+            case LIST_ITEM_RECOVERY:
                 backup_recovery ^= 1;
                 break;
-            case 3:
+            case LIST_ITEM_SYSTEM:
                 backup_system ^= 1;
                 break;
-            case 4:
-                if (volume_for_path("/preload") == NULL)
-                    backup_preload = 0;
-                else backup_preload ^= 1;
+            case LIST_ITEM_PRELOAD:
+                backup_preload ^= 1;
                 break;
-            case 5:
+            case LIST_ITEM_DATA:
                 backup_data ^= 1;
                 break;
-            case 6:
+            case LIST_ITEM_ANDSEC:
                 ignore_android_secure ^= 1;
                 if (!ignore_android_secure && get_num_extra_volumes() != 0)
                     ui_print("To force restore to 2nd storage, keep only one .android_secure folder\n");
                 break;
-            case 7:
+            case LIST_ITEM_CACHE:
                 backup_cache ^= 1;
                 break;
-            case 8:
+            case LIST_ITEM_SDEXT:
                 backup_sdext ^= 1;
                 break;
-            case 9:
-                if (volume_for_path("/modem") == NULL)
+            case LIST_ITEM_MODEM:
+                backup_modem++;
+                if (backup_modem > 2)
                     backup_modem = 0;
-                else {
-                    backup_modem++;
-                    if (backup_modem > 2)
-                        backup_modem = 0;
-                    if (twrp_backup_mode && backup_modem == RAW_BIN_FILE)
-                        backup_modem = 0;
-                }
+                if (twrp_backup_mode && backup_modem == RAW_BIN_FILE)
+                    backup_modem = 0;
                 break;
-            case 10:
-                if (volume_for_path("/radio") == NULL)
+            case LIST_ITEM_RADIO:
+                backup_radio++;
+                if (backup_radio > 2)
                     backup_radio = 0;
-                else {
-                    backup_radio++;
-                    if (backup_radio > 2)
-                        backup_radio = 0;
-                    if (twrp_backup_mode && backup_radio == RAW_BIN_FILE)
-                        backup_radio = 0;
-                }
+                if (twrp_backup_mode && backup_radio == RAW_BIN_FILE)
+                    backup_radio = 0;
                 break;
-            case 11:
-                if (volume_for_path("/efs") == NULL)
+            case LIST_ITEM_EFS:
+                backup_efs++;
+                if (backup_efs > 2)
                     backup_efs = 0;
-                else {
-                    backup_efs++;
-                    if (backup_efs > 2)
-                        backup_efs = 0;
-                    if (twrp_backup_mode && backup_efs == RESTORE_EFS_IMG)
-                        backup_efs = 0;
-                }
+                if (twrp_backup_mode && backup_efs == RESTORE_EFS_IMG)
+                    backup_efs = 0;
                 break;
-            case 12:
-                if (volume_for_path("/misc") == NULL)
-                    backup_misc = 0;
-                else backup_misc ^= 1;
+            case LIST_ITEM_MISC:
+                backup_misc ^= 1;
                 break;
-            case 13:
+            case LIST_ITEM_DATAMEDIA:
                 if (is_data_media() && !twrp_backup_mode)
                     backup_data_media ^= 1;
                 break;
-            case 14:
-                reboot_after_nandroid ^= 1;
-                break;
-            case 15:
-                if (twrp_backup_mode) backup_wimax = 0;
-                else backup_wimax ^= 1;
+            case LIST_ITEM_WIMAX:
+                if (!twrp_backup_mode)
+                    backup_wimax ^= 1;
                 break;
         }
     }
@@ -2395,10 +2415,34 @@ void custom_restore_menu(const char* backup_volume) {
 
 void custom_backup_menu(const char* backup_volume)
 {
-    static const char* headers[] = {  "Custom backup job",
-                                NULL
+    const char* headers[] = {
+            "Custom backup job to",
+            backup_volume,
+            NULL
     };
 
+    char* list[] = {
+        ">> Start Custom Backup Job", // LIST_ITEM_VALIDATE
+        NULL,    // LIST_ITEM_REBOOT
+        NULL,    // LIST_ITEM_BOOT
+        NULL,    // LIST_ITEM_RECOVERY
+        NULL,    // LIST_ITEM_SYSTEM
+        NULL,    // LIST_ITEM_PRELOAD
+        NULL,    // LIST_ITEM_DATA
+        NULL,    // LIST_ITEM_ANDSEC
+        NULL,    // LIST_ITEM_CACHE
+        NULL,    // LIST_ITEM_SDEXT
+        NULL,    // LIST_ITEM_MODEM
+        NULL,    // LIST_ITEM_RADIO
+        NULL,    // LIST_ITEM_EFS
+        NULL,    // LIST_ITEM_MISC
+        NULL,    // LIST_ITEM_DATAMEDIA
+        NULL,    // LIST_ITEM_WIMAX
+        NULL
+    };
+
+    // we'd better use pointer and malloc, but this way no need to bother with free for now
+    char item_reboot[MENU_MAX_COLS];
     char item_boot[MENU_MAX_COLS];
     char item_recovery[MENU_MAX_COLS];
     char item_system[MENU_MAX_COLS];
@@ -2412,168 +2456,178 @@ void custom_backup_menu(const char* backup_volume)
     char item_efs[MENU_MAX_COLS];
     char item_misc[MENU_MAX_COLS];
     char item_datamedia[MENU_MAX_COLS];
-    char item_reboot[MENU_MAX_COLS];
     char item_wimax[MENU_MAX_COLS];
-    char* list[] = {
-        ">> Start Custom Backup Job <<",
-        item_boot,
-        item_recovery,
-        item_system,
-        item_preload,
-        item_data,
-        item_andsec,
-        item_cache,
-        item_sdext,
-        item_modem,
-        item_radio,
-        item_efs,
-        item_misc,
-        item_datamedia,
-        item_reboot,
-        NULL,
-        NULL
-    };
-
-    char tmp[PATH_MAX];
-    if (volume_for_path("/wimax") != NULL) {
-        // show wimax backup option
-        list[15] = "show wimax menu";
-    }
 
     is_custom_backup = 1;
     reset_custom_job_settings(1);
-    for (;;) {
-        if (backup_boot) ui_format_gui_menu(item_boot, "Backup boot", "(x)");
-        else ui_format_gui_menu(item_boot, "Backup boot", "( )");
+    for (;;)
+    {
+        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, ">> Reboot once done", "(x)");
+        else ui_format_gui_menu(item_reboot, ">> Reboot once done", "( )");
+        list[LIST_ITEM_REBOOT] = item_reboot;
 
-        if (backup_recovery) ui_format_gui_menu(item_recovery, "Backup recovery", "(x)");
-        else ui_format_gui_menu(item_recovery, "Backup recovery", "( )");
+        if (volume_for_path("/boot") != NULL) {
+            if (backup_boot) ui_format_gui_menu(item_boot, "Backup boot", "(x)");
+            else ui_format_gui_menu(item_boot, "Backup boot", "( )");
+            list[LIST_ITEM_BOOT] = item_boot;
+        } else {
+            list[LIST_ITEM_BOOT] = NULL;
+        }
+
+        if (volume_for_path("/recovery") != NULL) {
+            if (backup_recovery) ui_format_gui_menu(item_recovery, "Backup recovery", "(x)");
+            else ui_format_gui_menu(item_recovery, "Backup recovery", "( )");
+            list[LIST_ITEM_RECOVERY] = item_recovery;
+        } else {
+            list[LIST_ITEM_RECOVERY] = NULL;
+        }
 
         if (backup_system) ui_format_gui_menu(item_system, "Backup system", "(x)");
         else ui_format_gui_menu(item_system, "Backup system", "( )");
+        list[LIST_ITEM_SYSTEM] = item_system;
 
-        if (volume_for_path("/preload") == NULL)
-            ui_format_gui_menu(item_preload, "Backup preload", "N/A");
-        else if (backup_preload) ui_format_gui_menu(item_preload, "Backup preload", "(x)");
-        else ui_format_gui_menu(item_preload, "Backup preload", "( )");
+        if (volume_for_path("/preload") != NULL) {
+            if (backup_preload) ui_format_gui_menu(item_preload, "Backup preload", "(x)");
+            else ui_format_gui_menu(item_preload, "Backup preload", "( )");
+            list[LIST_ITEM_PRELOAD] = item_preload;
+        } else {
+            list[LIST_ITEM_PRELOAD] = NULL;
+        }
 
         if (backup_data) ui_format_gui_menu(item_data, "Backup data", "(x)");
         else ui_format_gui_menu(item_data, "Backup data", "( )");
+        list[LIST_ITEM_DATA] = item_data;
 
+        char tmp[PATH_MAX];
         set_android_secure_path(tmp);
         if (backup_data && android_secure_ext)
             ui_format_gui_menu(item_andsec, "Backup and-sec", dirname(tmp));
         else ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");
+        list[LIST_ITEM_ANDSEC] = item_andsec;
 
         if (backup_cache) ui_format_gui_menu(item_cache, "Backup cache", "(x)");
         else ui_format_gui_menu(item_cache, "Backup cache", "( )");
+        list[LIST_ITEM_CACHE] = item_cache;
 
         if (backup_sdext) ui_format_gui_menu(item_sdext, "Backup sd-ext", "(x)");
         else ui_format_gui_menu(item_sdext, "Backup sd-ext", "( )");
+        list[LIST_ITEM_SDEXT] = item_sdext;
 
-        if (volume_for_path("/modem") == NULL)
-            ui_format_gui_menu(item_modem, "Backup modem", "N/A");
-        else if (backup_modem) ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
-        else ui_format_gui_menu(item_modem, "Backup modem", "( )");
+        if (volume_for_path("/modem") != NULL) {
+            if (backup_modem == RAW_IMG_FILE)
+                ui_format_gui_menu(item_modem, "Backup modem [.img]", "(x)");
+            else if (backup_modem == RAW_BIN_FILE)
+                ui_format_gui_menu(item_modem, "Backup modem [.bin]", "(x)");
+            else ui_format_gui_menu(item_modem, "Backup modem", "( )");
+            list[LIST_ITEM_MODEM] = item_modem;
+        } else {
+            list[LIST_ITEM_MODEM] = NULL;
+        }
 
-        if (volume_for_path("/radio") == NULL)
-            ui_format_gui_menu(item_radio, "Backup radio", "N/A");
-        else if (backup_radio) ui_format_gui_menu(item_radio, "Backup radio [.img]", "(x)");
-        else ui_format_gui_menu(item_radio, "Backup radio", "( )");
+        if (volume_for_path("/radio") != NULL) {
+            if (backup_radio == RAW_IMG_FILE)
+                ui_format_gui_menu(item_radio, "Backup radio [.img]", "(x)");
+            else if (backup_radio == RAW_BIN_FILE)
+                ui_format_gui_menu(item_radio, "Backup radio [.bin]", "(x)");
+            else ui_format_gui_menu(item_radio, "Backup radio", "( )");
+            list[LIST_ITEM_RADIO] = item_radio;
+        } else {
+            list[LIST_ITEM_RADIO] = NULL;
+        }
 
-        if (volume_for_path("/efs") == NULL)
-            ui_format_gui_menu(item_efs, "Backup efs", "N/A");
-        else if (backup_efs && twrp_backup_mode)
-            ui_format_gui_menu(item_efs, "Backup efs", "(x)");
-        else if (backup_efs && !twrp_backup_mode)
-            ui_format_gui_menu(item_efs, "Backup efs [img&tar]", "(x)");
-        else ui_format_gui_menu(item_efs, "Backup efs", "( )");
+        if (volume_for_path("/efs") != NULL) {
+            if (backup_efs == RESTORE_EFS_IMG)
+                ui_format_gui_menu(item_efs, "Backup efs [.img]", "(x)");
+            else if (backup_efs == RESTORE_EFS_TAR)
+                ui_format_gui_menu(item_efs, "Backup efs [.tar]", "(x)");
+            else ui_format_gui_menu(item_efs, "Backup efs", "( )");
+            list[LIST_ITEM_EFS] = item_efs;
+        } else {
+            list[LIST_ITEM_EFS] = NULL;
+        }
 
-        if (volume_for_path("/misc") == NULL)
-            ui_format_gui_menu(item_misc, "Backup misc", "N/A");
-        else if (backup_misc) ui_format_gui_menu(item_misc, "Backup misc", "(x)");
-        else ui_format_gui_menu(item_misc, "Backup misc", "( )");
+        if (volume_for_path("/misc") != NULL) {
+            if (backup_misc) ui_format_gui_menu(item_misc, "Backup misc", "(x)");
+            else ui_format_gui_menu(item_misc, "Backup misc", "( )");
+            list[LIST_ITEM_MISC] = item_misc;
+        } else {
+            list[LIST_ITEM_MISC] = NULL;
+        }
 
-        if (backup_data_media)
-            ui_format_gui_menu(item_datamedia, "Backup /data/media", "(x)");
-        else ui_format_gui_menu(item_datamedia, "Backup /data/media", "( )");
+        if (is_data_media() && !twrp_backup_mode) {
+            if (backup_data_media)
+                ui_format_gui_menu(item_datamedia, "Backup /data/media", "(x)");
+            else ui_format_gui_menu(item_datamedia, "Backup /data/media", "( )");
+            list[LIST_ITEM_DATAMEDIA] = item_datamedia;
+        } else {
+            list[LIST_ITEM_DATAMEDIA] = NULL;
+        }
 
-        if (reboot_after_nandroid) ui_format_gui_menu(item_reboot, "Reboot once done", "(x)");
-        else ui_format_gui_menu(item_reboot, "Reboot once done", "( )");
-
-        if (NULL != list[15]) {
+        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
-            list[15] = item_wimax;
+            list[LIST_ITEM_WIMAX] = item_wimax;
+        } else {
+            list[LIST_ITEM_WIMAX] = NULL;
         }
 
-        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item)
         {
-            case 0:
+            case LIST_ITEM_VALIDATE:
                 validate_backup_job(backup_volume, 1);
                 break;
-            case 1:
+            case LIST_ITEM_REBOOT:
+                reboot_after_nandroid ^= 1;
+                break;
+            case LIST_ITEM_BOOT:
                 backup_boot ^= 1;
                 break;
-            case 2:
+            case LIST_ITEM_RECOVERY:
                 backup_recovery ^= 1;
                 break;
-            case 3:
+            case LIST_ITEM_SYSTEM:
                 backup_system ^= 1;
                 break;
-            case 4:
-                if (volume_for_path("/preload") == NULL)
-                    backup_preload = 0;
-                else backup_preload ^= 1;
+            case LIST_ITEM_PRELOAD:
+                backup_preload ^= 1;
                 break;
-            case 5:
+            case LIST_ITEM_DATA:
                 backup_data ^= 1;
                 break;
-            case 6:
+            case LIST_ITEM_ANDSEC:
                 ignore_android_secure ^= 1;
                 if (!ignore_android_secure && get_num_extra_volumes() != 0)
                     ui_print("To force backup from 2nd storage, keep only one .android_secure folder\n");
                 break;
-            case 7:
+            case LIST_ITEM_CACHE:
                 backup_cache ^= 1;
                 break;
-            case 8:
+            case LIST_ITEM_SDEXT:
                 backup_sdext ^= 1;
                 break;
-            case 9:
-                if (volume_for_path("/modem") == NULL)
-                    backup_modem = 0;
-                else backup_modem ^= 1;
+            case LIST_ITEM_MODEM:
+                backup_modem ^= 1;
                 break;
-            case 10:
-                if (volume_for_path("/radio") == NULL)
-                    backup_radio = 0;
-                else backup_radio ^= 1;
+            case LIST_ITEM_RADIO:
+                backup_radio ^= 1;
                 break;
-            case 11:
-                if (volume_for_path("/efs") == NULL)
-                    backup_efs = 0;
-                else backup_efs ^= 1;
+            case LIST_ITEM_EFS:
+                backup_efs ^= 1;
                 break;
-            case 12:
-                if (volume_for_path("/misc") == NULL)
-                    backup_misc = 0;
-                else backup_misc ^= 1;
+            case LIST_ITEM_MISC:
+                backup_misc ^= 1;
                 break;
-            case 13:
+            case LIST_ITEM_DATAMEDIA:
                 if (is_data_media() && !twrp_backup_mode)
                     backup_data_media ^= 1;
                 break;
-            case 14:
-                reboot_after_nandroid ^= 1;
-                break;
-            case 15:
-                if (twrp_backup_mode) backup_wimax = 0;
-                else backup_wimax ^= 1;
+            case LIST_ITEM_WIMAX:
+                if (!twrp_backup_mode)
+                    backup_wimax ^= 1;
                 break;
         }
     }
