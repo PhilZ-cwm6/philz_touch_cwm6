@@ -41,7 +41,7 @@ int copy_a_file(const char* file_in, const char* file_out);
 int show_custom_zip_menu();
 void set_custom_zip_path();
 
-// misc nandroid settings and functions
+// nandroid settings and functions
 void show_twrp_restore_menu(const char* backup_volume);
 void custom_backup_menu(const char* backup_volume);
 void custom_restore_menu(const char* backup_volume);

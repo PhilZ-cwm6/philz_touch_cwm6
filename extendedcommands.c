@@ -54,12 +54,12 @@ int get_filtered_menu_selection(const char** headers, char** items, int menu_onl
     int index;
     int offset = 0;
     int* translate_table = (int*)malloc(sizeof(int) * items_count);
-	char* items_new [items_count];
+    char* items_new [items_count];
 
     // copy the list
-	for(index = 0; index < items_count; ++index) {
-		items_new[index] = items[index];
-	}
+    for(index = 0; index < items_count; ++index) {
+        items_new[index] = items[index];
+    }
 
     for (index = 0; index < items_count; index++) {
         if (items_new[index] == NULL)
@@ -91,8 +91,8 @@ void write_string_to_file(const char* filename, const char* string) {
     __system(tmp);
     FILE *file = fopen(filename, "w");
     if (file != NULL) {
-	    fprintf(file, "%s", string);
-	    fclose(file);
+        fprintf(file, "%s", string);
+        fclose(file);
     } else
         LOGE("Cannot write to %s\n", filename);
 }
@@ -152,6 +152,7 @@ int install_zip(const char* packagefilepath)
     if (device_flash_type() == MTD) {
         set_sdcard_update_bootloader_message();
     }
+
     int status = install_package(packagefilepath);
     ui_reset_progress();
     if (status != INSTALL_SUCCESS) {
@@ -900,7 +901,7 @@ int show_partition_menu()
 
     num_volumes = get_num_volumes();
 
-    if(!num_volumes)
+    if (!num_volumes)
         return 0;
 
     mountable_volumes = 0;
@@ -909,14 +910,14 @@ int show_partition_menu()
     mount_menu = malloc(num_volumes * sizeof(MountMenuEntry));
     format_menu = malloc(num_volumes * sizeof(FormatMenuEntry));
 
-    for (i = 0; i < num_volumes; i++) {
+    for(i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
 
         if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point)) {
             continue;
         }
 
-        if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
+        if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
             if (strcmp("datamedia", v->fs_type) != 0) {
                 sprintf(mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
                 sprintf(mount_menu[mountable_volumes].unmount, "unmount %s", v->mount_point);
@@ -941,7 +942,7 @@ int show_partition_menu()
 
     for (;;)
     {
-        for (i = 0; i < mountable_volumes; i++)
+        for(i = 0; i < mountable_volumes; i++)
         {
             MountMenuEntry* e = &mount_menu[i];
             if(is_path_mounted(e->path))
@@ -950,7 +951,7 @@ int show_partition_menu()
                 list[i] = e->mount;
         }
 
-        for (i = 0; i < formatable_volumes; i++)
+        for(i = 0; i < formatable_volumes; i++)
         {
             FormatMenuEntry* e = &format_menu[i];
             list[mountable_volumes+i] = e->txt;
@@ -1011,7 +1012,7 @@ int show_partition_menu()
             sprintf(confirm_string, "%s - %s", e->path, confirm_format);
 
             // support user choice fstype when formatting external storage
-            // ensure fstype==auto because some devices with internal vfat storage cannot be formatted to other types
+            // ensure fstype==auto because most devices with internal vfat storage cannot be formatted to other types
             if (strcmp(e->type, "auto") == 0) {
                 format_sdcard(e->path);
                 continue;
