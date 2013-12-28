@@ -45,6 +45,7 @@ ifeq ($(TARGET_PRODUCT), cm_i9103)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Exhibit Variants - codinaxxx (no cm device tree)
 else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
@@ -53,6 +54,7 @@ else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Grand Duos - i9082 (no cm device tree)
 else ifeq ($(TARGET_PRODUCT), cm_i9082)
@@ -61,6 +63,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9082)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S - i9000 (galaxysmtd)
 else ifeq ($(TARGET_PRODUCT), cm_galaxysmtd)
@@ -68,6 +71,7 @@ else ifeq ($(TARGET_PRODUCT), cm_galaxysmtd)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s5p_bl/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S Plus - i9001 (ariesve)
 else ifeq ($(TARGET_PRODUCT), cm_ariesve)
@@ -75,6 +79,7 @@ else ifeq ($(TARGET_PRODUCT), cm_ariesve)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy W I8150 (ancora)
 else ifeq ($(TARGET_PRODUCT), cm_ancora)
@@ -82,6 +87,7 @@ else ifeq ($(TARGET_PRODUCT), cm_ancora)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S Blaze 4G - SGH T-769
 else ifeq ($(TARGET_PRODUCT), cm_t769)
@@ -89,6 +95,7 @@ else ifeq ($(TARGET_PRODUCT), cm_t769)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung Exhilarate SGH-I577 (no cm-10.2 buildable sources, kernel def config missing)
 else ifeq ($(TARGET_PRODUCT), cm_i577)
@@ -96,6 +103,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i577)
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 International - i9100
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
@@ -105,6 +113,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100)
     BOARD_HAS_LOW_RESOLUTION := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 - i9100g
 else ifeq ($(TARGET_PRODUCT), cm_i9100g)
@@ -114,6 +123,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100g)
     BOARD_HAS_LOW_RESOLUTION := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note - n7000
 else ifeq ($(TARGET_PRODUCT), cm_n7000)
@@ -122,18 +132,21 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 HD LTE (SGH-I757M) - celoxhd
 else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     TARGET_COMMON_NAME := SGH-I757M
     BOOTLOADER_CMD_ARG := "download"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 Skyrocket i727 - skyrocket
 else ifeq ($(TARGET_PRODUCT), cm_skyrocket)
     TARGET_COMMON_NAME := Skyrocket i727
     BOOTLOADER_CMD_ARG := "download"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S3 International - i9300 - i9305
 else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
@@ -141,7 +154,9 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung S3 T-Mobile SGH-T999 (d2tmo), SPH-L710 (d2spr), SPH-L710 (d2att), SGH-I535 (d2vzw) // Galaxy S Relay 4G - SGH-T699 (apexqtmo)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_apexqtmo),)
@@ -149,6 +164,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_ap
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 2 - n7100
 else ifeq ($(TARGET_PRODUCT), cm_n7100)
@@ -156,7 +172,9 @@ else ifeq ($(TARGET_PRODUCT), cm_n7100)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 2 LTE - t0lte (n7105), t0lteatt (i317 / i317M canada bell), t0ltetmo (T889), l900 (sprint), i605 (verizon)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 cm_i605),)
@@ -165,9 +183,10 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Note 3 LTE - N9005 (hlte)
-else ifeq ($(TARGET_PRODUCT), cm_hlte)
+#Galaxy Note 3 LTE - N9005 (hltexx, hltespr, hltetmo)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_hltexx cm_hltespr cm_hltetmo),)
     TARGET_COMMON_NAME := Note 3 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -175,6 +194,7 @@ else ifeq ($(TARGET_PRODUCT), cm_hlte)
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BOARD_USE_FB2PNG := false
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 8.0 GSM (n5100) and Wifi (n5110)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
@@ -182,9 +202,12 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    # swap and flip are needed unless we fix things at kernel level
     #RECOVERY_TOUCHSCREEN_SWAP_XY := true
     #RECOVERY_TOUCHSCREEN_FLIP_Y := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 10.1 GSM (n8000) and classic (n8013)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)
@@ -192,7 +215,9 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 10.1 2014 LTE (lt03ltexx)
 else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
@@ -203,6 +228,7 @@ else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BOARD_USE_FB2PNG := false
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S4 International - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
@@ -214,6 +240,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_POST_UNBLANK_COMMAND := "/sbin/postunblankdisplay.sh"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S4 - i9505, jfltexx
 else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltecan cm_jfltecri cm_jfltespr cm_jfltetmo cm_jflteusc cm_jfltevzw cm_jfltezm),)
@@ -235,6 +262,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx),)
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Tab 2 - p3100
 else ifeq ($(TARGET_PRODUCT), cm_p3100)
@@ -245,6 +273,7 @@ else ifeq ($(TARGET_PRODUCT), cm_p3100)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     RECOVERY_TOUCHSCREEN_SWAP_XY := true
     RECOVERY_TOUCHSCREEN_FLIP_Y := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Tab 2 - p5100 / p5110
 else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
@@ -253,6 +282,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Premier I9260 - superior
 else ifeq ($(TARGET_PRODUCT), cm_superior)
@@ -261,14 +291,16 @@ else ifeq ($(TARGET_PRODUCT), cm_superior)
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung Galaxy Mega 6.3 I9200 - SGH-i527 (meliusltexx) & Galaxy Mega 5.8 I9150 (melius3gxx)
+#Galaxy Mega 6.3 I9200 - SGH-i527 (meliusltexx) & Galaxy Mega 5.8 I9150 (melius3gxx)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx cm_melius3gxx),)
     TARGET_COMMON_NAME := Galaxy Mega ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
@@ -326,8 +358,8 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#HTC One - m7ul / m7spr / m7tmo / m7att
-else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo cm_m7att),)
+#HTC One - m7ul / m7spr / m7tmo / m7att / m7vzw
+else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo cm_m7att cm_m7vzw),)
     TARGET_COMMON_NAME := HTC One ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
