@@ -180,7 +180,7 @@ int install_zip(const char* packagefilepath)
 // top fixed menu items, those before extra storage volumes
 #define FIXED_TOP_INSTALL_ZIP_MENUS 1
 // bottom fixed menu items, those after extra storage volumes
-#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 5
+#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 6
 #define FIXED_INSTALL_ZIP_MENUS (FIXED_TOP_INSTALL_ZIP_MENUS + FIXED_BOTTOM_INSTALL_ZIP_MENUS)
 
 int show_install_update_menu()
@@ -216,9 +216,10 @@ int show_install_update_menu()
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Install zip from sideload";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Install Multiple zip Files";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = "Toggle Signature Verification";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = "Setup Free Browse Mode";
 
     // extra NULL for GO_BACK
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = NULL;
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + FIXED_BOTTOM_INSTALL_ZIP_MENUS] = NULL;
 
     for (;;)
     {
@@ -250,6 +251,9 @@ int show_install_update_menu()
         }
         else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4) {
             toggle_signature_check();
+        }
+        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5) {
+            set_custom_zip_path();
         }
         else {
             // GO_BACK or REFRESH (chosen_item < 0)
