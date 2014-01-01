@@ -204,10 +204,13 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
 
     int nand_starts = 1;
     last_size_update = 0;
+    set_perf_mode(1);
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
-        if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
+        if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts)) {
+            set_perf_mode(0);
             return -1;
+        }
 #endif
         buf[PATH_MAX - 1] = '\0';
         if (callback) {
@@ -216,6 +219,7 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
         }
     }
 
+    set_perf_mode(0);
     return __pclose(fp);
 }
 
@@ -735,10 +739,13 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
     int nand_starts = 1;
     last_size_update = 0;
     check_restore_size(backup_file_image, backup_path);
+    set_perf_mode(1);
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
-        if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
+        if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts)) {
+            set_perf_mode(0);
             return -1;
+        }
 #endif
         buf[PATH_MAX - 1] = '\0';
         if (callback) {
@@ -747,6 +754,7 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
         }
     }
 
+    set_perf_mode(0);
     return __pclose(fp);
 }
 

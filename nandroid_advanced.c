@@ -615,6 +615,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     int index;
     int nand_starts = 1;
     last_size_update = 0;
+    set_perf_mode(1);
     for (index=0; index<backup_count; index++)
     {
         compute_twrp_backup_stats(index);
@@ -626,14 +627,17 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
         FILE *fp = __popen(tmp, "r");
         if (fp == NULL) {
-            ui_print("Unable to execute tar.\n");
+            LOGE("Unable to execute tar.\n");
+            set_perf_mode(0);
             return -1;
         }
 
         while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
-            if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts))
+            if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts)) {
+                set_perf_mode(0);
                 return -1;
+            }
 #endif
             tmp[PATH_MAX - 1] = NULL;
             if (callback) {
@@ -641,19 +645,23 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
                 nandroid_callback(tmp);
             }
         }
-        if (0 != __pclose(fp))
+        if (0 != __pclose(fp)) {
+            set_perf_mode(0);
             return -1;
+        }
 
         sprintf(tmp, "%s%03i", backup_file_image, index);
         file_size = Get_File_Size(tmp);
         if (file_size == 0) {
-            LOGE("Backup file size for '%s' is 0 bytes.\n", tmp); // oh noes! file size is 0, abort! abort!
+            LOGE("Backup file size for '%s' is 0 bytes!\n", tmp);
+            set_perf_mode(0);
             return -1;
         }
         total_bsize += file_size;
     }
 
     __system("cd /tmp && rm -rf list");
+    set_perf_mode(0);
     ui_print("Total backup size:\n  %llu bytes.\n", total_bsize);
     return 0;
 }
@@ -799,10 +807,13 @@ int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path,
 
     int nand_starts = 1;
     last_size_update = 0;
+    set_perf_mode(1);
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
-        if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts))
+        if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts)) {
+            set_perf_mode(0);
             return -1;
+        }
 #endif
         tmp[PATH_MAX - 1] = NULL;
         if (callback) {
@@ -811,6 +822,7 @@ int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path,
         }
     }
 
+    set_perf_mode(0);
     return __pclose(fp);
 }
 
