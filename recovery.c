@@ -1249,6 +1249,8 @@ int get_allow_toggle_display() {
 }
 
 void set_perf_mode(int on) {
-    property_set("recovery.perf.mode", on ? "1" : "0");
+    // always disable for now
+    //property_set("recovery.perf.mode", on ? "1" : "0");
+    property_set("recovery.perf.mode", "0");
 }
 
