@@ -160,8 +160,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung S3 T-Mobile SGH-T999 (d2tmo), SPH-L710 (d2spr), SPH-L710 (d2att), SGH-I535 (d2vzw) // Galaxy S Relay 4G - SGH-T699 (apexqtmo)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_apexqtmo),)
+#Samsung S3 T-Mobile SGH-T999 (d2tmo), SPH-L710 (d2spr), SPH-L710 (d2att), SGH-I535 (d2vzw) // Galaxy S Relay 4G - SGH-T699 (apexqtmo) // Galaxy Express AT&T (expressatt)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_apexqtmo cm_expressatt),)
     TARGET_COMMON_NAME := $(TARGET_PRODUCT)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
