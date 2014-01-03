@@ -56,13 +56,15 @@ else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Grand Duos - i9082 (no cm device tree)
+#Galaxy Grand Duos - i9082
 else ifeq ($(TARGET_PRODUCT), cm_i9082)
-    TARGET_COMMON_NAME := Galaxy_I9082
+    TARGET_COMMON_NAME := Galaxy i9082
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S - i9000 (galaxysmtd)
@@ -293,7 +295,7 @@ else ifeq ($(TARGET_PRODUCT), cm_superior)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Mega 6.3 I9200 - SGH-i527 (meliusltexx) & Galaxy Mega 5.8 I9150 (melius3gxx)
+#Galaxy Mega I9205 (meliusltexx) & Galaxy Mega i9200 (melius3gxx)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx cm_melius3gxx),)
     TARGET_COMMON_NAME := Galaxy Mega ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
@@ -362,6 +364,16 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m7ul cm_m7spr cm_m7tmo cm_m7att cm_m7vzw),)
     TARGET_COMMON_NAME := HTC One ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "texfat"
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#HTC Droid DNA (dlx)
+else ifeq ($(TARGET_PRODUCT), cm_dlx)
+    TARGET_COMMON_NAME := HTC Droid DNA (dlx)
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#HTC Desire 601 (zara)
+else ifeq ($(TARGET_PRODUCT), cm_zara)
+    TARGET_COMMON_NAME := HTC Desire 601 (zara)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One X - endeavoru
