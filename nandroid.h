@@ -52,6 +52,7 @@ extern int backup_radio;
 extern int backup_data_media;
 
 //toggle nandroid compression ratio
+// default is TAR_GZ_MEDIUM
 #define TAR_GZ_FAST 1
 #define TAR_GZ_LOW 3
 #define TAR_GZ_MEDIUM 5

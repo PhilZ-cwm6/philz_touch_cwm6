@@ -1453,13 +1453,13 @@ void misc_nandroid_menu()
 
         fmt = nandroid_get_default_backup_format();
         if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
-            if (compression_value == TAR_GZ_LOW)
+            if (compression_value == TAR_GZ_FAST)
+                ui_format_gui_menu(item_compress, "Compression", "Fast");
+            else if (compression_value == TAR_GZ_LOW)
                 ui_format_gui_menu(item_compress, "Compression", "Low");
-            else if (compression_value == TAR_GZ_MEDIUM)
-                ui_format_gui_menu(item_compress, "Compression", "Med");
             else if (compression_value == TAR_GZ_HIGH)
                 ui_format_gui_menu(item_compress, "Compression", "High");
-            else ui_format_gui_menu(item_compress, "Compression", "Fast");
+            else ui_format_gui_menu(item_compress, "Compression", "Med");
         } else
             ui_format_gui_menu(item_compress, "Compression", "No");
 
@@ -3044,14 +3044,15 @@ void check_loki_support_action() {
 // refresh nandroid compression
 static void refresh_nandroid_compression() {
     char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "fast");
-    if (strcmp(value, "low") == 0)
+    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, "medium");
+    if (strcmp(value, "fast") == 0)
+        compression_value = TAR_GZ_FAST;
+    else if (strcmp(value, "low") == 0)
         compression_value = TAR_GZ_LOW;
-    else if (strcmp(value, "medium") == 0)
-        compression_value = TAR_GZ_MEDIUM;
     else if (strcmp(value, "high") == 0)
         compression_value = TAR_GZ_HIGH;
-    else compression_value = TAR_GZ_FAST;
+    else
+        compression_value = TAR_GZ_MEDIUM;
 }
 
 // check user setting for backup mode (TWRP vs CWM)

@@ -23,7 +23,7 @@ int android_secure_ext = 0;
 int nandroid_add_preload = 0;
 int enable_md5sum = 1;
 int show_nandroid_size_progress = 0;
-int compression_value = TAR_GZ_FAST;
+int compression_value = TAR_GZ_MEDIUM;
 
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
