@@ -196,15 +196,16 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
 static int do_tar_compress(char* command, int callback, const char* backup_file_image) {
     char buf[PATH_MAX];
 
+    set_perf_mode(1);
     FILE *fp = __popen(command, "r");
     if (fp == NULL) {
         ui_print("Unable to execute tar command!\n");
+        set_perf_mode(0);
         return -1;
     }
 
     int nand_starts = 1;
     last_size_update = 0;
-    set_perf_mode(1);
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, backup_file_image, 1, &nand_starts)) {
@@ -730,16 +731,17 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
 static int do_tar_extract(char* command, const char* backup_file_image, const char* backup_path, int callback) {
     char buf[PATH_MAX];
 
+    set_perf_mode(1);
     FILE *fp = __popen(command, "r");
     if (fp == NULL) {
         ui_print("Unable to execute tar command.\n");
+        set_perf_mode(0);
         return -1;
     }
 
     int nand_starts = 1;
     last_size_update = 0;
     check_restore_size(backup_file_image, backup_path);
-    set_perf_mode(1);
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
         if (user_cancel_nandroid(&fp, NULL, 0, &nand_starts)) {
