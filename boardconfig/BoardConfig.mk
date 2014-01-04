@@ -99,14 +99,6 @@ else ifeq ($(TARGET_PRODUCT), cm_t769)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung Exhilarate SGH-I577 (no cm-10.2 buildable sources, kernel def config missing)
-else ifeq ($(TARGET_PRODUCT), cm_i577)
-    TARGET_COMMON_NAME := SGH i577
-    BOOTLOADER_CMD_ARG := "download"
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_B_SLOT_PROTOCOL := true
-
 #Galaxy S2 International - i9100
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
     TARGET_COMMON_NAME := i9100
@@ -140,6 +132,14 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
 else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     TARGET_COMMON_NAME := SGH-I757M
     BOOTLOADER_CMD_ARG := "download"
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Samsung Exhilarate SGH-I577 - exhilarate
+else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
+    TARGET_COMMON_NAME := SGH-I577 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
@@ -398,6 +398,11 @@ else ifeq ($(TARGET_PRODUCT), cm_primou)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#HTC Evo 4G LTE (jewel)
+else ifeq ($(TARGET_PRODUCT), cm_jewel)
+    TARGET_COMMON_NAME := Evo 4G LTE
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Huawei Acsend P1 U9200 - viva (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_viva)
     TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
@@ -433,6 +438,11 @@ else ifeq ($(TARGET_PRODUCT), cm_v500)
     TARGET_COMMON_NAME := LG G Pad 8.3
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#LG Optimus 4X HD P880 (p880)
+else ifeq ($(TARGET_PRODUCT), cm_p880)
+    TARGET_COMMON_NAME := Optimus 4X HD P880
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Micromax A57 - a57 (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_a57)
     TARGET_COMMON_NAME := Micromax_A57
@@ -454,6 +464,17 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_xt925 cm_xt926),)
 else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_COMMON_NAME := Atrix HD
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
+
+#Asus Transformer Pad TF300T (tf300t)
+else ifeq ($(TARGET_PRODUCT), cm_tf300t)
+    TARGET_COMMON_NAME := Asus Transformer TF300T
+    BOARD_USE_NTFS_3G := false
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+
+#Asus Transformer Prime TF700T (tf700t)
+else ifeq ($(TARGET_PRODUCT), cm_tf700t)
+    TARGET_COMMON_NAME := Asus Transformer TF700T
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
 
 #Sony Xperia Z - yuga
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
