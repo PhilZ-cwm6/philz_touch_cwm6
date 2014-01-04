@@ -162,7 +162,7 @@ endif
 LOCAL_STATIC_LIBRARIES        := libm libc
 
 ## Remove Old Build
-$(shell rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/$(LOCAL_MODULE)_intermediates)
+#$(shell rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/$(LOCAL_MODULE)_intermediates)
 
 ## Create zip installer
 AROMA_DEVICE_NAME   := $(shell echo $(TARGET_PRODUCT) | cut -d _ -f 2)
