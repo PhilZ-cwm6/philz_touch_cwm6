@@ -38,8 +38,21 @@
 #                                                               /dev/block/xxx  /efs2   ext4    options
 #                               up to 5 partitions:             /dev/block/xxx  /efs5   ext4    options
 
+
+
+#Asus Transformer Pad TF300T (tf300t)
+ifeq ($(TARGET_PRODUCT), cm_tf300t)
+    TARGET_COMMON_NAME := Asus Transformer TF300T
+    BOARD_USE_NTFS_3G := false
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+
+#Asus Transformer Prime TF700T (tf700t)
+else ifeq ($(TARGET_PRODUCT), cm_tf700t)
+    TARGET_COMMON_NAME := Asus Transformer TF700T
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+
 #Galaxy R / Z - i9103 (cm 10.1 only)
-ifeq ($(TARGET_PRODUCT), cm_i9103)
+else ifeq ($(TARGET_PRODUCT), cm_i9103)
     TARGET_COMMON_NAME := i9103
     BOARD_UMS_LUNFILE := "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -197,8 +210,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Note 3 LTE - N9005 (hltexx, hltespr, hltetmo)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_hltexx cm_hltespr cm_hltetmo),)
+#Galaxy Note 3 LTE - N9005 (hltexx, hltespr, hltetmo, hltecan, hltevzw)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_hltexx cm_hltespr cm_hltetmo cm_hltecan cm_hltevzw),)
     TARGET_COMMON_NAME := Note 3 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -487,22 +500,27 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_COMMON_NAME := Atrix HD
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Asus Transformer Pad TF300T (tf300t)
-else ifeq ($(TARGET_PRODUCT), cm_tf300t)
-    TARGET_COMMON_NAME := Asus Transformer TF300T
-    BOARD_USE_NTFS_3G := false
-    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+#Oppo Find5 (find5)
+else ifeq ($(TARGET_PRODUCT), cm_find5)
+    TARGET_COMMON_NAME := Oppo Find5
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#Asus Transformer Prime TF700T (tf700t)
-else ifeq ($(TARGET_PRODUCT), cm_tf700t)
-    TARGET_COMMON_NAME := Asus Transformer TF700T
-    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
-
-#Sony Xperia Z - yuga
+#Sony Xperia Z (yuga)
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
     TARGET_COMMON_NAME := Xperia Z
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lm3533-lcd-bl/brightness"
+
+#Sony Xperia Z1 (honami)
+else ifeq ($(TARGET_PRODUCT), cm_honami)
+    TARGET_COMMON_NAME := Xperia Z1
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
+
+#Sony Xperia ZU (togari)
+else ifeq ($(TARGET_PRODUCT), cm_togari)
+    TARGET_COMMON_NAME := Xperia ZU
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
+
 
 endif
 #---- end device specific config
