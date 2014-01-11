@@ -406,7 +406,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
             sprintf(tmp, "%s/%s.auto.win", backup_path, name);
         else
             sprintf(tmp, "%s/%s.%s.win", backup_path, name, mv->filesystem);
-        
+
         ret = twrp_backup_wrapper(mount_point, tmp, callback);
     } else {
         if (strcmp(backup_path, "-") == 0)
@@ -442,6 +442,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
                 ui_print("backup selinux context completed.\n");
     }
 #endif
+
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
     }
@@ -1031,6 +1032,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
             ui_print("restore selinux context completed.\n");
         }
 #endif
+
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
     }
@@ -1097,7 +1099,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 #endif
     if (ensure_path_mounted(backup_path) != 0)
         return print_and_error("Can't mount backup path\n");
-    
+
     char tmp[PATH_MAX];
     if (enable_md5sum) {
         ui_print("Checking MD5 sums...\n");
@@ -1130,7 +1132,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     {
         ui_print("\n>> Restoring WiMAX...\n");
         char serialno[PROPERTY_VALUE_MAX];
-        
+
         serialno[0] = 0;
         property_get("ro.serialno", serialno, "");
         sprintf(tmp, "%s/wimax.%s.img", backup_path, serialno);
@@ -1204,7 +1206,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     if (restore_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
         return ret;
-        
+
     if (has_datadata()) {
         if (restore_data && 0 != (ret = nandroid_restore_partition(backup_path, "/datadata")))
             return ret;

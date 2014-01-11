@@ -392,6 +392,7 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root)
         }
         i++;
     }
+
     if (raw_image_format[i] == NULL) {
         LOGE("invalid image file! Failed to restore %s to %s\n", filename, root);
         return -1;
@@ -604,6 +605,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         LOGE("Error generating file list!\n");
         return -1;
     }
+
     struct stat st;
     if (0 != stat("/tmp/list/filelist000", &st)) {
         sprintf(tmp, "%s", backup_path);

@@ -54,10 +54,9 @@ int get_filtered_menu_selection(const char** headers, char** items, int menu_onl
     int index;
     int offset = 0;
     int* translate_table = (int*)malloc(sizeof(int) * items_count);
-    char* items_new [items_count];
+    char* items_new[items_count];
 
-    // copy the list
-    for(index = 0; index < items_count; ++index) {
+    for(index = 0; index < items_count; index++) {
         items_new[index] = items[index];
     }
 
@@ -514,7 +513,7 @@ void show_choose_zip_menu(const char *mount_point)
         install_zip(file);
         write_last_install_path(dirname(file));
     }
-    
+
     free(file);
 }
 
@@ -627,10 +626,10 @@ void show_mount_usb_storage_menu()
 
 int confirm_selection(const char* title, const char* confirm)
 {
-    char path[PATH_MAX];
     struct stat info;
     int ret = 0;
 
+    char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_NO_CONFIRM_FILE);
     ensure_path_mounted(path);
     if (0 == stat(path, &info))
@@ -639,9 +638,9 @@ int confirm_selection(const char* title, const char* confirm)
     int many_confirm;
     char* confirm_str = strdup(confirm);
     const char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-    
+
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_MANY_CONFIRM_FILE);
-    ensure_path_mounted(path);    
+    ensure_path_mounted(path);
     many_confirm = 0 == stat(path, &info);
 
     if (many_confirm) {
