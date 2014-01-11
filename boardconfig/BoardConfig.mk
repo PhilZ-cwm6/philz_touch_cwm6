@@ -37,6 +37,9 @@
 #                               in recovery.fstab, we must put: /dev/block/xxx  /efs1   ext4    options
 #                                                               /dev/block/xxx  /efs2   ext4    options
 #                               up to 5 partitions:             /dev/block/xxx  /efs5   ext4    options
+#   - TW_USE_MODEL_HARDWARE_ID_FOR_DEVICE_ID := true
+#                               will force using ro.product.model as device id if available
+#                               you still need to enable a LOCAL_CFLAGS if defined
 
 
 

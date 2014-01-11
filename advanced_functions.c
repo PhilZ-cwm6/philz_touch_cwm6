@@ -46,7 +46,6 @@
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
 
-
 /*****************************************/
 /*   DO NOT REMOVE THIS CREDITS HEARDER  */
 /* IF YOU MODIFY ANY PART OF THIS SOURCE */
@@ -167,7 +166,7 @@ int directory_found(const char* dir) {
     return 0;
 }
 
-//check if path is in ramdisk since volume_for_path() will be NULL on these
+// check if path is in ramdisk since volume_for_path() will be NULL on these
 int is_path_ramdisk(const char* path) {
     const char *ramdisk_dirs[] = { "/sbin/", "/res/", "/tmp/", NULL };
     int i = 0;
@@ -179,7 +178,7 @@ int is_path_ramdisk(const char* path) {
     return 0;
 }
 
-//copy file (ramdisk check compatible)
+// copy file (ramdisk check compatible)
 int copy_a_file(const char* file_in, const char* file_out) {
     if (strcmp(file_in, file_out) == 0) {
         LOGI("source and destination files are same, skipping copy.\n");
@@ -196,7 +195,7 @@ int copy_a_file(const char* file_in, const char* file_out) {
         return -1;
     }
 
-    //this will chmod folder to 775
+    // this will chmod folder to 775
     char tmp[PATH_MAX];
     strcpy(tmp, file_out);
     ensure_directory(dirname(tmp));
@@ -212,10 +211,10 @@ int copy_a_file(const char* file_in, const char* file_out) {
         return -1;
     }
 
-    //start copy
+    // start copy
     char buf[PATH_MAX];
     size_t size;
-    //unsigned int size;
+    // unsigned int size;
     while (size = fread(buf, 1, sizeof(buf), fp)) {
         fwrite(buf, 1, size, fp_out);
     }
@@ -925,10 +924,10 @@ int run_ors_script(const char* ors_script) {
                 LOGI("command is: '%s' and ", command);
                 val_start = script_line;
                 val_start += cindex + 1;
-				if ((int) *val_start == 32)
-					val_start++; //get rid of space
-				if ((int) *val_start == 51)
-					val_start++; //get rid of = at the beginning
+                if ((int) *val_start == 32)
+                    val_start++; //get rid of space
+                if ((int) *val_start == 51)
+                    val_start++; //get rid of = at the beginning
                 strncpy(value, val_start, line_len - cindex - remove_nl);
                 LOGI("value is: '%s'\n", value);
             } else {
@@ -1199,8 +1198,9 @@ static void choose_default_ors_menu(const char* ors_path)
         browse_for_file = 1;
     } else {
         browse_for_file = 0;
-        //we found ors scripts in clockworkmod/ors folder: do not proceed other locations even if no file is chosen
+        //we found ors scripts in RECOVERY_ORS_PATH folder: do not proceed other locations even if no file is chosen
     }
+
     if (ors_file == NULL) {
         //either no valid files found or we selected no files by pressing back menu
         return;
@@ -1305,6 +1305,7 @@ static void format_filename(char *valid_path, int max_len) {
         if (valid_path[i] == 13)
             valid_path[i] = '_';
     }
+
     valid_path[max_len] = '\0';
     if (valid_path[strlen(valid_path)-1] == '_') {
         valid_path[strlen(valid_path)-1] = '\0';
@@ -2069,6 +2070,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
             LOGE("No /efs partition to flash\n");
             return;
         }
+
         file = choose_file_menu(backup_path, NULL, headers);
         if (file == NULL) {
             if (no_files_found)
@@ -2116,7 +2118,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
             return;
         }
 
-        //restore radio.bin raw image
+        // restore radio.bin raw image
         backup_source = basename(file);
         Volume *vol = volume_for_path("/radio");
         if (vol != NULL) {
@@ -2128,7 +2130,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
         } else
             LOGE("no /radio partition to flash\n");
     } else {
-        //process restore job
+        // process restore job
         file = choose_file_menu(backup_path, "", headers);
         if (file == NULL) {
             if (no_files_found)
@@ -2819,6 +2821,25 @@ static void sanitize_device_id(char *device_id) {
 #define CPUINFO_HARDWARE_LEN    (strlen(CPUINFO_HARDWARE))
 
 void get_device_id(char *device_id) {
+
+#ifdef TW_USE_MODEL_HARDWARE_ID_FOR_DEVICE_ID
+    // Now we'll use product_model_hardwareid as device id
+    char model_id[PROPERTY_VALUE_MAX];
+    property_get("ro.product.model", model_id, "error");
+    if (strcmp(model_id, "error") != 0) {
+        LOGI("=> product model: '%s'\n", model_id);
+        // Replace spaces with underscores
+        for(int i = 0; i < strlen(model_id); i++) {
+            if (model_id[i] == ' ')
+            model_id[i] = '_';
+        }
+        strcpy(device_id, model_id);
+        sanitize_device_id(device_id);
+        LOGI("=> using product model for device id: '%s'\n", device_id);
+        return;
+    }
+#endif
+
     // First try system properties
     property_get("ro.serialno", device_id, "");
     if (strlen(device_id) != 0) {
@@ -2969,7 +2990,7 @@ static int default_aromafm(const char* root) {
 }
 
 void run_aroma_browser() {
-    // look for clockworkmod/aromafm/aromafm.zip in storage paths
+    // look for AROMA_FM_PATH in storage paths
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
     int ret = -1;
