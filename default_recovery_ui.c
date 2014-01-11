@@ -21,7 +21,7 @@
 #include "extendedcommands.h"
 
 char* MENU_HEADERS[] = { NULL };
-
+#ifndef USE_CHINESE_FONT
 char* MENU_ITEMS[] = { "reboot system now",
                        "install zip",
                        "wipe data/factory reset",
@@ -30,7 +30,16 @@ char* MENU_ITEMS[] = { "reboot system now",
                        "mounts and storage",
                        "advanced",
                        NULL };
-
+#else
+char* MENU_ITEMS[] = { "重启设备",
+                       "安装ZIP刷机包",
+                       "清除数据恢复出厂",
+                       "清除Cache分区",
+                       "备份和还原备份",
+                       "挂载和大容量储存",
+                       "高级选项",
+                       NULL };
+#endif
 void device_ui_init(UIParameters* ui_parameters) {
 }
 

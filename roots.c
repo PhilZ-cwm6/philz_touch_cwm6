@@ -35,6 +35,8 @@
 
 #include "voldclient/voldclient.h"
 
+#include "cutils/properties.h"
+
 static struct fstab *fstab = NULL;
 
 int get_num_volumes() {
@@ -145,8 +147,30 @@ char** get_extra_storage_paths() {
 static char* android_secure_path = NULL;
 char* get_android_secure_path() {
     if (android_secure_path == NULL) {
-        android_secure_path = malloc(sizeof("/.android_secure") + strlen(get_primary_storage_path()) + 1);
-        sprintf(android_secure_path, "%s/.android_secure", primary_storage_path);
+        char tmp[PATH_MAX];
+        char** extra_paths = get_extra_storage_paths();
+        int num_extra_volumes = get_num_extra_volumes();
+        int i;
+        struct stat st;
+        for (i = 0; i < num_extra_volumes; i++) {
+            sprintf(tmp, "%s/.android_secure", extra_paths[i]);
+            const MountedVolume* mv =
+                find_mounted_volume_by_mount_point(extra_paths[i]);
+            if (ensure_path_mounted(extra_paths[i]) == 0) {
+                if (0 == lstat(tmp, &st)) {
+                    android_secure_path = malloc(strlen(tmp)+1);
+                    sprintf(android_secure_path, "%s/.android_secure", extra_paths[i]);
+                    break;
+                }
+                else if(!mv) { // volume is already mounted
+                    ensure_path_unmounted(extra_paths[i]);
+                }
+            }
+        }
+        if (android_secure_path == NULL) {
+            android_secure_path = malloc(sizeof("/.android_secure") + strlen(get_primary_storage_path()) + 1);
+            sprintf(android_secure_path, "%s/.android_secure", primary_storage_path);
+        }
     }
     return android_secure_path;
 }
@@ -196,9 +220,15 @@ void setup_data_media() {
             break;
         }
     }
+    // support /data/media/0
+    char path[15];
+    if (use_migrated_storage())
+        sprintf(path, "/data/media/0");
+    else sprintf(path, "/data/media");
+
     rmdir(mount_point);
-    mkdir("/data/media", 0755);
-    symlink("/data/media", mount_point);
+    mkdir(path, 0755);
+    symlink(path, mount_point);
 }
 
 int is_data_media_volume_path(const char* path) {
@@ -220,7 +250,9 @@ int ensure_path_mounted(const char* path) {
 int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point) {
     if (is_data_media_volume_path(path)) {
         if (ui_should_log_stdout()) {
-            LOGI("using /data/media for %s.\n", path);
+            if (use_migrated_storage())
+			    LOGI("using /data/media/0 for %s.\n", path);
+		    else LOGI("using /data/media for %s.\n", path);
         }
         int ret;
         if (0 != (ret = ensure_path_mounted("/data")))
@@ -413,11 +445,34 @@ int format_volume(const char* volume) {
     }
 
     if (strcmp(v->fs_type, "ext4") == 0) {
+#ifdef USE_MKE2FS_FORMAT
+		char ext4_cmd[PATH_MAX];
+		sprintf(ext4_cmd, "/sbin/mke2fs -T ext4 -b 4096 -m 0 -F %s", v->blk_device);
+        int result = __system(ext4_cmd);
+#else
         int result = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+#endif
         if (result != 0) {
-            LOGE("format_volume: make_extf4fs failed on %s\n", v->blk_device);
+            LOGE("format_volume: format ext4 fs failed on %s\n", v->blk_device);
             return -1;
         }
+#ifdef USE_MKE2FS_FORMAT
+#ifdef NEED_SELINUX_FIX
+        if (0 == strcmp(volume, "/data") ||
+            0 == strcmp(volume, "/system") ||
+            0 == strcmp(volume, "/cache"))
+        {
+            ensure_path_mounted(volume);
+            char tmp[PATH_MAX];
+            sprintf(tmp, "%s/lost+found", volume);
+            if (selinux_android_restorecon(tmp) < 0 || selinux_android_restorecon(volume) < 0) {
+                LOGW("restorecon: error restoring %s context\n",volume);
+                //return -1;
+            }
+            ensure_path_unmounted(volume);
+        }
+#endif
+#endif
         return 0;
     }
 
@@ -450,4 +505,110 @@ void setup_legacy_storage_paths() {
         rmdir("/sdcard");
         symlink(primary_path, "/sdcard");
     }
+}
+
+/**********************************/
+/*       Start file parser        */
+/*    Original source by PhilZ    */
+/**********************************/
+// todo: parse settings file in one pass and make pairs of key:value
+// get value of key from a given config file
+int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
+    int ret = 0;
+    char line[PROPERTY_VALUE_MAX];
+    ensure_path_mounted(config_file);
+    FILE *fp = fopen(config_file, "rb");
+    if (fp != NULL) {
+        while(fgets(line, sizeof(line), fp) != NULL) {
+            if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=') {
+                strcpy(value, strstr(line, "=") + 1);
+                //remove trailing \n char
+                if (value[strlen(value)-1] == '\n')
+                    value[strlen(value)-1] = '\0';
+                if (value[0] != '\0') {
+                    fclose(fp);
+                    LOGI("%s=%s\n", key, value);
+                    return ret;
+                }
+            }
+        }
+        ret = 1;
+        fclose(fp);
+    } else {
+        LOGI("Cannot open %s\n", config_file);
+        ret = -1;
+    }
+
+    strcpy(value, value_def);
+    LOGI("%s set to default (%s)\n", key, value_def);
+    return ret;
+}
+
+/**********************************/
+/*       Start Get ROM Name       */
+/*    Original source by PhilZ    */
+/**********************************/
+// formats a string to be compliant with filenames standard and limits its length to max_len
+static void format_filename(char *valid_path, int max_len) {
+    // remove non allowed chars (invalid file names) and limit valid_path filename to max_len chars
+    // we could use a whitelist: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-
+    char invalid_fn[] = " /><%#*^$:;\"\\\t,?!{}()=+'¦|";
+    int i = 0;
+    for(i=0; valid_path[i] != '\0' && i < max_len; i++) {
+        int j = 0;
+        while (j < strlen(invalid_fn)) {
+            if (valid_path[i] == invalid_fn[j])
+                valid_path[i] = '_';
+            j++;
+        }
+        if (valid_path[i] == 13)
+            valid_path[i] = '_';
+    }
+    valid_path[max_len] = '\0';
+    if (valid_path[strlen(valid_path)-1] == '_') {
+        valid_path[strlen(valid_path)-1] = '\0';
+    }
+}
+
+// get rom_name function
+#define MAX_ROM_NAME_LENGTH 31
+void get_rom_name(char *rom_name) {
+    const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.product.version", "ro.build.version.incremental", NULL };
+    const char *key;
+    sprintf(rom_name, "noname");
+    int i = 0;
+    while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
+        if (read_config_file("/system/build.prop", key, rom_name, "noname") < 0) {
+            ui_print("failed to open /system/build.prop!\n");
+            ui_print("using default noname.\n");
+            break;
+        }
+        i++;
+    }
+    if (strcmp(rom_name, "noname") != 0) {
+        format_filename(rom_name, MAX_ROM_NAME_LENGTH);
+    }
+}
+#ifdef USE_MIGRATED_STORAGE
+static int migrated_storage = 1;
+#else
+static int migrated_storage = -1;
+#endif
+
+int use_migrated_storage() {
+    if (migrated_storage == -1) {
+        migrated_storage = 0;
+        if (ensure_path_mounted("/data") != 0)
+            return 0;
+        char android_ver[PROPERTY_VALUE_MAX];
+        if (read_config_file("/system/build.prop", "ro.build.version.release", android_ver, "4.1") < 0) {
+            ui_print("failed to open /system/build.prop!\n");
+            return 0;
+        }
+        struct stat s;
+	    if (strncmp(android_ver,"4.2",3) >= 0 && lstat("/data/media/0", &s) == 0)
+            migrated_storage = 1;
+    }
+
+    return migrated_storage;
 }

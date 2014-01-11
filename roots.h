@@ -55,4 +55,5 @@ void ignore_data_media_workaround(int ignore);
 
 #define MAX_NUM_MANAGED_VOLUMES 10
 
+void get_rom_name(char *rom_name);
 #endif  // RECOVERY_ROOTS_H_

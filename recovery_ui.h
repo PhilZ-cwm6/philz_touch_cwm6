@@ -92,6 +92,7 @@ int device_wipe_data();
 #define ITEM_NANDROID        4
 #define ITEM_PARTITION       5
 #define ITEM_ADVANCED        6
+#define VIBRATOR_TIME_MS     30
 
 // Header text to display above the main menu.
 extern char* MENU_HEADERS[];
