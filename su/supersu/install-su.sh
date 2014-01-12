@@ -120,7 +120,7 @@ echo 1 > /system/etc/.installed_su_daemon
 set_perm 0 0 0777 /system/bin/.ext
 set_perm 0 0 06755 /system/bin/.ext/.su
 set_perm 0 0 06755 /system/xbin/su
-set_perm 0 0 06755 /system/xbin/daemonsu
+set_perm 0 0 0755 /system/xbin/daemonsu
 set_perm 0 0 0755 /system/etc/install-recovery.sh
 set_perm 0 0 0755 /system/etc/init.d/99SuperSUDaemon
 set_perm 0 0 0644 /system/etc/.installed_su_daemon
@@ -139,6 +139,9 @@ ch_con /system/etc/.installed_su_daemon
 #ch_con /system/app/Maps.apk
 #ch_con /system/app/GMS_Maps.apk
 #ch_con /system/app/YouTube.apk
+
+ui_print "- Post-installation script"
+/system/xbin/su --install
 
 #ui_print "- Unmounting /system and /data"
 umount /system
