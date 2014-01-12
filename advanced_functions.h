@@ -42,6 +42,7 @@ int show_custom_zip_menu();
 void set_custom_zip_path();
 
 // nandroid settings and functions
+extern int nand_prompt_on_low_space;
 void show_twrp_restore_menu(const char* backup_volume);
 void custom_backup_menu(const char* backup_volume);
 void custom_restore_menu(const char* backup_volume);

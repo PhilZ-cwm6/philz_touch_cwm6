@@ -1413,6 +1413,7 @@ void misc_nandroid_menu()
     char item_ors_path[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
     char item_nand_progress[MENU_MAX_COLS];
+    char item_prompt_low_space[MENU_MAX_COLS];
 #ifdef RECOVERY_NEED_SELINUX_FIX
     char item_secontext[MENU_MAX_COLS];
 #endif
@@ -1423,6 +1424,7 @@ void misc_nandroid_menu()
                     item_ors_path,
                     item_size_progress,
                     item_nand_progress,
+                    item_prompt_low_space,
                     "Default Backup Format...",
                     "Regenerate md5 Sum",
 #ifdef RECOVERY_NEED_SELINUX_FIX
@@ -1476,6 +1478,10 @@ void misc_nandroid_menu()
         if (hidenandprogress)
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
         else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
+
+        if (nand_prompt_on_low_space)
+            ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "(x)");
+        else ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "( )");
 
 #ifdef RECOVERY_NEED_SELINUX_FIX
         nandroid_secontext = !file_found(ignore_nand_secontext_file);
@@ -1560,13 +1566,21 @@ void misc_nandroid_menu()
                 }
                 break;
             case 7:
-                choose_default_backup_format();
+                {
+                    char value[3];
+                    nand_prompt_on_low_space ^= 1;
+                    sprintf(value, "%d", nand_prompt_on_low_space);
+                    write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
+                }
                 break;
             case 8:
+                choose_default_backup_format();
+                break;
+            case 9:
                 regenerate_md5_sum_menu();
                 break;
 #ifdef RECOVERY_NEED_SELINUX_FIX
-            case 9:
+            case 10:
                 {
                     nandroid_secontext ^= 1;
                     if (nandroid_secontext)
@@ -3123,6 +3137,18 @@ static void check_show_nand_size_progress() {
         show_nandroid_size_progress = 1;
 }
 
+// check prompt on low backup space
+static void check_prompt_on_low_space() {
+    char value_def[3] = "1";
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value, value_def);
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
+        nand_prompt_on_low_space = 0;
+    else
+        nand_prompt_on_low_space = 1;
+}
+
+// struct initializer
 static void initialize_extra_partitions_state() {
     int i;
     for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
@@ -3139,6 +3165,7 @@ void refresh_recovery_settings(int unmount) {
     check_nandroid_preload();
     check_nandroid_md5sum();
     check_show_nand_size_progress();
+    check_prompt_on_low_space();
     initialize_extra_partitions_state();
 #ifdef ENABLE_LOKI
     check_loki_support_action();
