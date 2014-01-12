@@ -40,6 +40,8 @@
 #   - TW_USE_MODEL_HARDWARE_ID_FOR_DEVICE_ID := true
 #                               will force using ro.product.model as device id if available
 #                               you still need to enable a LOCAL_CFLAGS if defined
+#   - BOARD_HAS_SLOW_STORAGE := true
+#                               default setting will disable size progress info during backup/restore
 
 
 
