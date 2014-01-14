@@ -283,8 +283,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltecan cm_jfl
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy S4 Mini LTE - i9195 (serranoltexx) // Galaxy S4 Mini 3G - i9190 (serrano3gxx)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx),)
+#Galaxy S4 Mini: LTE - i9195 (serranoltexx) // 3G - i9190 (serrano3gxx) // Dual Sim (serranodsub)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx cm_serranodsub),)
     TARGET_COMMON_NAME := Galaxy S4 Mini ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -527,6 +527,15 @@ else ifeq ($(TARGET_PRODUCT), cm_togari)
     TARGET_COMMON_NAME := Xperia ZU
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
 
+#Sony Xperia SP (huashan)
+else ifeq ($(TARGET_PRODUCT), cm_huashan)
+    TARGET_COMMON_NAME := Xperia SP
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight1/brightness"
+
+#Sony Xperia T (mint)
+else ifeq ($(TARGET_PRODUCT), cm_mint)
+    TARGET_COMMON_NAME := Xperia T
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight_1/brightness"
 
 endif
 #---- end device specific config
