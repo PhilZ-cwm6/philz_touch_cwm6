@@ -88,7 +88,7 @@ void write_string_to_file(const char* filename, const char* string) {
     sprintf(tmp, "mkdir -p $(dirname %s)", filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
-    if( file != NULL) {
+    if (file != NULL) {
         fprintf(file, "%s", string);
         fclose(file);
     }
@@ -97,7 +97,7 @@ void write_string_to_file(const char* filename, const char* string) {
 void write_recovery_version() {
     char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_VERSION_FILE);
-    write_string_to_file(path,EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    write_string_to_file(path, EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     // force unmount /data on /data/media devices as we call this on recovery start
     ignore_data_media_workaround(1);
     ensure_path_unmounted(path);
@@ -126,9 +126,7 @@ const char* read_last_install_path() {
     return NULL;
 }
 
-void
-toggle_signature_check()
-{
+void toggle_signature_check() {
     signature_check_enabled = !signature_check_enabled;
     ui_print("签名检测: %s\n", signature_check_enabled ? "已经打开" : "已经关闭");
 }
@@ -141,8 +139,7 @@ void toggle_loki_support() {
 }
 #endif
 
-int install_zip(const char* packagefilepath)
-{
+int install_zip(const char* packagefilepath) {
     ui_print("\n-- 正在安装: %s\n", packagefilepath);
     if (device_flash_type() == MTD) {
         set_sdcard_update_bootloader_message();
@@ -155,7 +152,6 @@ int install_zip(const char* packagefilepath)
         ui_print("安装中断.\n");
         return 1;
     }
-
 #ifdef ENABLE_LOKI
     if (loki_support_enabled) {
        ui_print("检测loki-fying");
@@ -178,8 +174,7 @@ int install_zip(const char* packagefilepath)
 #define FIXED_BOTTOM_INSTALL_ZIP_MENUS 3
 #define FIXED_INSTALL_ZIP_MENUS (FIXED_TOP_INSTALL_ZIP_MENUS + FIXED_BOTTOM_INSTALL_ZIP_MENUS)
 
-int show_install_update_menu()
-{
+int show_install_update_menu() {
     char buf[100];
     int i = 0, chosen_item = 0;
     static char* install_menu_items[MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1];
@@ -190,10 +185,7 @@ int show_install_update_menu()
 
     memset(install_menu_items, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1);
 
-    static const char* headers[] = {  "安装Zip刷机包",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = {  "安装Zip刷机包", "", NULL};
 
     // FIXED_TOP_INSTALL_ZIP_MENUS
     sprintf(buf, "从%s读取刷机包", primary_path);
@@ -213,31 +205,24 @@ int show_install_update_menu()
     // extra NULL for GO_BACK
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = NULL;
 
-    for (;;)
-    {
+    for (;;) {
         chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
         if (chosen_item == 0) {
             show_choose_zip_menu(primary_path);
-        }
-        else if (chosen_item >= FIXED_TOP_INSTALL_ZIP_MENUS &&
-                    chosen_item < FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
+        } else if (chosen_item >= FIXED_TOP_INSTALL_ZIP_MENUS && chosen_item < FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
             show_choose_zip_menu(extra_paths[chosen_item - FIXED_TOP_INSTALL_ZIP_MENUS]);
-        }
-        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
+        } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
             char *last_path_used;
             last_path_used = read_last_install_path();
             if (last_path_used == NULL)
                 show_choose_zip_menu(primary_path);
             else
                 show_choose_zip_menu(last_path_used);
-        }
-        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
+        } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
             apply_from_adb();
-        }
-        else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2) {
+        } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2) {
             toggle_signature_check();
-        }
-        else {
+        } else {
             // GO_BACK or REFRESH (chosen_item < 0)
             goto out;
         }
@@ -252,22 +237,19 @@ out:
     return chosen_item;
 }
 
-void free_string_array(char** array)
-{
+void free_string_array(char** array) {
     if (array == NULL)
         return;
     char* cursor = array[0];
     int i = 0;
-    while (cursor != NULL)
-    {
+    while (cursor != NULL) {
         free(cursor);
         cursor = array[++i];
     }
     free(array);
 }
 
-char** gather_files(const char* directory, const char* fileExtensionOrDirectory, int* numFiles)
-{
+char** gather_files(const char* directory, const char* fileExtensionOrDirectory, int* numFiles) {
     char path[PATH_MAX] = "";
     DIR *dir;
     struct dirent *de;
@@ -291,23 +273,20 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
     int isCounting = 1;
     i = 0;
     for (pass = 0; pass < 2; pass++) {
-        while ((de=readdir(dir)) != NULL) {
+        while ((de = readdir(dir)) != NULL) {
             // skip hidden files
             if (de->d_name[0] == '.')
                 continue;
 
             // NULL means that we are gathering directories, so skip this
-            if (fileExtensionOrDirectory != NULL)
-            {
+            if (fileExtensionOrDirectory != NULL) {
                 // make sure that we can have the desired extension (prevent seg fault)
                 if (strlen(de->d_name) < extension_length)
                     continue;
                 // compare the extension
                 if (strcmp(de->d_name + strlen(de->d_name) - extension_length, fileExtensionOrDirectory) != 0)
                     continue;
-            }
-            else
-            {
+            } else {
                 struct stat info;
                 char fullFileName[PATH_MAX];
                 strcpy(fullFileName, directory);
@@ -318,13 +297,12 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
                     continue;
             }
 
-            if (pass == 0)
-            {
+            if (pass == 0) {
                 total++;
                 continue;
             }
 
-            files[i] = (char*) malloc(dirLen + strlen(de->d_name) + 2);
+            files[i] = (char*)malloc(dirLen + strlen(de->d_name) + 2);
             strcpy(files[i], directory);
             strcat(files[i], de->d_name);
             if (fileExtensionOrDirectory == NULL)
@@ -337,18 +315,17 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
             break;
         rewinddir(dir);
         *numFiles = total;
-        files = (char**) malloc((total+1)*sizeof(char*));
-        files[total]=NULL;
+        files = (char**)malloc((total + 1) * sizeof(char*));
+        files[total] = NULL;
     }
 
-    if(closedir(dir) < 0) {
+    if (closedir(dir) < 0) {
         LOGE("关闭目录失败.\n");
     }
 
-    if (total==0) {
+    if (total == 0) {
         return NULL;
     }
-
     // sort the result
     if (files != NULL) {
         for (i = 0; i < total; i++) {
@@ -368,8 +345,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
 }
 
 // pass in NULL for fileExtensionOrDirectory and you will get a directory chooser
-char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[])
-{
+char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]) {
     static const char* fixed_headers[20];
     char path[PATH_MAX] = "";
     DIR *dir;
@@ -400,44 +376,36 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
     }
     fixed_headers[i] = directory;
     fixed_headers[i + 1] = "";
-    fixed_headers[i + 2 ] = NULL;
+    fixed_headers[i + 2] = NULL;
 
     char** files = gather_files(directory, fileExtensionOrDirectory, &numFiles);
     char** dirs = NULL;
     if (fileExtensionOrDirectory != NULL)
         dirs = gather_files(directory, NULL, &numDirs);
     int total = numDirs + numFiles;
-    if (total == 0)
-    {
+    if (total == 0) {
         ui_print("没发现目标文件.\n");
-    }
-    else
-    {
-        char** list = (char**) malloc((total + 1) * sizeof(char*));
+    } else {
+        char** list = (char**)malloc((total + 1) * sizeof(char*));
         list[total] = NULL;
 
 
-        for (i = 0 ; i < numDirs; i++)
-        {
+        for (i = 0; i < numDirs; i++) {
             list[i] = strdup(dirs[i] + dir_len);
         }
 
-        for (i = 0 ; i < numFiles; i++)
-        {
+        for (i = 0; i < numFiles; i++) {
             list[numDirs + i] = strdup(files[i] + dir_len);
         }
 
-        for (;;)
-        {
+        for (;;) {
             int chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
             if (chosen_item == GO_BACK || chosen_item == REFRESH)
                 break;
             char ret[PATH_MAX];
-            if (chosen_item < numDirs)
-            {
+            if (chosen_item < numDirs) {
                 char* subret = choose_file_menu(dirs[chosen_item], fileExtensionOrDirectory, headers);
-                if (subret != NULL)
-                {
+                if (subret != NULL) {
                     strcpy(ret, subret);
                     return_value = strdup(ret);
                     free(subret);
@@ -457,17 +425,13 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
     return return_value;
 }
 
-void show_choose_zip_menu(const char *mount_point)
-{
+void show_choose_zip_menu(const char *mount_point) {
     if (ensure_path_mounted(mount_point) != 0) {
         LOGE ("不能挂载%s.\n", mount_point);
         return;
     }
 
-    static const char* headers[] = {  "选中一个刷机包",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = {  "选中一个刷机包", "", NULL};
 
     char* file = choose_file_menu(mount_point, ".zip", headers);
     if (file == NULL)
@@ -484,17 +448,13 @@ void show_choose_zip_menu(const char *mount_point)
     free(file);
 }
 
-void show_nandroid_restore_menu(const char* path)
-{
+void show_nandroid_restore_menu(const char* path) {
     if (ensure_path_mounted(path) != 0) {
         LOGE("不能挂载%s.\n", path);
         return;
     }
 
-    static const char* headers[] = {  "选择一个备份还原",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = {  "选择一个备份还原", "", NULL};
 
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/backup/", path);
@@ -508,17 +468,13 @@ void show_nandroid_restore_menu(const char* path)
     free(file);
 }
 
-void show_nandroid_delete_menu(const char* path)
-{
+void show_nandroid_delete_menu(const char* path) {
     if (ensure_path_mounted(path) != 0) {
         LOGE("不能挂载 %s\n", path);
         return;
     }
 
-    static const char* headers[] = {  "选择一个备份删除",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = { "选择一个备份删除", "", NULL };
 
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/backup/", path);
@@ -535,8 +491,7 @@ void show_nandroid_delete_menu(const char* path)
     free(file);
 }
 
-static int control_usb_storage(bool on)
-{
+static int control_usb_storage(bool on) {
     int i = 0;
     int num = 0;
 
@@ -555,23 +510,21 @@ static int control_usb_storage(bool on)
     return num;
 }
 
-void show_mount_usb_storage_menu()
-{
+void show_mount_usb_storage_menu() {
     // Enable USB storage using vold
     if (!control_usb_storage(true))
         return;
 
-    static const char* headers[] = {  "大容量储存设备(u盘模式)",
-                                "离开这个页面会退出u盘模式",
-                                "电脑将不能访问这个储存设备.",
-                                "",
-                                NULL
+    static const char* headers[] = { "大容量储存设备(u盘模式)",
+                                     "离开这个页面会退出u盘模式",
+                                     "电脑将不能访问这个储存设备.",
+                                     "",
+                                     NULL
     };
 
     static char* list[] = { "退出", NULL };
 
-    for (;;)
-    {
+    for (;;) {
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK || chosen_item == 0)
             break;
@@ -581,8 +534,7 @@ void show_mount_usb_storage_menu()
     control_usb_storage(false);
 }
 
-int confirm_selection(const char* title, const char* confirm)
-{
+int confirm_selection(const char* title, const char* confirm) {
     struct stat info;
     int ret = 0;
 
@@ -602,24 +554,23 @@ int confirm_selection(const char* title, const char* confirm)
 
     if (many_confirm) {
         char* items[] = { "否",
-                        "否",
-                        "否",
-                        "否",
-                        "否",
-                        "否",
-                        "否",
-                        confirm_str, //" Yes -- wipe partition",   // [7]
-                        "否",
-                        "否",
-                        "否",
-                        NULL };
+                          "否",
+                          "否",
+                          "否",
+                          "否",
+                          "否",
+                          "否",
+                          confirm_str, // Yes, [7]
+                          "否",
+                          "否",
+                          "否",
+                          NULL };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         ret = (chosen_item == 7);
-    }
-    else {
+    } else {
         char* items[] = { "否",
-                        confirm_str, //" Yes -- wipe partition",   // [1]
-                        NULL };
+                          confirm_str, // Yes, [1]
+                          NULL };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         ret = (chosen_item == 1);
     }
@@ -666,7 +617,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         }
         return 0;
     }
- 
+
     if (strcmp(v->mount_point, path) != 0) {
         return format_unknown_device(v->blk_device, path, NULL);
     }
@@ -688,12 +639,12 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         if (write == NULL) {
             LOGW("format_volume: can't open MTD \"%s\"\n", device);
             return -1;
-        } else if (mtd_erase_blocks(write, -1) == (off_t) -1) {
+        } else if (mtd_erase_blocks(write, -1) == (off_t) - 1) {
             LOGW("format_volume: can't erase MTD \"%s\"\n", device);
             mtd_write_close(write);
             return -1;
         } else if (mtd_write_close(write)) {
-            LOGW("format_volume: can't close MTD \"%s\"\n",device);
+            LOGW("format_volume: can't close MTD \"%s\"\n", device);
             return -1;
         }
         return 0;
@@ -735,7 +686,6 @@ int format_device(const char *device, const char *path, const char *fs_type) {
 #endif
         return 0;
     }
-
 #ifdef USE_F2FS
     if (strcmp(fs_type, "f2fs") == 0) {
         int result = make_f2fs_main(device, v->mount_point);
@@ -749,20 +699,17 @@ int format_device(const char *device, const char *path, const char *fs_type) {
     return format_unknown_device(device, path, fs_type);
 }
 
-int format_unknown_device(const char *device, const char* path, const char *fs_type)
-{
+int format_unknown_device(const char *device, const char* path, const char *fs_type) {
     LOGI("Formatting unknown device.\n");
 
     if (fs_type != NULL && get_flash_type(fs_type) != UNSUPPORTED)
         return erase_raw_partition(fs_type, device);
 
     // if this is SDEXT:, don't worry about it if it does not exist.
-    if (0 == strcmp(path, "/sd-ext"))
-    {
+    if (0 == strcmp(path, "/sd-ext")) {
         struct stat st;
         Volume *vol = volume_for_path("/sd-ext");
-        if (vol == NULL || 0 != stat(vol->blk_device, &st))
-        {
+        if (vol == NULL || 0 != stat(vol->blk_device, &st)) {
             LOGI("No app2sd partition found. Skipping format of /sd-ext.\n");
             return 0;
         }
@@ -788,14 +735,13 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         }
     }
 
-    if (0 != ensure_path_mounted(path))
-    {
+    if (0 != ensure_path_mounted(path)) {
         ui_print("Error mounting %s!\n", path);
         ui_print("Skipping format...\n");
         return 0;
     }
 
-    static char tmp[PATH_MAX];
+    char tmp[PATH_MAX];
     if (strcmp(path, "/data") == 0) {
         sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
         __system(tmp);
@@ -808,16 +754,13 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
             if (NULL != f) {
                 fwrite(layout_version, 1, 2, f);
                 fclose(f);
-            }
-            else {
+            } else {
                 LOGI("error opening /data/.layout_version for write.\n");
             }
-        }
-        else {
+        } else {
             LOGI("/data/media/0 not found. migration may occur.\n");
         }
-    }
-    else {
+    } else {
         sprintf(tmp, "rm -rf %s/*", path);
         __system(tmp);
         sprintf(tmp, "rm -rf %s/.*", path);
@@ -844,8 +787,7 @@ typedef struct {
     char type[255];
 } FormatMenuEntry;
 
-int is_safe_to_format(char* name)
-{
+int is_safe_to_format(char* name) {
     char str[255];
     char* partition;
     property_get("ro.cwm.forbid_format", str, "/misc,/radio,/bootloader,/recovery,/efs,/wimax");
@@ -861,12 +803,8 @@ int is_safe_to_format(char* name)
     return 1;
 }
 
-int show_partition_menu()
-{
-    static const char* headers[] = {  "挂载和大容量储存",
-                                "",
-                                NULL
-    };
+int show_partition_menu() {
+    static const char* headers[] = { "挂载和大容量储存", "", NULL };
 
     static char* confirm_format  = "确定要格式化吗?";
     static char* confirm = "是的,格式化";
@@ -882,7 +820,7 @@ int show_partition_menu()
 
     num_volumes = get_num_volumes();
 
-    if(!num_volumes)
+    if (!num_volumes)
         return 0;
 
     mountable_volumes = 0;
@@ -898,7 +836,7 @@ int show_partition_menu()
             continue;
         }
 
-        if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
+        if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0) {
             if (strcmp("datamedia", v->fs_type) != 0) {
                 sprintf(mount_menu[mountable_volumes].mount, "挂载 %s", v->mount_point);
                 sprintf(mount_menu[mountable_volumes].unmount, "卸载 %s", v->mount_point);
@@ -911,9 +849,7 @@ int show_partition_menu()
                 sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
                 ++formatable_volumes;
             }
-        }
-        else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point))
-        {
+        } else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point)) {
             sprintf(format_menu[formatable_volumes].txt, "格式化 %s", v->mount_point);
             sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
             sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
@@ -921,21 +857,18 @@ int show_partition_menu()
         }
     }
 
-    for (;;)
-    {
-        for (i = 0; i < mountable_volumes; i++)
-        {
+    for (;;) {
+        for (i = 0; i < mountable_volumes; i++) {
             MountMenuEntry* e = &mount_menu[i];
-            if(is_path_mounted(e->path))
+            if (is_path_mounted(e->path))
                 list[i] = e->unmount;
             else
                 list[i] = e->mount;
         }
 
-        for (i = 0; i < formatable_volumes; i++)
-        {
+        for (i = 0; i < formatable_volumes; i++) {
             FormatMenuEntry* e = &format_menu[i];
-            list[mountable_volumes+i] = e->txt;
+            list[mountable_volumes + i] = e->txt;
         }
 
         if (!is_data_media()) {
@@ -950,11 +883,10 @@ int show_partition_menu()
         chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
-        if (chosen_item == (mountable_volumes+formatable_volumes)) {
+        if (chosen_item == (mountable_volumes + formatable_volumes)) {
             if (!is_data_media()) {
                 show_mount_usb_storage_menu();
-            }
-            else {
+            } else {
                 if (!confirm_selection("格式化/data(包括内置储存)", confirm))
                     continue;
                 ignore_data_media_workaround(1);
@@ -965,28 +897,21 @@ int show_partition_menu()
                     ui_print("完成.\n");
                 ignore_data_media_workaround(0);
             }
-        }
-        else if (is_data_media() && chosen_item == (mountable_volumes+formatable_volumes+1)) {
+        } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
             show_mount_usb_storage_menu();
-        }
-        else if (chosen_item < mountable_volumes) {
+        } else if (chosen_item < mountable_volumes) {
             MountMenuEntry* e = &mount_menu[chosen_item];
 
-            if (is_path_mounted(e->path))
-            {
+            if (is_path_mounted(e->path)) {
                 ignore_data_media_workaround(1);
                 if (0 != ensure_path_unmounted(e->path))
                     ui_print("卸载%s出错!\n", e->path);
                 ignore_data_media_workaround(0);
-            }
-            else
-            {
+            } else {
                 if (0 != ensure_path_mounted(e->path))
                     ui_print("挂载%s出错!\n",  e->path);
             }
-        }
-        else if (chosen_item < (mountable_volumes + formatable_volumes))
-        {
+        } else if (chosen_item < (mountable_volumes + formatable_volumes)) {
             chosen_item = chosen_item - mountable_volumes;
             FormatMenuEntry* e = &format_menu[chosen_item];
 
@@ -1014,20 +939,18 @@ int show_partition_menu()
     return chosen_item;
 }
 
-void show_nandroid_advanced_restore_menu(const char* path)
-{
+void show_nandroid_advanced_restore_menu(const char* path) {
     if (ensure_path_mounted(path) != 0) {
-        LOGE ("Can't mount sdcard\n");
+        LOGE("Can't mount sdcard\n");
         return;
     }
 
     static const char* advancedheaders[] = {  "选择一个备份",
-                                "",
-                                "请先选中一个备份.",
-                                "下一步有更多选项.",
-                                "",
-                                NULL
-    };
+                                             "",
+                                             "请先选中一个备份,",
+                                             "下一步有更多选项.",
+                                             "",
+                                             NULL };
 
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/backup/", path);
@@ -1035,10 +958,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
     if (file == NULL)
         return;
 
-    static const char* headers[] = {  "高级还原菜单",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = { "高级还原菜单", "", NULL };
 
     static char* list[] = { "还原boot",
                             "还原system",
@@ -1046,8 +966,8 @@ void show_nandroid_advanced_restore_menu(const char* path)
                             "还原cache",
                             NULL,
                             NULL,
-                            NULL
-    };
+                            NULL };
+
 	int offset = 4;
 	int sdext=-1,wimax=-1;
     if (NULL != volume_for_path("/sd-ext")) {
@@ -1065,33 +985,37 @@ void show_nandroid_advanced_restore_menu(const char* path)
     static char* confirm_restore  = "确认还原备份?";
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
-    switch (chosen_item)
-    {
-        case 0:
+    switch (chosen_item) {
+        case 0: {
             if (confirm_selection(confirm_restore, "是的,还原boot"))
                 nandroid_restore(file, 1, 0, 0, 0, 0, 0);
             break;
-        case 1:
+        }
+        case 1: {
             if (confirm_selection(confirm_restore, "是的,还原system"))
                 nandroid_restore(file, 0, 1, 0, 0, 0, 0);
             break;
-        case 2:
+        }
+        case 2: {
             if (confirm_selection(confirm_restore, "是的,还原data"))
                 nandroid_restore(file, 0, 0, 1, 0, 0, 0);
             break;
-        case 3:
+        }
+        case 3: {
             if (confirm_selection(confirm_restore, "是的,还原cache"))
                 nandroid_restore(file, 0, 0, 0, 1, 0, 0);
             break;
-        default:
-			if (chosen_item==sdext) {
+        }
+        default: {
+			if (chosen_item == sdext) {
 				if (confirm_selection(confirm_restore, "是的,还原sdext"))
 					nandroid_restore(file, 0, 0, 0, 0, 1, 0);
-			} else if (chosen_item==wimax) {
+			} else if (chosen_item == wimax) {
 				if (confirm_selection(confirm_restore, "是的,还原wimax"))
 					nandroid_restore(file, 0, 0, 0, 0, 0, 1);
 			}
             break;
+        }
     }
 
     free(file);
@@ -1104,7 +1028,7 @@ static void run_dedupe_gc() {
     char** extra_paths = get_extra_storage_paths();
     int i = 0;
 
-    sprintf(path, fmt, primary_path); 
+    sprintf(path, fmt, primary_path);
     ensure_path_mounted(primary_path);
     nandroid_dedupe_gc(path);
 
@@ -1118,29 +1042,24 @@ static void run_dedupe_gc() {
 }
 
 static void choose_default_backup_format() {
-    static const char* headers[] = {  "选择备份格式",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = { "选择备份格式", "", NULL };
 
     int fmt = nandroid_get_default_backup_format();
 
     char **list;
     char* list_tar_default[] = { "tar (当前)",
-        "dup",
-        "tar + gzip",
-        NULL
-    };
+                                 "dup",
+                                 "tar + gzip",
+                                 NULL };
     char* list_dup_default[] = { "tar",
-        "dup (当前)",
-        "tar + gzip",
-        NULL
-    };
+                                 "dup (当前)",
+                                 "tar + gzip",
+                                 NULL };
     char* list_tgz_default[] = { "tar",
-        "dup",
-        "tar + gzip (当前)",
-        NULL
-    };
+                                 "dup",
+                                 "tar + gzip (当前)",
+                                 NULL };
+
     if (fmt == NANDROID_BACKUP_FORMAT_DUP) {
         list = list_dup_default;
     } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
@@ -1153,23 +1072,25 @@ static void choose_default_backup_format() {
     sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_BACKUP_FORMAT_FILE);
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item) {
-        case 0:
+        case 0: {
             write_string_to_file(path, "tar");
             ui_print("默认备份格式设置为tar.\n");
             break;
-        case 1:
+        }
+        case 1: {
             write_string_to_file(path, "dup");
             ui_print("默认备份格式设置为dedupe.\n");
             break;
-        case 2:
+        }
+        case 2: {
             write_string_to_file(path, "tgz");
             ui_print("默认备份格式设置为tar+gzip.\n");
             break;
+        }
     }
 }
 
-static void add_nandroid_options_for_volume(char** menu, char* path, int offset)
-{
+static void add_nandroid_options_for_volume(char** menu, char* path, int offset) {
     char buf[100];
 
     sprintf(buf, "备份到%s", path);
@@ -1191,8 +1112,7 @@ static void add_nandroid_options_for_volume(char** menu, char* path, int offset)
 // number of fixed bottom entries after volume actions
 #define NANDROID_FIXED_ENTRIES 2
 
-int show_nandroid_menu()
-{
+int show_nandroid_menu() {
     char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
@@ -1200,10 +1120,7 @@ int show_nandroid_menu()
     char* chosen_path = NULL;
     int action_entries_num = (num_extra_volumes + 1) * NANDROID_ACTIONS_NUM;
 
-    static const char* headers[] = {  "备份和还原",
-                                      "",
-                                      NULL
-    };
+    static const char* headers[] = { "备份和还原", "", NULL };
 
     // (MAX_NUM_MANAGED_VOLUMES + 1) for primary_path (/sdcard)
     // + 1 for extra NULL entry
@@ -1220,7 +1137,6 @@ int show_nandroid_menu()
             offset += NANDROID_ACTIONS_NUM;
         }
     }
-
     // fixed bottom entries
     list[offset] = "清理无用备份数据";
     list[offset + 1] = "选择默认备份格式";
@@ -1245,46 +1161,42 @@ int show_nandroid_menu()
             run_dedupe_gc();
         } else if (chosen_item == (action_entries_num + 1)) {
             choose_default_backup_format();
-        } else if (chosen_item < action_entries_num){
+        } else if (chosen_item < action_entries_num) {
             // get nandroid volume actions path
             if (chosen_item < NANDROID_ACTIONS_NUM) {
                 chosen_path = primary_path;
             } else if (extra_paths != NULL) {
                 chosen_path = extra_paths[(chosen_item / NANDROID_ACTIONS_NUM) - 1];
             }
-
             // process selected nandroid action
             int chosen_subitem = chosen_item % NANDROID_ACTIONS_NUM;
             switch (chosen_subitem) {
-                case 0:
-                    {
-                        char backup_path[PATH_MAX];
-                        char rom_name[PROPERTY_VALUE_MAX] = "noname";
-                        get_rom_name(rom_name);
+                case 0: {
+                    char backup_path[PATH_MAX];
+                    char rom_name[PROPERTY_VALUE_MAX] = "noname";
+                    get_rom_name(rom_name);
 
-                        time_t t = time(NULL);
-                        struct tm *tmp = localtime(&t);
-                        if (tmp == NULL)
-                        {
-                            struct timeval tp;
-                            gettimeofday(&tp, NULL);
-                            sprintf(backup_path, "%s/clockworkmod/backup/%ld_%s", chosen_path, tp.tv_sec, rom_name);
-                        }
-                        else
-                        {
-                            char path_fmt[PATH_MAX];
-                            strftime(path_fmt, sizeof(path_fmt), "clockworkmod/backup/%F.%H.%M.%S", tmp);
-                            // this sprintf results in:
-                            // clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
-                            sprintf(backup_path, "%s/%s_%s", chosen_path, path_fmt, rom_name);
-                        }
-    					ui_print("to:%s\n", backup_path);
-                        if (confirm_selection("确认备份?", "是的-备份"))
-                        {
-    						nandroid_backup(backup_path);                    
-    					}
+                    time_t t = time(NULL);
+                    struct tm *tmp = localtime(&t);
+                    if (tmp == NULL)
+                    {
+                        struct timeval tp;
+                        gettimeofday(&tp, NULL);
+                        sprintf(backup_path, "%s/clockworkmod/backup/%ld_%s", chosen_path, tp.tv_sec, rom_name);
+                    } else {
+                        char path_fmt[PATH_MAX];
+                        strftime(path_fmt, sizeof(path_fmt), "clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        // this sprintf results in:
+                        // clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
+                        sprintf(backup_path, "%s/%s_%s", chosen_path, path_fmt, rom_name);
                     }
+					ui_print("to:%s\n", backup_path);
+                    if (confirm_selection( "确认备份?", "是的-备份"))
+                    {
+						nandroid_backup(backup_path);
+					}
                     break;
+                }
                 case 1:
                     show_nandroid_restore_menu(chosen_path);
                     break;
@@ -1299,7 +1211,7 @@ int show_nandroid_menu()
             }
         } else {
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
-                handle_nandroid_menu(action_entries_num + NANDROID_FIXED_ENTRIES, chosen_item);
+            handle_nandroid_menu(action_entries_num + NANDROID_FIXED_ENTRIES, chosen_item);
 #endif
             goto out;
         }
@@ -1329,8 +1241,7 @@ void format_sdcard(const char* volume) {
                             "ext4",
                             "ext3",
                             "ext2",
-                            NULL
-    };
+                            NULL };
 
     int ret = -1;
     char cmd[PATH_MAX];
@@ -1343,15 +1254,14 @@ void format_sdcard(const char* volume) {
     if (ensure_path_unmounted(v->mount_point) != 0)
         return;
 
-    switch (chosen_item)
-    {
+    switch (chosen_item) {
         case 0:
             ret = format_volume(v->mount_point);
             break;
         case 1:
         case 2:
         case 3:
-        case 4:
+        case 4: {
             if (fs_mgr_is_voldmanaged(v)) {
                 ret = vold_custom_format_volume(v->mount_point, list[chosen_item], 1) == CommandOkay ? 0 : -1;
             } else if (strcmp(list[chosen_item], "vfat") == 0) {
@@ -1367,16 +1277,16 @@ void format_sdcard(const char* volume) {
                 ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
             }
             break;
+        }
         case 5:
-        case 6:
-            {
-                // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
-                const char *device = v->blk_device2;
-                if (device == NULL)
-                    device = v->blk_device;
-                ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
-                break;
-            }
+        case 6: {
+            // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
+            const char *device = v->blk_device2;
+            if (device == NULL)
+                device = v->blk_device;
+            ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
+            break;
+        }
     }
 
     if (ret)
@@ -1408,12 +1318,11 @@ static void partition_sdcard(const char* volume) {
 
     static char* partition_types[] = { "ext3",
                                        "ext4",
-                                       NULL
-    };
+                                       NULL };
 
     static const char* ext_headers[] = { "Ext Size", "", NULL };
     static const char* swap_headers[] = { "Swap Size", "", NULL };
-    static const char* fstype_headers[] = {"Partition Type", "", NULL };
+    static const char* fstype_headers[] = { "Partition Type", "", NULL };
 
     int ext_size = get_menu_selection(ext_headers, ext_sizes, 0, 0);
     if (ext_size < 0)
@@ -1433,7 +1342,8 @@ static void partition_sdcard(const char* volume) {
     // can_partition() ensured either blk_device or blk_device2 has /dev/block/mmcblk format
     if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL)
         strcpy(sddevice, vol->blk_device);
-    else strcpy(sddevice, vol->blk_device2);
+    else
+        strcpy(sddevice, vol->blk_device2);
 
     // we only want the mmcblk, not the partition
     sddevice[strlen("/dev/block/mmcblkX")] = '\0';
@@ -1460,7 +1370,6 @@ int can_partition(const char* volume) {
         LOGI("Can't partition non-vfat: %s (%s)\n", volume, vol->fs_type);
         return 0;
     }
-
     // do not allow partitioning of a device that isn't mmcblkX or mmcblkXp1
     // needed with new vold managed volumes and virtual device path links
     int vol_len;
@@ -1485,13 +1394,12 @@ int can_partition(const char* volume) {
 
 
 #ifdef ENABLE_LOKI
-    #define FIXED_ADVANCED_ENTRIES 8
+#define FIXED_ADVANCED_ENTRIES 8
 #else
-    #define FIXED_ADVANCED_ENTRIES 7
+#define FIXED_ADVANCED_ENTRIES 7
 #endif
 
-int show_advanced_menu()
-{
+int show_advanced_menu() {
     char buf[80];
     int i = 0, j = 0, chosen_item = 0;
     /* Default number of entries if no compile-time extras are added */
@@ -1501,10 +1409,7 @@ int show_advanced_menu()
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {  "高级选项菜单",
-                                "",
-                                NULL
-    };
+    static const char* headers[] = { "高级选项", "", NULL };
 
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1);
 
@@ -1545,21 +1450,17 @@ int show_advanced_menu()
     }
     list[FIXED_ADVANCED_ENTRIES + j] = NULL;
 
-    for (;;)
-    {
+    for (;;) {
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
-        switch (chosen_item)
-        {
-            case 0:
-            {
+        switch (chosen_item) {
+            case 0: {
                 ui_print("正在重启到recovery...\n");
                 reboot_main_system(ANDROID_RB_RESTART2, 0, "recovery");
                 break;
             }
-            case 1:
-            {
+            case 1: {
                 if (!strcmp(bootloader_mode, "download")) {
                     ui_print("正在重启到download模式...\n");
                     reboot_main_system(ANDROID_RB_RESTART2, 0, "download");
@@ -1569,16 +1470,16 @@ int show_advanced_menu()
                 }
                 break;
             }
-            case 2:
-            {
+            case 2: {
                 ui_print("正在关机...\n");
                 reboot_main_system(ANDROID_RB_POWEROFF, 0, 0);
                 break;
             }
-            case 3:
+            case 3: {
                 if (0 != ensure_path_mounted("/data"))
                     break;
-                ensure_path_mounted("/sd-ext");
+                if (volume_for_path("/sd-ext") != NULL)
+                    ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection( "确认清除?", "是的,清除dalvik cache")) {
                     __system("rm -r /data/dalvik-cache");
@@ -1588,22 +1489,20 @@ int show_advanced_menu()
                 }
                 ensure_path_unmounted("/data");
                 break;
+            }
             case 4:
                 handle_failure(1);
                 break;
-            case 5:
-            {
+            case 5: {
                 ui_print("显示按键代码.\n");
                 ui_print("后退键结束测试.\n");
                 int key;
                 int action;
-                do
-                {
+                do {
                     key = ui_wait_key();
                     action = device_handle_key(key, 1);
                     ui_print("Key: %d\n", key);
-                }
-                while (action != GO_BACK);
+                } while (action != GO_BACK);
                 break;
             }
             case 6:
@@ -1626,8 +1525,7 @@ int show_advanced_menu()
     return chosen_item;
 }
 
-void write_fstab_root(char *path, FILE *file)
-{
+void write_fstab_root(char *path, FILE *file) {
     Volume *vol = volume_for_path(path);
     if (vol == NULL) {
         LOGW("Unable to get recovery.fstab info for %s during fstab generation!\n", path);
@@ -1646,8 +1544,7 @@ void write_fstab_root(char *path, FILE *file)
     fprintf(file, "%s rw\n", vol->fs_type2 != NULL && strcmp(vol->fs_type, "rfs") != 0 ? "auto" : vol->fs_type);
 }
 
-void create_fstab()
-{
+void create_fstab() {
     struct stat info;
     __system("touch /etc/mtab");
     FILE *file = fopen("/etc/fstab", "w");
@@ -1657,7 +1554,7 @@ void create_fstab()
     }
     Volume *vol = volume_for_path("/boot");
     if (NULL != vol && strcmp(vol->fs_type, "mtd") != 0 && strcmp(vol->fs_type, "emmc") != 0 && strcmp(vol->fs_type, "bml") != 0)
-         write_fstab_root("/boot", file);
+        write_fstab_root("/boot", file);
     write_fstab_root("/cache", file);
     write_fstab_root("/data", file);
     write_fstab_root("/datadata", file);
@@ -1679,13 +1576,13 @@ int bml_check_volume(const char *path) {
         ensure_path_unmounted(path);
         return 0;
     }
-    
+
     Volume *vol = volume_for_path(path);
     if (vol == NULL) {
         LOGE("Unable process volume! Skipping...\n");
         return 0;
     }
-    
+
     ui_print("%s may be rfs. Checking...\n", path);
     char tmp[PATH_MAX];
     sprintf(tmp, "mount -t rfs %s %s", vol->blk_device, path);
@@ -1714,12 +1611,12 @@ void process_volumes() {
     if (has_datadata())
         ret |= bml_check_volume("/datadata");
     ret |= bml_check_volume("/cache");
-    
+
     if (ret == 0) {
         ui_print("Done!\n");
         return;
     }
-    
+
     char backup_path[PATH_MAX];
     time_t t = time(NULL);
     char backup_name[PATH_MAX];
@@ -1740,8 +1637,7 @@ void process_volumes() {
     ui_set_show_text(0);
 }
 
-void handle_failure(int ret)
-{
+void handle_failure(int ret) {
     if (ret == 0)
         return;
     if (0 != ensure_path_mounted(get_primary_storage_path()))
@@ -1764,8 +1660,7 @@ static int is_path_mounted(const char* path) {
     if (scan_mounted_volumes() < 0)
         return 0;
 
-    const MountedVolume* mv =
-        find_mounted_volume_by_mount_point(v->mount_point);
+    const MountedVolume* mv = find_mounted_volume_by_mount_point(v->mount_point);
     if (mv) {
         // volume is already mounted
         return 1;
@@ -1786,6 +1681,10 @@ int volume_main(int argc, char **argv) {
 int verify_root_and_recovery() {
     if (ensure_path_mounted("/system") != 0)
         return 0;
+
+    // none of these options should get a "Go Back" option
+    int old_val = ui_get_showing_back_button();
+    ui_set_showing_back_button(0);
 
     int ret = 0;
     struct stat st;
@@ -1842,5 +1741,6 @@ int verify_root_and_recovery() {
     }
 
     ensure_path_unmounted("/system");
+    ui_set_showing_back_button(old_val);
     return ret;
 }
