@@ -240,8 +240,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Note 10.1 GSM (n8000) and classic (n8013)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013),)
+#Galaxy Note 10.1 GSM (n8000), Wifi (n8013), LTE (n8020)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013 cm_n8020),)
     TARGET_COMMON_NAME := Galaxy Note 10.1 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
@@ -504,6 +504,11 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_xt925 cm_xt926),)
 #Motorola Atrix HD
 else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_COMMON_NAME := Atrix HD
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
+
+#Motorola Moto X: VZW (xt1060), GSM (xt1058), TMO (xt1053)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1060 cm_xt1058 cm_xt1053),)
+    TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
 #Oppo Find5 (find5)
