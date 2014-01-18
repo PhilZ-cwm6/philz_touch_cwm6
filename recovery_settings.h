@@ -20,9 +20,9 @@
 #define CUSTOM_ROM_PATH     "clockworkmod/custom_rom"
 
 // other settings
-#define PHILZ_SETTINGS_FILE "/data/philz-touch/philz-touch_6.ini"
-#define PHILZ_SETTINGS_BAK  "clockworkmod/philz-touch_6.ini.bak"
-#define PHILZ_THEMES_PATH   "clockworkmod/themes"
-#define AROMA_FM_PATH       "clockworkmod/aromafm/aromafm.zip"
-#define MULTI_ZIP_FOLDER    "clockworkmod/multi_flash"
-#define RECOVERY_ORS_PATH   "clockworkmod/ors"
+#define PHILZ_SETTINGS_FILE     "/data/philz-touch/philz-touch_6.ini"
+#define PHILZ_SETTINGS_BAK      "clockworkmod/philz-touch_6.ini.bak"
+#define PHILZ_THEMES_PATH       "clockworkmod/themes"
+#define AROMA_FM_PATH           "clockworkmod/aromafm/aromafm.zip"
+#define MULTI_ZIP_FOLDER        "clockworkmod/multi_flash"
+#define RECOVERY_ORS_PATH       "clockworkmod/ors"
