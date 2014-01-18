@@ -293,16 +293,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx cm_serrano
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Tab 2 - p3100
-else ifeq ($(TARGET_PRODUCT), cm_p3100)
-    TARGET_COMMON_NAME := p3100
+#Galaxy Tab 2 - p3100, p3110
+else ifneq ($(filter $(TARGET_PRODUCT),cm_p3100 cm_p3110),)
+    TARGET_COMMON_NAME := Galaxy Tab 2 ($(TARGET_PRODUCT))
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
-    RECOVERY_TOUCHSCREEN_SWAP_XY := true
-    RECOVERY_TOUCHSCREEN_FLIP_Y := true
+    #RECOVERY_TOUCHSCREEN_SWAP_XY := true
+    #RECOVERY_TOUCHSCREEN_FLIP_Y := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Tab 2 - p5100 / p5110
@@ -506,8 +506,8 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_COMMON_NAME := Atrix HD
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola Moto X: VZW (xt1060), GSM (xt1058), TMO (xt1053)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1060 cm_xt1058 cm_xt1053),)
+#Motorola Moto X: TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1053 cm_xt1055 cm_xt1056 cm_xt1058 cm_xt1060),)
     TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
