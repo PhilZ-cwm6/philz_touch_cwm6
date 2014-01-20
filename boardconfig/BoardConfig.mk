@@ -417,8 +417,8 @@ else ifeq ($(TARGET_PRODUCT), cm_zara)
     TARGET_COMMON_NAME := HTC Desire 601 (zara)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#HTC One X - endeavoru
-else ifeq ($(TARGET_PRODUCT), cm_endeavoru)
+#HTC One X (endeavoru) - HTC One X+ (enrc2b)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_endeavoru cm_enrc2b),)
     TARGET_COMMON_NAME := HTC One X
     BOARD_USE_NTFS_3G := false
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/tegra-pwm-bl/brightness"
