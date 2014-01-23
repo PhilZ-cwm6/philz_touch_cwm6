@@ -46,6 +46,7 @@
 #include "recovery_ui.h"
 
 #include "extendedcommands.h"
+#include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
 #include "flashutils/flashutils.h"
@@ -307,10 +308,6 @@ int run_script_from_buffer(char* script_data, int script_len, char* filename)
     return 0;
 }
 
-
-
-#define EXTENDEDCOMMAND_SCRIPT "/cache/recovery/extendedcommand"
-
 int run_and_remove_extendedcommand()
 {
     char* primary_path = get_primary_storage_path();
@@ -359,12 +356,6 @@ int run_and_remove_extendedcommand()
     }
 #endif
     return run_script(tmp);
-}
-
-int extendedcommand_file_exists()
-{
-    struct stat file_info;
-    return 0 == stat(EXTENDEDCOMMAND_SCRIPT, &file_info);
 }
 
 int edify_main(int argc, char** argv) {

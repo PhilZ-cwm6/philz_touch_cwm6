@@ -6,6 +6,7 @@
 #define RECOVERY_MANY_CONFIRM_FILE  "clockworkmod/.many_confirm"
 #define RECOVERY_VERSION_FILE       "clockworkmod/.recovery_version"
 #define RECOVERY_LAST_INSTALL_FILE  "clockworkmod/.last_install_path"
+#define EXTENDEDCOMMAND_SCRIPT "/cache/recovery/extendedcommand"
 
 // nandroid settings
 #define NANDROID_HIDE_PROGRESS_FILE  "clockworkmod/.hidenandroidprogress"
@@ -26,3 +27,4 @@
 #define AROMA_FM_PATH           "clockworkmod/aromafm/aromafm.zip"
 #define MULTI_ZIP_FOLDER        "clockworkmod/multi_flash"
 #define RECOVERY_ORS_PATH       "clockworkmod/ors"
+#define ORS_BOOT_SCRIPT_FILE    "/cache/recovery/openrecoveryscript"

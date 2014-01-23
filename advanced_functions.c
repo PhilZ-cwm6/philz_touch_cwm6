@@ -63,6 +63,7 @@
 
 int check_root_and_recovery = 1;
 static int auto_restore_settings = 0;
+static int ignore_android_secure = 0;
 
 static unsigned long long gettime() {
     struct timespec ts;
@@ -740,23 +741,35 @@ void show_multi_flash_menu() {
 /*  Enhanced by PhilZ @xda               */
 /*****************************************/
 
-#define SCRIPT_COMMAND_SIZE 512
-static int ignore_android_secure = 0;
-
-int check_for_script_file(const char* ors_boot_script) {
-    ensure_path_mounted(ors_boot_script);
-    struct stat s;
-    if (0 != stat(ors_boot_script, &s))
+int check_boot_script_file(const char* boot_script) {
+    if (!file_found(boot_script))
         return -1;
 
+    LOGI("Script file found: '%s'\n", boot_script);
     char tmp[PATH_MAX];
-    LOGI("Script file found: '%s'\n", ors_boot_script);
-    __system("/sbin/ors-mount.sh");
-    // move script file to /tmp
-    sprintf(tmp, "mv %s /tmp", ors_boot_script);
-    __system(tmp);
+    sprintf(tmp, "/sbin/bootscripts_mnt.sh %s %s", boot_script, get_primary_storage_path());
+    if (0 != __system(tmp)) {
+        // non fatal error
+        LOGE("failed to fix boot script (%s)\n", strerror(errno));
+        LOGE("run without fixing...\n");
+    }
 
     return 0;
+}
+
+int run_ors_boot_script() {
+    int ret = 0;
+    char tmp[PATH_MAX];
+
+    if (!file_found(ORS_BOOT_SCRIPT_FILE))
+        return -1;
+
+    sprintf(tmp, "cp -f %s /tmp/%s", ORS_BOOT_SCRIPT_FILE, basename(ORS_BOOT_SCRIPT_FILE));
+    __system(tmp);
+    remove(ORS_BOOT_SCRIPT_FILE);
+
+    sprintf(tmp, "/tmp/%s", basename(ORS_BOOT_SCRIPT_FILE));
+    return run_ors_script(tmp);
 }
 
 // sets the default backup volume for ors backup command
@@ -805,8 +818,11 @@ static void choose_ors_volume() {
     }
 }
 
+
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
+#define SCRIPT_COMMAND_SIZE 512
+
 static int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
     int old_enable_md5sum = enable_md5sum;
@@ -892,7 +908,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
 
 // run ors script code
 // this can be started on boot or manually for custom ors
-int run_ors_script(const char* ors_script) {
+static int run_ors_script(const char* ors_script) {
     FILE *fp = fopen(ors_script, "r");
     int ret_val = 0, cindex, line_len, i, remove_nl;
     char script_line[SCRIPT_COMMAND_SIZE], command[SCRIPT_COMMAND_SIZE],

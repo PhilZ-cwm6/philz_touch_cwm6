@@ -46,8 +46,6 @@ void handle_failure(int ret);
 
 void process_volumes();
 
-int extendedcommand_file_exists();
-
 int show_install_update_menu();
 
 int confirm_selection(const char* title, const char* confirm);

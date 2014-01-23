@@ -48,6 +48,7 @@
 
 #include "firmware.h"
 #include "extendedcommands.h"
+#include "recovery_settings.h"
 #include "advanced_functions.h"
 #include "flashutils/flashutils.h"
 #include "dedupe/dedupe.h"
@@ -1179,7 +1180,7 @@ main(int argc, char **argv) {
 #endif
         }
 
-        if (extendedcommand_file_exists()) {
+        if (0 == check_boot_script_file(EXTENDEDCOMMAND_SCRIPT)) {
             LOGI("Running extendedcommand...\n");
             int ret;
             if (0 == (ret = run_and_remove_extendedcommand())) {
@@ -1192,11 +1193,12 @@ main(int argc, char **argv) {
         } else {
             LOGI("Skipping execution of extendedcommand, file not found...\n");
         }
-        if (0 == check_for_script_file("/cache/recovery/openrecoveryscript")) {
+
+        if (0 == check_boot_script_file(ORS_BOOT_SCRIPT_FILE)) {
             LOGI("Running openrecoveryscript....\n");
             no_wipe_confirm = 1; //this is a script started at boot, do not confirm wipe operations
             int ret;
-            if (0 == (ret = run_ors_script("/tmp/openrecoveryscript"))) {
+            if (0 == (ret = run_ors_boot_script())) {
                 status = INSTALL_SUCCESS;
                 ui_set_show_text(0);
             } else {

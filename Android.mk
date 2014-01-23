@@ -222,11 +222,11 @@ LOCAL_SRC_FILES := raw-backup.sh
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := ors-mount.sh
+LOCAL_MODULE := bootscripts_mnt.sh
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
 LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
-LOCAL_SRC_FILES := ors-mount.sh
+LOCAL_SRC_FILES := bootscripts_mnt.sh
 include $(BUILD_PREBUILT)
 #end philz external scripts
 
