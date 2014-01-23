@@ -56,7 +56,7 @@ else ifeq ($(TARGET_PRODUCT), cm_tf700t)
     TARGET_COMMON_NAME := Asus Transformer TF700T
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
 
-#Galaxy R / Z - i9103 (cm 10.1 only)
+#Galaxy R / Z (i9103)
 else ifeq ($(TARGET_PRODUCT), cm_i9103)
     TARGET_COMMON_NAME := i9103
     BOARD_UMS_LUNFILE := "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
@@ -525,21 +525,25 @@ else ifeq ($(TARGET_PRODUCT), cm_yuga)
 #Sony Xperia Z1 (honami)
 else ifeq ($(TARGET_PRODUCT), cm_honami)
     TARGET_COMMON_NAME := Xperia Z1
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
 
 #Sony Xperia ZU (togari)
 else ifeq ($(TARGET_PRODUCT), cm_togari)
     TARGET_COMMON_NAME := Xperia ZU
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
 
 #Sony Xperia SP (huashan)
 else ifeq ($(TARGET_PRODUCT), cm_huashan)
     TARGET_COMMON_NAME := Xperia SP
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight1/brightness"
 
 #Sony Xperia T (mint)
 else ifeq ($(TARGET_PRODUCT), cm_mint)
     TARGET_COMMON_NAME := Xperia T
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight_1/brightness"
 
 endif
