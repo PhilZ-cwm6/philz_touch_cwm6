@@ -1,0 +1,373 @@
+diff --git a/Android.mk b/Android.mk
+index 9976a30..b224d69 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -23,7 +23,7 @@ LOCAL_SRC_FILES := \
+     reboot.c \
+     ../../system/core/toolbox/dynarray.c \
+     ../../system/core/toolbox/newfs_msdos.c \
+-    firmware$(src_suffix).c \
++    firmware.c \
+     edifyscripting$(src_suffix).c \
+     prop.c \
+     default_recovery_ui.c \
+diff --git a/edifyscripting.c b/edifyscripting.c
+index 440d5f2..95fd51e 100644
+--- a/edifyscripting.c
++++ b/edifyscripting.c
+@@ -318,6 +318,7 @@ int run_and_remove_extendedcommand()
+     sprintf(tmp, "cp %s /tmp/%s", EXTENDEDCOMMAND_SCRIPT, basename(EXTENDEDCOMMAND_SCRIPT));
+     __system(tmp);
+     remove(EXTENDEDCOMMAND_SCRIPT);
++    sleep(2); // wait for postrecoveryboot.sh umount system
+     int i = 0;
+     for (i = 20; i > 0; i--) {
+         ui_print("Waiting for SD Card to mount (%ds)\n", i);
+diff --git a/edifyscripting_cn.c b/edifyscripting_cn.c
+index 4053ef0..88730a3 100644
+--- a/edifyscripting_cn.c
++++ b/edifyscripting_cn.c
+@@ -318,6 +318,7 @@ int run_and_remove_extendedcommand()
+     sprintf(tmp, "cp %s /tmp/%s", EXTENDEDCOMMAND_SCRIPT, basename(EXTENDEDCOMMAND_SCRIPT));
+     __system(tmp);
+     remove(EXTENDEDCOMMAND_SCRIPT);
++    sleep(2); // wait for postrecoveryboot.sh umount system
+     int i = 0;
+     for (i = 20; i > 0; i--) {
+         ui_print("等待SD卡挂载(%ds)\n", i);
+diff --git a/firmware.c b/firmware.c
+index 4e5c24f..b10ab0b 100644
+--- a/firmware.c
++++ b/firmware.c
+@@ -100,12 +100,19 @@ int maybe_install_firmware_update(const char *send_intent) {
+         BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
+     char *fail_image = ui_copy_image(
+         BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
+-
++#ifdef USE_CHINESE_FONT
++    ui_print("正在写入%s镜像...\n", update_type);
++#else
+     ui_print("Writing %s image...\n", update_type);
++#endif
+     if (write_update_for_bootloader(
+             update_data, update_length,
+             width, height, bpp, busy_image, fail_image)) {
++#ifdef USE_CHINESE_FONT
++        LOGE("不能写入%s镜像\n(%s)\n", update_type, strerror(errno));
++#else
+         LOGE("Can't write %s image\n(%s)\n", update_type, strerror(errno));
++#endif
+         format_volume("/cache");  // Attempt to clean cache up, at least.
+         return -1;
+     }
+diff --git a/firmware_cn.c b/firmware_cn.c
+deleted file mode 100644
+index fb16f64..0000000
+--- a/firmware_cn.c
++++ /dev/null
+@@ -1,131 +0,0 @@
+-/*
+- * Copyright (C) 2008 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#include "bootloader.h"
+-#include "common.h"
+-#include "firmware.h"
+-#include "roots.h"
+-
+-#include <errno.h>
+-#include <string.h>
+-#include <sys/reboot.h>
+-
+-static const char *update_type = NULL;
+-static const char *update_data = NULL;
+-static int update_length = 0;
+-
+-int remember_firmware_update(const char *type, const char *data, int length) {
+-    if (update_type != NULL || update_data != NULL) {
+-        LOGE("Multiple firmware images\n");
+-        return -1;
+-    }
+-
+-    update_type = type;
+-    update_data = data;
+-    update_length = length;
+-    return 0;
+-}
+-
+-// Return true if there is a firmware update pending.
+-int firmware_update_pending() {
+-  return update_data != NULL && update_length > 0;
+-}
+-
+-/* Bootloader / Recovery Flow
+- *
+- * On every boot, the bootloader will read the bootloader_message
+- * from flash and check the command field.  The bootloader should
+- * deal with the command field not having a 0 terminator correctly
+- * (so as to not crash if the block is invalid or corrupt).
+- *
+- * The bootloader will have to publish the partition that contains
+- * the bootloader_message to the linux kernel so it can update it.
+- *
+- * if command == "boot-recovery" -> boot recovery.img
+- * else if command == "update-radio" -> update radio image (below)
+- * else if command == "update-hboot" -> update hboot image (below)
+- * else -> boot boot.img (normal boot)
+- *
+- * Radio/Hboot Update Flow
+- * 1. the bootloader will attempt to load and validate the header
+- * 2. if the header is invalid, status="invalid-update", goto #8
+- * 3. display the busy image on-screen
+- * 4. if the update image is invalid, status="invalid-radio-image", goto #8
+- * 5. attempt to update the firmware (depending on the command)
+- * 6. if successful, status="okay", goto #8
+- * 7. if failed, and the old image can still boot, status="failed-update"
+- * 8. write the bootloader_message, leaving the recovery field
+- *    unchanged, updating status, and setting command to
+- *    "boot-recovery"
+- * 9. reboot
+- *
+- * The bootloader will not modify or erase the cache partition.
+- * It is recovery's responsibility to clean up the mess afterwards.
+- */
+-
+-int maybe_install_firmware_update(const char *send_intent) {
+-    if (update_data == NULL || update_length == 0) return 0;
+-
+-    /* We destroy the cache partition to pass the update image to the
+-     * bootloader, so all we can really do afterwards is wipe cache and reboot.
+-     * Set up this instruction now, in case we're interrupted while writing.
+-     */
+-
+-    struct bootloader_message boot;
+-    memset(&boot, 0, sizeof(boot));
+-    strlcpy(boot.command, "boot-recovery", sizeof(boot.command));
+-    strlcpy(boot.recovery, "recovery\n--wipe_cache\n", sizeof(boot.command));
+-    if (send_intent != NULL) {
+-        strlcat(boot.recovery, "--send_intent=", sizeof(boot.recovery));
+-        strlcat(boot.recovery, send_intent, sizeof(boot.recovery));
+-        strlcat(boot.recovery, "\n", sizeof(boot.recovery));
+-    }
+-    if (set_bootloader_message(&boot)) return -1;
+-
+-    int width = 0, height = 0, bpp = 0;
+-    char *busy_image = ui_copy_image(
+-        BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
+-    char *fail_image = ui_copy_image(
+-        BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
+-
+-    ui_print("正在写入%s镜像...\n", update_type);
+-    if (write_update_for_bootloader(
+-            update_data, update_length,
+-            width, height, bpp, busy_image, fail_image)) {
+-        LOGE("不能写入%s镜像\n(%s)\n", update_type, strerror(errno));
+-        format_volume("/cache");  // Attempt to clean cache up, at least.
+-        return -1;
+-    }
+-
+-    free(busy_image);
+-    free(fail_image);
+-
+-    /* The update image is fully written, so now we can instruct the bootloader
+-     * to install it.  (After doing so, it will come back here, and we will
+-     * wipe the cache and reboot into the system.)
+-     */
+-    snprintf(boot.command, sizeof(boot.command), "update-%s", update_type);
+-    if (set_bootloader_message(&boot)) {
+-        format_volume("/cache");
+-        return -1;
+-    }
+-
+-    reboot(RB_AUTOBOOT);
+-
+-    // Can't reboot?  WTF?
+-    LOGE("Can't reboot\n");
+-    return -1;
+-}
+diff --git a/install.c b/install.c
+index 82fca58..8f1b38f 100644
+--- a/install.c
++++ b/install.c
+@@ -141,7 +141,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
+         mzCloseZipArchive(zip);
+         return 1;
+     }
+-
++if (0) {
+     /* Make sure the update binary is compatible with this recovery
+      *
+      * We're building this against 4.4's (or above) bionic, which
+@@ -207,7 +207,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
+         fclose(updaterfile);
+         fclose(fallbackupdater);
+     }
+-
++}
+     int pipefd[2];
+     pipe(pipefd);
+ 
+diff --git a/install_cn.c b/install_cn.c
+index f5776fd..bbdedbe 100644
+--- a/install_cn.c
++++ b/install_cn.c
+@@ -141,7 +141,73 @@ try_update_binary(const char *path, ZipArchive *zip) {
+         mzCloseZipArchive(zip);
+         return 1;
+     }
+-
++if (0) {
++    /* Make sure the update binary is compatible with this recovery
++     *
++     * We're building this against 4.4's (or above) bionic, which
++     * has a different property namespace structure. Old updaters
++     * don't know how to deal with it, so if we think we got one
++     * of those, force the use of a fallback compatible copy and
++     * hope for the best
++     *
++     * if "set_perm_" is found, it's probably a regular updater
++     * instead of a custom one. And if "set_metadata_" isn't there,
++     * it's pre-4.4, which makes it incompatible
++     *
++     * Also, I hate matching strings in binary blobs */
++
++    FILE *updaterfile = fopen(binary, "rb");
++    char tmpbuf;
++    char setpermmatch[9] = { 's','e','t','_','p','e','r','m','_' };
++    char setmetamatch[13] = { 's','e','t','_','m','e','t','a','d','a','t','a','_' };
++    int pos = 0;
++    bool foundsetperm = false;
++    bool foundsetmeta = false;
++
++    if (updaterfile == NULL) {
++        LOGE("找不到%s文件检测\n", ASSUMED_UPDATE_BINARY_NAME);
++        return 1;
++    }
++    fseek(updaterfile, 0, SEEK_SET);
++    while (!feof(updaterfile)) {
++        fread(&tmpbuf, 1, 1, updaterfile);
++        if (!foundsetperm && pos < sizeof(setpermmatch) && tmpbuf == setpermmatch[pos]) {
++            pos++;
++            if (pos == sizeof(setpermmatch)) {
++                foundsetperm = true;
++                pos = 0;
++            }
++            continue;
++        }
++        if (!foundsetmeta && tmpbuf == setmetamatch[pos]) {
++            pos++;
++            if (pos == sizeof(setmetamatch)) {
++                foundsetmeta = true;
++                pos = 0;
++            }
++            continue;
++        }
++        /* None of the match loops got a continuation, reset the counter */
++        pos = 0;
++    }
++    fclose(updaterfile);
++
++    /* Found set_perm and !set_metadata, overwrite the binary with the fallback */
++    if (foundsetperm && !foundsetmeta) {
++        FILE *fallbackupdater = fopen("/res/updater.fallback", "rb");
++        FILE *updaterfile = fopen(binary, "wb");
++        char updbuf[1024];
++
++        LOGW("使用低版本的安装程序...\n");
++        while (!feof(fallbackupdater)) {
++           fread(&updbuf, 1, 1024, fallbackupdater);
++           fwrite(&updbuf, 1, 1024, updaterfile);
++        }
++        chmod(binary, 0755);
++        fclose(updaterfile);
++        fclose(fallbackupdater);
++    }
++}
+     int pipefd[2];
+     pipe(pipefd);
+ 
+diff --git a/nandroid_cn.c b/nandroid_cn.c
+index 4ef9c7e..4d08d00 100644
+--- a/nandroid_cn.c
++++ b/nandroid_cn.c
+@@ -517,7 +517,14 @@ int nandroid_dump(const char* partition) {
+     default_backup_handler = tar_dump_wrapper;
+ 
+     if (strcmp(partition, "boot") == 0) {
+-        return __system("dump_image boot /proc/self/fd/1 | cat");
++        Volume *vol = volume_for_path("/boot");
++        // make sure the volume exists before attempting anything...
++        if (vol == NULL || vol->fs_type == NULL)
++            return 1;
++        char cmd[PATH_MAX];
++        sprintf(cmd, "cat %s", vol->blk_device);
++        return __system(cmd);
++        // return nandroid_backup_partition("-", "/boot");
+     }
+ 
+     if (strcmp(partition, "recovery") == 0) {
+diff --git a/recovery_cn.c b/recovery_cn.c
+index ee0cc5e..6dfa2ef 100644
+--- a/recovery_cn.c
++++ b/recovery_cn.c
+@@ -68,19 +68,17 @@ static const struct option OPTIONS[] = {
+ };
+ 
+ #define LAST_LOG_FILE "/cache/recovery/last_log"
+-
+ static const char *CACHE_LOG_DIR = "/cache/recovery";
+ static const char *COMMAND_FILE = "/cache/recovery/command";
+ static const char *INTENT_FILE = "/cache/recovery/intent";
+ static const char *LOG_FILE = "/cache/recovery/log";
+ static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
+ static const char *CACHE_ROOT = "/cache";
+-static const char *SDCARD_ROOT = "/sdcard";
+-static int allow_display_toggle = 0;
+ static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
+ static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
+ static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
+ 
++static int allow_display_toggle = 0;
+ extern UIParameters ui_parameters;    // from ui.c
+ 
+ /*
+diff --git a/su/supersu/arm/su b/su/supersu/arm/su
+old mode 100644
+new mode 100755
+index 081a702..a080a59
+Binary files a/su/supersu/arm/su and b/su/supersu/arm/su differ
+diff --git a/su/supersu/common/99SuperSUDaemon b/su/supersu/common/99SuperSUDaemon
+old mode 100644
+new mode 100755
+diff --git a/su/supersu/common/install-recovery.sh b/su/supersu/common/install-recovery.sh
+old mode 100644
+new mode 100755
+diff --git a/su/supersu/install-su.sh b/su/supersu/install-su.sh
+index b7e2502..96896da 100755
+--- a/su/supersu/install-su.sh
++++ b/su/supersu/install-su.sh
+@@ -120,7 +120,7 @@ echo 1 > /system/etc/.installed_su_daemon
+ set_perm 0 0 0777 /system/bin/.ext
+ set_perm 0 0 06755 /system/bin/.ext/.su
+ set_perm 0 0 06755 /system/xbin/su
+-set_perm 0 0 06755 /system/xbin/daemonsu
++set_perm 0 0 0755 /system/xbin/daemonsu
+ set_perm 0 0 0755 /system/etc/install-recovery.sh
+ set_perm 0 0 0755 /system/etc/init.d/99SuperSUDaemon
+ set_perm 0 0 0644 /system/etc/.installed_su_daemon
+diff --git a/su/supersu/installer/UPDATE-SuperSU-v1.89.zip b/su/supersu/installer/UPDATE-SuperSU-v1.89.zip
+deleted file mode 100755
+index 717bca7..0000000
+Binary files a/su/supersu/installer/UPDATE-SuperSU-v1.89.zip and /dev/null differ

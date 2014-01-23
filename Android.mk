@@ -23,7 +23,7 @@ LOCAL_SRC_FILES := \
     reboot.c \
     ../../system/core/toolbox/dynarray.c \
     ../../system/core/toolbox/newfs_msdos.c \
-    firmware$(src_suffix).c \
+    firmware.c \
     edifyscripting$(src_suffix).c \
     prop.c \
     default_recovery_ui.c \
