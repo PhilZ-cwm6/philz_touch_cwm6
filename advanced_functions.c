@@ -1557,8 +1557,8 @@ void misc_nandroid_menu()
                         else if (compression_value == TAR_GZ_HIGH)
                             sprintf(value, "high");
                         else {
-                            compression_value = TAR_GZ_DEFAULT;
-                            sprintf(value, TAR_GZ_DEFAULT_STR);
+                            compression_value = TAR_GZ_FAST;
+                            sprintf(value, "fast");
                         }
                         write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                     }
