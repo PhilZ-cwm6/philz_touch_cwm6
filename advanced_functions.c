@@ -2007,9 +2007,6 @@ void get_cwm_backup_path(const char* backup_volume, char *backup_path) {
     get_rom_name(rom_name);
 
     time_t t = time(NULL);
-#ifdef PHILZ_TOUCH_RECOVERY
-    time_now_tzone(&t);
-#endif
     struct tm *timeptr = localtime(&t);
     if (timeptr == NULL) {
         struct timeval tp;
@@ -2997,9 +2994,6 @@ void get_twrp_backup_path(const char* backup_volume, char *backup_path) {
     get_device_id(device_id);
 
     time_t t = time(NULL);
-#ifdef PHILZ_TOUCH_RECOVERY
-    time_now_tzone(&t);
-#endif
     struct tm *timeptr = localtime(&t);
     if (timeptr == NULL) {
         struct timeval tp;
