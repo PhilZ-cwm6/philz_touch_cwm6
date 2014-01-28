@@ -51,12 +51,14 @@ extern int backup_modem;
 extern int backup_radio;
 extern int backup_data_media;
 
-//toggle nandroid compression ratio
-// default is TAR_GZ_MEDIUM
-#define TAR_GZ_FAST 1
-#define TAR_GZ_LOW 3
-#define TAR_GZ_MEDIUM 5
-#define TAR_GZ_HIGH 7
+// toggle nandroid compression ratio
+// to change default, just change TAR_GZ_DEFAULT and TAR_GZ_DEFAULT_STR values
+#define TAR_GZ_FAST         1       // "fast"
+#define TAR_GZ_LOW          3       // "low"
+#define TAR_GZ_MEDIUM       5       // "medium"
+#define TAR_GZ_HIGH         7       // "high"
+#define TAR_GZ_DEFAULT      TAR_GZ_LOW
+#define TAR_GZ_DEFAULT_STR  "low"
 extern int compression_value;
 
 void set_override_yaffs2_wrapper(int set);
