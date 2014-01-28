@@ -516,6 +516,11 @@ else ifeq ($(TARGET_PRODUCT), cm_find5)
     TARGET_COMMON_NAME := Oppo Find5
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Oppo N1 (n1)
+else ifeq ($(TARGET_PRODUCT), cm_n1)
+    TARGET_COMMON_NAME := Oppo N1
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Sony Xperia Z (yuga)
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
     TARGET_COMMON_NAME := Xperia Z
