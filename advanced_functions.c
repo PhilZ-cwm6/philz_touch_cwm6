@@ -3185,7 +3185,7 @@ static void initialize_extra_partitions_state() {
     }
 }
 
-void refresh_recovery_settings(int unmount) {
+void refresh_recovery_settings(int on_start) {
     check_auto_restore_settings();
     check_root_and_recovery_settings();
     refresh_nandroid_compression();
@@ -3199,10 +3199,10 @@ void refresh_recovery_settings(int unmount) {
     check_loki_support_action();
 #endif
 #ifdef PHILZ_TOUCH_RECOVERY
-    refresh_touch_gui_settings();
+    refresh_touch_gui_settings(on_start);
 #endif
-    // unmount settings file if requested: only on recovery start
-    if (unmount) {
+    // unmount settings file on recovery start
+    if (on_start) {
         ignore_data_media_workaround(1);
         ensure_path_unmounted(PHILZ_SETTINGS_FILE);
         ignore_data_media_workaround(0);
