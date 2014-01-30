@@ -61,6 +61,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9103)
     TARGET_COMMON_NAME := i9103
     BOARD_UMS_LUNFILE := "/sys/devices/platform/fsl-tegra-udc/gadget/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
+    BOARD_USE_NTFS_3G := false
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -113,6 +114,8 @@ else ifeq ($(TARGET_PRODUCT), cm_ancora)
 else ifeq ($(TARGET_PRODUCT), cm_t769)
     TARGET_COMMON_NAME := SGH-T769
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -124,6 +127,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
     BOARD_HAS_LOW_RESOLUTION := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -133,8 +137,9 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100g)
     TARGET_COMMON_NAME := i9100G
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
-    BOARD_HAS_LOW_RESOLUTION := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -145,6 +150,7 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -161,6 +167,8 @@ else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
 else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     TARGET_COMMON_NAME := SGH-I577 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_FB2PNG := true
@@ -170,6 +178,8 @@ else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
 else ifeq ($(TARGET_PRODUCT), cm_skyrocket)
     TARGET_COMMON_NAME := Skyrocket i727
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -191,6 +201,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_d2
     TARGET_COMMON_NAME := $(TARGET_PRODUCT)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -212,6 +223,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -299,6 +311,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p3100 cm_p3110),)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     #RECOVERY_TOUCHSCREEN_SWAP_XY := true
@@ -311,6 +324,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -395,7 +409,7 @@ else ifeq ($(TARGET_PRODUCT), cm_fireball)
 
 #HTC Explorer - pico (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_pico)
-    TARGET_COMMON_NAME := HTC_Explorer
+    TARGET_COMMON_NAME := HTC Explorer
     BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
     BOARD_USE_NTFS_3G := false
     BOARD_HAS_LOW_RESOLUTION := true
