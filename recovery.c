@@ -1046,7 +1046,7 @@ main(int argc, char **argv) {
     device_ui_init(&ui_parameters);
     ui_init();
     ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
-    ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
+    ui_print("Clockworkmod " EXPAND(CWM_BASE_VERSION) "\n");
     LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
 
 #ifdef BOARD_RECOVERY_SWIPE
