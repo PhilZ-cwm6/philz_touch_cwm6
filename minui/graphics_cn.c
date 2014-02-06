@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 
@@ -51,11 +52,9 @@
 #endif
 
 #define NUM_BUFFERS 2
-
-
+#define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
+#define MAX_DISPLAY_DIM  2048
 static GGLSurface font_ftex;
-
-// #define PRINT_SCREENINFO 1 // Enables printing of screen info to log
 
 typedef struct {
     GGLSurface texture;
@@ -85,6 +84,18 @@ static int gr_vt_fd = -1;
 static struct fb_var_screeninfo vi;
 static struct fb_fix_screeninfo fi;
 
+static bool has_overlay = false;
+static int leftSplit = 0;
+static int rightSplit = 0;
+
+bool target_has_overlay(char *version);
+bool isTargetMdp5(void);
+int free_ion_mem(void);
+int alloc_ion_mem(unsigned int size);
+int allocate_overlay(int fd, GGLSurface gr_fb[]);
+int free_overlay(int fd);
+int overlay_display_frame(int fd, GGLubyte* data, size_t size);
+
 static int get_framebuffer(GGLSurface *fb)
 {
     int fd;
@@ -102,74 +113,70 @@ static int get_framebuffer(GGLSurface *fb)
         return -1;
     }
 
-    vi.bits_per_pixel = PIXEL_SIZE * 8;
-    if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_BGRA_8888) {
-      vi.red.offset     = 8;
-      vi.red.length     = 8;
-      vi.green.offset   = 16;
-      vi.green.length   = 8;
-      vi.blue.offset    = 24;
-      vi.blue.length    = 8;
-      vi.transp.offset  = 0;
-      vi.transp.length  = 8;
-    } else if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_RGBX_8888) {
-      vi.red.offset     = 24;
-      vi.red.length     = 8;
-      vi.green.offset   = 16;
-      vi.green.length   = 8;
-      vi.blue.offset    = 8;
-      vi.blue.length    = 8;
-      vi.transp.offset  = 0;
-      vi.transp.length  = 8;
-    } else if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_RGB_565) {
-#ifndef RECOVERY_BGR_565
-		fprintf(stderr, "Pixel format: RGB_565\n");
-		vi.blue.offset    = 0;
-		vi.green.offset   = 5;
-		vi.red.offset     = 11;
-#else
-        fprintf(stderr, "Pixel format: BGR_565\n");
-		vi.blue.offset    = 11;
-		vi.green.offset   = 5;
-		vi.red.offset     = 0;
-#endif
-		if (PIXEL_SIZE != 2)    fprintf(stderr, "E: Pixel Size mismatch!\n");
-		vi.blue.length    = 5;
-		vi.green.length   = 6;
-		vi.red.length     = 5;
-        vi.blue.msb_right = 0;
-        vi.green.msb_right = 0;
-        vi.red.msb_right = 0;
-        vi.transp.offset  = 0;
-        vi.transp.length  = 0;
-    }
-    else
-    {
-        perror("unknown pixel format");
-        close(fd);
-        return -1;
-    }
-
-    vi.vmode = FB_VMODE_NONINTERLACED;
-    vi.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
-
-    if (ioctl(fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
-        perror("failed to put fb0 info");
-        close(fd);
-        return -1;
-    }
-
     if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
         perror("failed to get fb0 info");
         close(fd);
         return -1;
     }
 
-    bits = mmap(0, fi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (bits == MAP_FAILED) {
-        perror("failed to mmap framebuffer");
-        close(fd);
-        return -1;
+    has_overlay = target_has_overlay(fi.id);
+
+    if(isTargetMdp5())
+        setDisplaySplit();
+
+    if (!has_overlay) {
+       vi.bits_per_pixel = PIXEL_SIZE * 8;
+       if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_BGRA_8888) {
+         vi.red.offset     = 8;
+         vi.red.length     = 8;
+         vi.green.offset   = 16;
+         vi.green.length   = 8;
+         vi.blue.offset    = 24;
+         vi.blue.length    = 8;
+         vi.transp.offset  = 0;
+         vi.transp.length  = 8;
+       } else if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_RGBX_8888) {
+         vi.red.offset     = 24;
+         vi.red.length     = 8;
+         vi.green.offset   = 16;
+         vi.green.length   = 8;
+         vi.blue.offset    = 8;
+         vi.blue.length    = 8;
+         vi.transp.offset  = 0;
+         vi.transp.length  = 8;
+       } else { /* RGB565*/
+         vi.red.offset     = 11;
+         vi.red.length     = 5;
+         vi.green.offset   = 5;
+         vi.green.length   = 6;
+         vi.blue.offset    = 0;
+         vi.blue.length    = 5;
+         vi.transp.offset  = 0;
+         vi.transp.length  = 0;
+       }
+
+       vi.vmode = FB_VMODE_NONINTERLACED;
+       vi.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
+
+       if (ioctl(fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
+           perror("failed to put fb0 info");
+           close(fd);
+           return -1;
+       }
+       if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
+           perror("failed to get fb0 info");
+           close(fd);
+           return -1;
+       }
+
+       bits = mmap(0, fi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+       if (bits == MAP_FAILED) {
+           perror("failed to mmap framebuffer");
+           close(fd);
+           return -1;
+       }
+    } else {
+         fi.line_length = ALIGN(vi.xres, 32) * PIXEL_SIZE;
     }
 
     overscan_offset_x = vi.xres * overscan_percent / 100;
@@ -179,9 +186,11 @@ static int get_framebuffer(GGLSurface *fb)
     fb->width = vi.xres;
     fb->height = vi.yres;
     fb->stride = fi.line_length/PIXEL_SIZE;
-    fb->data = bits;
     fb->format = PIXEL_FORMAT;
-    memset(fb->data, 0, vi.yres * fi.line_length);
+    if (!has_overlay) {
+        fb->data = bits;
+        memset(fb->data, 0, vi.yres * fi.line_length);
+    }
 
     fb++;
 
@@ -195,9 +204,11 @@ static int get_framebuffer(GGLSurface *fb)
     fb->width = vi.xres;
     fb->height = vi.yres;
     fb->stride = fi.line_length/PIXEL_SIZE;
-    fb->data = (void*) (((unsigned) bits) + vi.yres * fi.line_length);
     fb->format = PIXEL_FORMAT;
-    memset(fb->data, 0, vi.yres * fi.line_length);
+    if (!has_overlay) {
+        fb->data = (void*) (((unsigned) bits) + vi.yres * fi.line_length);
+        memset(fb->data, 0, vi.yres * fi.line_length);
+    }
 
     return fd;
 }
@@ -209,6 +220,59 @@ static void get_memory_surface(GGLSurface* ms) {
   ms->stride = fi.line_length/PIXEL_SIZE;
   ms->data = malloc(fi.line_length * vi.yres);
   ms->format = PIXEL_FORMAT;
+}
+
+void setDisplaySplit(void) {
+    char split[64] = {0};
+    FILE* fp = fopen("/sys/class/graphics/fb0/msm_fb_split", "r");
+    if (fp) {
+        //Format "left right" space as delimiter
+        if(fread(split, sizeof(char), 64, fp)) {
+            leftSplit = atoi(split);
+            printf("Left Split=%d\n",leftSplit);
+            char *rght = strpbrk(split, " ");
+            if (rght)
+                rightSplit = atoi(rght + 1);
+            printf("Right Split=%d\n", rightSplit);
+        }
+    } else {
+        printf("Failed to open mdss_fb_split node\n");
+    }
+    if (fp)
+        fclose(fp);
+}
+
+int getLeftSplit(void) {
+   //Default even split for all displays with high res
+   int lSplit = vi.xres / 2;
+
+   //Override if split published by driver
+   if (leftSplit)
+       lSplit = leftSplit;
+
+   return lSplit;
+}
+
+int getRightSplit(void) {
+   return rightSplit;
+}
+
+bool isDisplaySplit(void) {
+    if (vi.xres > MAX_DISPLAY_DIM)
+        return true;
+    //check if right split is set by driver
+    if (getRightSplit())
+        return true;
+
+    return false;
+}
+
+int getFbXres(void) {
+    return vi.xres;
+}
+
+int getFbYres (void) {
+    return vi.yres;
 }
 
 static void set_active_framebuffer(unsigned n)
@@ -224,19 +288,40 @@ static void set_active_framebuffer(unsigned n)
 
 void gr_flip(void)
 {
-    GGLContext *gl = gr_context;
+    if (has_overlay) {
+        // Allocate overly. It'll exit early if overlay already
+        // allocated and allocate it if not already allocated.
+        allocate_overlay(gr_fb_fd, gr_framebuffer);
+        if (overlay_display_frame(gr_fb_fd,gr_mem_surface.data,
+                                     (fi.line_length * vi.yres)) < 0) {
+            // Free overlay in failure case
+            free_overlay(gr_fb_fd);
+        }
+    } else {
+        GGLContext *gl = gr_context;
 
-    /* swap front and back buffers */
-    if (double_buffering)
-        gr_active_fb = (gr_active_fb + 1) & 1;
+        /* swap front and back buffers */
+        if (double_buffering)
+            gr_active_fb = (gr_active_fb + 1) & 1;
 
-    /* copy data from the in-memory surface to the buffer we're about
-     * to make active. */
-    memcpy(gr_framebuffer[gr_active_fb].data, gr_mem_surface.data,
-           fi.line_length * vi.yres);
+#ifdef BOARD_HAS_FLIPPED_SCREEN
+        /* flip buffer 180 degrees for devices with physicaly inverted screens */
+        unsigned int i;
+        for (i = 1; i < (vi.xres * vi.yres); i++) {
+            unsigned short tmp = gr_mem_surface.data[i];
+            gr_mem_surface.data[i] = gr_mem_surface.data[(vi.xres * vi.yres *2) - i];
+            gr_mem_surface.data[(vi.xres * vi.yres *2) - i] = tmp;
+        }
+#endif
 
-    /* inform the display driver */
-    set_active_framebuffer(gr_active_fb);
+        /* copy data from the in-memory surface to the buffer we're about
+         * to make active. */
+        memcpy(gr_framebuffer[gr_active_fb].data, gr_mem_surface.data,
+               fi.line_length * vi.yres);
+
+        /* inform the display driver */
+        set_active_framebuffer(gr_active_fb);
+    }
 }
 
 void gr_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
@@ -548,9 +633,10 @@ int gr_init(void)
     fprintf(stderr, "framebuffer: fd %d (%d x %d)\n",
             gr_fb_fd, gr_framebuffer[0].width, gr_framebuffer[0].height);
 
-        /* start with 0 as front (displayed) and 1 as back (drawing) */
+    /* start with 0 as front (displayed) and 1 as back (drawing) */
     gr_active_fb = 0;
-    set_active_framebuffer(0);
+    if (!has_overlay)
+        set_active_framebuffer(0);
     gl->colorBuffer(gl, &gr_mem_surface);
 
     gl->activeTexture(gl, 0);
@@ -560,11 +646,23 @@ int gr_init(void)
     gr_fb_blank(true);
     gr_fb_blank(false);
 
+    if (has_overlay) {
+        if (alloc_ion_mem(fi.line_length * vi.yres) ||
+            allocate_overlay(gr_fb_fd, gr_framebuffer)) {
+                free_ion_mem();
+        }
+    }
+
     return 0;
 }
 
 void gr_exit(void)
 {
+    if (has_overlay) {
+        free_overlay(gr_fb_fd);
+        free_ion_mem();
+    }
+
     close(gr_fb_fd);
     gr_fb_fd = -1;
 
@@ -592,9 +690,28 @@ gr_pixel *gr_fb_data(void)
 
 void gr_fb_blank(bool blank)
 {
+#ifdef RECOVERY_LCD_BACKLIGHT_PATH
+    int fd;
+
+    fd = open(RECOVERY_LCD_BACKLIGHT_PATH, O_RDWR);
+    if (fd < 0) {
+        perror("cannot open LCD backlight");
+        return;
+    }
+    write(fd, blank ? "000" : "127", 3);
+    close(fd);
+#else
     int ret;
+    if (has_overlay && blank) {
+        free_overlay(gr_fb_fd);
+    }
 
     ret = ioctl(gr_fb_fd, FBIOBLANK, blank ? FB_BLANK_POWERDOWN : FB_BLANK_UNBLANK);
     if (ret < 0)
         perror("ioctl(): blank");
+
+    if (has_overlay && !blank) {
+        allocate_overlay(gr_fb_fd, gr_framebuffer);
+    }
+#endif
 }
