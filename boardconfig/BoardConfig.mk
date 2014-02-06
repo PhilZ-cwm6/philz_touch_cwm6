@@ -164,6 +164,7 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
 else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     TARGET_COMMON_NAME := SGH-I757M
     BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
