@@ -42,6 +42,11 @@
 #                               you still need to enable a LOCAL_CFLAGS if defined
 #   - BOARD_HAS_SLOW_STORAGE := true
 #                               default setting will disable size progress info during backup/restore
+#   - BOARD_USE_FB2PNG := true
+#                               define this to true if your device supports screen capture using fb2png
+#   - BOARD_USE_NTFS_3G := false
+#                               will not include ntfs-3g binary to format and mount NTFS partitions.
+#                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
 
 
 
@@ -483,9 +488,10 @@ else ifeq ($(TARGET_PRODUCT), cm_p930)
     TARGET_COMMON_NAME := LG Nitro HD
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802) - G2 CAN (d803) - G2 Verizon (vs980) - G2 Sprint (ls980)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_d803 cm_vs980 cm_ls980),)
+#LG G2 AT&T (d800) - G2 TMO (d801) - G2 Int (d802) - G2 CAN (d803) - d805 - d806 - G2 Verizon (vs980) - G2 Sprint (ls980)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_d803 cm_d805 cm_d806 cm_vs980 cm_ls980),)
     TARGET_COMMON_NAME := LG G2 ($(TARGET_PRODUCT))
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #LG G Pad 8.3 (v500)
