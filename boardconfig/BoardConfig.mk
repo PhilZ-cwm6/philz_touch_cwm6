@@ -462,6 +462,7 @@ else ifeq ($(TARGET_PRODUCT), cm_primou)
 #HTC Evo 4G LTE (jewel)
 else ifeq ($(TARGET_PRODUCT), cm_jewel)
     TARGET_COMMON_NAME := Evo 4G LTE
+    KERNEL_EXFAT_MODULE_NAME := "texfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Huawei Acsend P1 U9200 - viva (no cm tree)
