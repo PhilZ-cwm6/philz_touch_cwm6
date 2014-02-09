@@ -391,7 +391,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
     TARGET_COMMON_NAME := Nexus 7 ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
 
-#Google Nexus 7 (2013) - flo // Nexus 7 (2013) LTE - deb    (ASUS)
+#Google Nexus 7 (ASUS) 2013 (flo), LTE (deb)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_flo cm_deb),)
     TARGET_COMMON_NAME := Nexus 7 (2013 $(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -401,6 +401,11 @@ else ifeq ($(TARGET_PRODUCT), cm_manta)
     TARGET_COMMON_NAME := Nexus 10
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight.0/brightness"
     BATTERY_LEVEL_PATH := "/sys/class/power_supply/android-battery/capacity"
+
+#HP Touchpad (tenderloin)
+else ifeq ($(TARGET_PRODUCT), cm_tenderloin)
+    TARGET_COMMON_NAME := HP Touchpad
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC Desire X - protou (No 10.2 tree)
 else ifeq ($(TARGET_PRODUCT), cm_protou)
