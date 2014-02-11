@@ -372,8 +372,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
 // pass in NULL for fileExtensionOrDirectory and you will get a directory chooser
 int no_files_found = 0;
 char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]) {
-    static const char* fixed_headers[20];
-    char path[PATH_MAX] = "";
+    const char* fixed_headers[20];
     DIR *dir;
     struct dirent *de;
     int numFiles = 0;
@@ -385,7 +384,7 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
 
     strcpy(directory, basedir);
 
-    // Append a traiing slash if necessary
+    // Append a trailing slash if necessary
     if (directory[dir_len - 1] != '/') {
         strcat(directory, "/");
         dir_len++;
@@ -401,6 +400,7 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
         i++;
     }
     fixed_headers[i] = directory;
+    int currunt_dir_pos = i;
     // let's spare some header space
     // fixed_headers[i + 1] = "";
     // fixed_headers[i + 2] = NULL;
@@ -442,8 +442,12 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
                     return_value = strdup(ret);
                     free(subret);
                     break;
+                } else {
+                    char current_dir[PATH_MAX];
+                    strcpy(current_dir, dirs[chosen_item]);
+                    fixed_headers[currunt_dir_pos] = dirname(current_dir);
+                    continue;
                 }
-                continue;
             }
             strcpy(ret, files[chosen_item - numDirs]);
             return_value = strdup(ret);
