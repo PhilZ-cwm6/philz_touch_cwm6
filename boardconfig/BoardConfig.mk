@@ -244,8 +244,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_hltexx cm_hltespr cm_hltetmo cm_hlteca
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Note 8.0 GSM (n5100) and Wifi (n5110)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110),)
+#Galaxy Note 8.0 GSM (n5100), Wifi (n5110) and LTE (n5120)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110 cm_n5120),)
     TARGET_COMMON_NAME := Galaxy Note 8.0
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
