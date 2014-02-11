@@ -538,8 +538,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1053 cm_xt1055 cm_xt1056 cm_xt1058 c
     TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola Moto G (falcon): Verizon (xt1028), Boostmobile (xt1031), GSM (xt1032), Dual Sim (xt1033), Retail US (xt1034)
-else ifeq ($(TARGET_PRODUCT), cm_falcon)
+#Motorola Moto G (falcon): Verizon (xt1028), Boostmobile (xt1031), GSM (xt1032), Dual Sim (xt1033), Retail US (xt1034), Google Play Edition (falcon_gpe)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_falcon cm_falcon_gpe),)
     TARGET_COMMON_NAME := Moto G (falcon)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
