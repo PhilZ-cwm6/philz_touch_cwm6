@@ -1422,25 +1422,26 @@ void misc_nandroid_menu()
     char item_md5[MENU_MAX_COLS];
     char item_preload[MENU_MAX_COLS];
     char item_twrp_mode[MENU_MAX_COLS];
-    char item_compress[MENU_MAX_COLS];
-    char item_ors_path[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
     char item_use_nandroid_simple_logging[MENU_MAX_COLS];
     char item_nand_progress[MENU_MAX_COLS];
     char item_prompt_low_space[MENU_MAX_COLS];
+    char item_ors_path[MENU_MAX_COLS];
+    char item_compress[MENU_MAX_COLS];
 #ifdef RECOVERY_NEED_SELINUX_FIX
     char item_secontext[MENU_MAX_COLS];
 #endif
+
     char* list[] = {
         item_md5,
         item_preload,
         item_twrp_mode,
-        item_compress,
-        item_ors_path,
         item_size_progress,
         item_use_nandroid_simple_logging,
         item_nand_progress,
         item_prompt_low_space,
+        item_ors_path,
+        item_compress,
         "Default Backup Format...",
         "Regenerate md5 Sum",
 #ifdef RECOVERY_NEED_SELINUX_FIX
@@ -1470,6 +1471,31 @@ void misc_nandroid_menu()
         if (twrp_backup_mode) ui_format_gui_menu(item_twrp_mode, "Use TWRP Mode", "(x)");
         else ui_format_gui_menu(item_twrp_mode, "Use TWRP Mode", "( )");
 
+        if (show_nandroid_size_progress)
+            ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
+        else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
+        list[3] = item_size_progress;
+
+        if (use_nandroid_simple_logging)
+            ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "(x)");
+        else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
+        list[4] = item_use_nandroid_simple_logging;
+
+        hidenandprogress = file_found(hidenandprogress_file);
+        if (hidenandprogress) {
+            ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
+            list[3] = NULL;
+            list[4] = NULL;
+        } else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
+
+        if (nand_prompt_on_low_space)
+            ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "(x)");
+        else ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "( )");
+
+        char ors_volume[PATH_MAX];
+        get_ors_backup_volume(ors_volume);
+        ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
+
         fmt = nandroid_get_default_backup_format();
         if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
             if (compression_value == TAR_GZ_FAST)
@@ -1480,40 +1506,15 @@ void misc_nandroid_menu()
                 ui_format_gui_menu(item_compress, "Compression", "medium");
             else if (compression_value == TAR_GZ_HIGH)
                 ui_format_gui_menu(item_compress, "Compression", "high");
-            else ui_format_gui_menu(item_compress, "Compression", TAR_GZ_DEFAULT_STR);
+            else ui_format_gui_menu(item_compress, "Compression", TAR_GZ_DEFAULT_STR); // useless but to not make exceptions
         } else
             ui_format_gui_menu(item_compress, "Compression", "No");
-
-        char ors_volume[PATH_MAX];
-        get_ors_backup_volume(ors_volume);
-        ui_format_gui_menu(item_ors_path,  "ORS Backup Target", ors_volume);
-
-        if (show_nandroid_size_progress)
-            ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
-        else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
-        list[5] = item_size_progress;
-
-        if (use_nandroid_simple_logging)
-            ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "(x)");
-        else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
-        list[6] = item_use_nandroid_simple_logging;
-
-        hidenandprogress = file_found(hidenandprogress_file);
-        if (hidenandprogress) {
-            ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
-            list[5] = NULL;
-            list[6] = NULL;
-        } else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
-
-        if (nand_prompt_on_low_space)
-            ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "(x)");
-        else ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "( )");
 
 #ifdef RECOVERY_NEED_SELINUX_FIX
         nandroid_secontext = !file_found(ignore_nand_secontext_file);
         if (nandroid_secontext)
-            ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "(x)");
-        else ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "( )");
+            ui_format_gui_menu(item_secontext, "Process SE Context", "(x)");
+        else ui_format_gui_menu(item_secontext, "Process SE Context", "( )");
 #endif
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -1545,6 +1546,38 @@ void misc_nandroid_menu()
                 break;
             }
             case 3: {
+                char value[3];
+                show_nandroid_size_progress ^= 1;
+                sprintf(value, "%d", show_nandroid_size_progress);
+                write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
+                break;
+            }
+            case 4: {
+                char value[3];
+                use_nandroid_simple_logging ^= 1;
+                sprintf(value, "%d", use_nandroid_simple_logging);
+                write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
+                break;
+            }
+            case 5: {
+                hidenandprogress ^= 1;
+                if (hidenandprogress)
+                    write_string_to_file(hidenandprogress_file, "1");
+                else delete_a_file(hidenandprogress_file);
+                break;
+            }
+            case 6: {
+                char value[3];
+                nand_prompt_on_low_space ^= 1;
+                sprintf(value, "%d", nand_prompt_on_low_space);
+                write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
+                break;
+            }
+            case 7: {
+                choose_ors_volume();
+                break;
+            }
+            case 8: {
                 if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
                     ui_print("First set backup format to tar.gz\n");
                 } else {
@@ -1564,38 +1597,6 @@ void misc_nandroid_menu()
                     }
                     write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                 }
-                break;
-            }
-            case 4: {
-                choose_ors_volume();
-                break;
-            }
-            case 5: {
-                char value[3];
-                show_nandroid_size_progress ^= 1;
-                sprintf(value, "%d", show_nandroid_size_progress);
-                write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
-                break;
-            }
-            case 6: {
-                char value[3];
-                use_nandroid_simple_logging ^= 1;
-                sprintf(value, "%d", use_nandroid_simple_logging);
-                write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
-                break;
-            }
-            case 7: {
-                hidenandprogress ^= 1;
-                if (hidenandprogress)
-                    write_string_to_file(hidenandprogress_file, "1");
-                else delete_a_file(hidenandprogress_file);
-                break;
-            }
-            case 8: {
-                char value[3];
-                nand_prompt_on_low_space ^= 1;
-                sprintf(value, "%d", nand_prompt_on_low_space);
-                write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
                 break;
             }
             case 9: {
