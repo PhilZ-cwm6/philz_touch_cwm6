@@ -193,7 +193,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
     fclose(updaterfile);
 
     /* Found set_perm and !set_metadata, overwrite the binary with the fallback */
-    if (foundsetperm && !foundsetmeta) {
+    if (check_update_binary_version && foundsetperm && !foundsetmeta) {
         FILE *fallbackupdater = fopen("/res/updater.fallback", "rb");
         FILE *updaterfile = fopen(binary, "wb");
         char updbuf[1024];

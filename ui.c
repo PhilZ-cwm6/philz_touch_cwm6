@@ -48,7 +48,8 @@ static int gShowBackButton = 0;
 #define MAX_COLS 96
 #define MAX_ROWS 32
 
-#define MENU_MAX_COLS 64
+// MENU_MAX_COLS is defined in advanced_functions.h
+// #define MENU_MAX_COLS 64
 #define MENU_MAX_ROWS 250
 
 #define MIN_LOG_ROWS 3

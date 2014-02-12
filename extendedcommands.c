@@ -47,6 +47,7 @@
 
 #include "adb_install.h"
 
+int check_update_binary_version = 1;
 int signature_check_enabled = 0;
 int script_assert_enabled = 1;
 
@@ -178,7 +179,7 @@ int install_zip(const char* packagefilepath) {
 // top fixed menu items, those before extra storage volumes
 #define FIXED_TOP_INSTALL_ZIP_MENUS 1
 // bottom fixed menu items, those after extra storage volumes
-#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 6
+#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 7
 #define FIXED_INSTALL_ZIP_MENUS (FIXED_TOP_INSTALL_ZIP_MENUS + FIXED_BOTTOM_INSTALL_ZIP_MENUS)
 
 int show_install_update_menu() {
@@ -205,13 +206,15 @@ int show_install_update_menu() {
     }
 
     // FIXED_BOTTOM_INSTALL_ZIP_MENUS
-    char item_toggle_signature_check[MENU_MAX_COLS] = "Signature Verification";
+    char item_toggle_signature_check[MENU_MAX_COLS] = "";
+    char item_check_update_binary_version[MENU_MAX_COLS] = "";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip Using Free Browse Mode";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Choose zip from Last Install Folder";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Install zip from sideload";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Install Multiple zip Files";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = item_toggle_signature_check;
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = "Setup Free Browse Mode";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = item_check_update_binary_version;
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 6] = "Setup Free Browse Mode";
 
     // extra NULL for GO_BACK
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + FIXED_BOTTOM_INSTALL_ZIP_MENUS] = NULL;
@@ -220,7 +223,11 @@ int show_install_update_menu() {
         if (signature_check_enabled)
             ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "(x)");
         else ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "( )");
-            
+
+        if (check_update_binary_version)
+            ui_format_gui_menu(item_check_update_binary_version, "Don't Allow Old update-binary", "(x)");
+        else ui_format_gui_menu(item_check_update_binary_version, "Don't Allow Old update-binary", "( )");
+
         chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
         if (chosen_item == 0) {
             show_choose_zip_menu(primary_path);
@@ -243,6 +250,12 @@ int show_install_update_menu() {
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4) {
             toggle_signature_check();
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5) {
+            check_update_binary_version ^= 1;
+            if (!check_update_binary_version) {
+                ui_print("Try fixing some assert errors\n");
+                ui_print("Setting will be reset on reboot\n");
+            }
+        } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 6) {
             set_custom_zip_path();
         } else {
             // GO_BACK or REFRESH (chosen_item < 0)

@@ -66,6 +66,8 @@ int volume_main(int argc, char **argv);
 
 void show_advanced_power_menu();
 
+extern int check_update_binary_version;
+
 #ifdef RECOVERY_EXTEND_NANDROID_MENU
 void extend_nandroid_menu(char** items, int item_count, int max_items);
 void handle_nandroid_menu(int item_count, int selected);
