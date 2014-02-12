@@ -1491,10 +1491,12 @@ void misc_nandroid_menu()
         if (show_nandroid_size_progress)
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
+        list[5] = item_size_progress;
 
         if (use_nandroid_simple_logging)
             ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "(x)");
         else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
+        list[6] = item_use_nandroid_simple_logging;
 
         hidenandprogress = file_found(hidenandprogress_file);
         if (hidenandprogress) {
