@@ -415,7 +415,6 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
         i++;
     }
     fixed_headers[i] = directory;
-    int current_dir_pos = i;
     // let's spare some header space
     // fixed_headers[i + 1] = "";
     // fixed_headers[i + 2] = NULL;
@@ -455,12 +454,8 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
                     return_value = strdup(subret);
                     free(subret);
                     break;
-                } else {
-                    char current_dir[PATH_MAX];
-                    strcpy(current_dir, dirs[chosen_item]);
-                    fixed_headers[current_dir_pos] = dirname(current_dir);
-                    continue;
                 }
+                continue;
             }
             return_value = strdup(files[chosen_item - numDirs]);
             break;
