@@ -58,7 +58,7 @@ static void load_volume_table_extra() {
 
     fstab_extra = fs_mgr_read_fstab("/etc/extra.fstab");
     if (!fstab_extra) {
-        LOGI("No /etc/extra.fstab\n");
+        fprintf(stderr, "No /etc/extra.fstab\n");
         return;
     }
 
@@ -255,7 +255,8 @@ void setup_data_media() {
         sprintf(path, "/data/media/0");
     else sprintf(path, "/data/media");
 
-    LOGI("using %s for %s\n", path, mount_point);
+    if (ui_should_log_stdout())
+        LOGI("using %s for %s\n", path, mount_point);
     rmdir(mount_point);
     mkdir(path, 0755);
     symlink(path, mount_point);
