@@ -576,12 +576,12 @@ void wipe_data_menu() {
     };
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
-    switch (chosen_item)
-    {
-        case 0:
+    switch (chosen_item) {
+        case 0: {
             wipe_data(1);
             break;
-        case 1:
+        }
+        case 1: {
             //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, .android_secure
             if (confirm_selection("Wipe data, system +/- preload?", "Yes, I will install a new ROM!")) {
                 wipe_data(0);
@@ -594,6 +594,7 @@ void wipe_data_menu() {
                 ui_print("Now flash a new ROM!\n");
             }
             break;
+        }
     }
 }
 
@@ -1513,111 +1514,101 @@ void misc_nandroid_menu()
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
-        switch (chosen_item)
-        {
-            case 0:
-                {
-                    char value[3];
-                    enable_md5sum ^= 1;
-                    sprintf(value, "%d", enable_md5sum);
-                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value);
-                }
+        switch (chosen_item) {
+            case 0: {
+                char value[3];
+                enable_md5sum ^= 1;
+                sprintf(value, "%d", enable_md5sum);
+                write_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value);
                 break;
-            case 1:
-                {
-                    char value[3];
-                    if (volume_for_path("/preload") == NULL)
-                        nandroid_add_preload = 0;
-                    else
-                        nandroid_add_preload ^= 1;
-                    sprintf(value, "%d", nandroid_add_preload);
-                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value);
-                }
+            }
+            case 1: {
+                char value[3];
+                if (volume_for_path("/preload") == NULL)
+                    nandroid_add_preload = 0;
+                else
+                    nandroid_add_preload ^= 1;
+                sprintf(value, "%d", nandroid_add_preload);
+                write_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value);
                 break;
-            case 2:
-                {
-                    char value[3];
-                    twrp_backup_mode ^= 1;
-                    sprintf(value, "%d", twrp_backup_mode);
-                    write_config_file(PHILZ_SETTINGS_FILE, "twrp_backup_mode", value);
-                }
+            }
+            case 2: {
+                char value[3];
+                twrp_backup_mode ^= 1;
+                sprintf(value, "%d", twrp_backup_mode);
+                write_config_file(PHILZ_SETTINGS_FILE, "twrp_backup_mode", value);
                 break;
-            case 3:
-                {
-                    if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
-                        ui_print("First set backup format to tar.gz\n");
-                    } else {
-                        // switch pigz -[ fast(1), low(3), medium(5), high(7) ] compression level
-                        char value[8];
-                        compression_value += 2;
-                        if (compression_value == TAR_GZ_FAST)
-                            sprintf(value, "fast");
-                        else if (compression_value == TAR_GZ_LOW)
-                            sprintf(value, "low");
-                        else if (compression_value == TAR_GZ_MEDIUM)
-                            sprintf(value, "medium");
-                        else if (compression_value == TAR_GZ_HIGH)
-                            sprintf(value, "high");
-                        else {
-                            compression_value = TAR_GZ_FAST;
-                            sprintf(value, "fast");
-                        }
-                        write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
+            }
+            case 3: {
+                if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
+                    ui_print("First set backup format to tar.gz\n");
+                } else {
+                    char value[8];
+                    compression_value += 2;
+                    if (compression_value == TAR_GZ_FAST)
+                        sprintf(value, "fast");
+                    else if (compression_value == TAR_GZ_LOW)
+                        sprintf(value, "low");
+                    else if (compression_value == TAR_GZ_MEDIUM)
+                        sprintf(value, "medium");
+                    else if (compression_value == TAR_GZ_HIGH)
+                        sprintf(value, "high");
+                    else {
+                        compression_value = TAR_GZ_FAST;
+                        sprintf(value, "fast");
                     }
+                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
                 }
                 break;
-            case 4:
-                {
-                    choose_ors_volume();
-                }
+            }
+            case 4: {
+                choose_ors_volume();
                 break;
-            case 5:
-                {
-                    char value[3];
-                    show_nandroid_size_progress ^= 1;
-                    sprintf(value, "%d", show_nandroid_size_progress);
-                    write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
-                }
+            }
+            case 5: {
+                char value[3];
+                show_nandroid_size_progress ^= 1;
+                sprintf(value, "%d", show_nandroid_size_progress);
+                write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
                 break;
-            case 6:
-                {
-                    char value[3];
-                    use_nandroid_simple_logging ^= 1;
-                    sprintf(value, "%d", use_nandroid_simple_logging);
-                    write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
-                }
+            }
+            case 6: {
+                char value[3];
+                use_nandroid_simple_logging ^= 1;
+                sprintf(value, "%d", use_nandroid_simple_logging);
+                write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
                 break;
-            case 7:
-                {
-                    hidenandprogress ^= 1;
-                    if (hidenandprogress)
-                        write_string_to_file(hidenandprogress_file, "1");
-                    else delete_a_file(hidenandprogress_file);
-                }
+            }
+            case 7: {
+                hidenandprogress ^= 1;
+                if (hidenandprogress)
+                    write_string_to_file(hidenandprogress_file, "1");
+                else delete_a_file(hidenandprogress_file);
                 break;
-            case 8:
-                {
-                    char value[3];
-                    nand_prompt_on_low_space ^= 1;
-                    sprintf(value, "%d", nand_prompt_on_low_space);
-                    write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
-                }
+            }
+            case 8: {
+                char value[3];
+                nand_prompt_on_low_space ^= 1;
+                sprintf(value, "%d", nand_prompt_on_low_space);
+                write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
                 break;
-            case 9:
+            }
+            case 9: {
                 choose_default_backup_format();
                 break;
-            case 10:
+            }
+            case 10: {
                 regenerate_md5_sum_menu();
                 break;
+            }
 #ifdef RECOVERY_NEED_SELINUX_FIX
-            case 11:
-                {
-                    nandroid_secontext ^= 1;
-                    if (nandroid_secontext)
-                        delete_a_file(ignore_nand_secontext_file);
-                    else write_string_to_file(ignore_nand_secontext_file, "1");
-                }
+            case 11: {
+                nandroid_secontext ^= 1;
+                if (nandroid_secontext)
+                    delete_a_file(ignore_nand_secontext_file);
+                else write_string_to_file(ignore_nand_secontext_file, "1");
                 break;
+            }
 #endif
         }
     }
@@ -3326,51 +3317,49 @@ static void import_export_settings() {
         int chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK)
             break;
-        switch (chosen_item)
-        {
-            case 0:
+        switch (chosen_item) {
+            case 0: {
                 if (copy_a_file(PHILZ_SETTINGS_FILE, backup_file) == 0)
                     ui_print("config file successefully backed up to %s\n", backup_file);
                 break;
-            case 1:
+            }
+            case 1: {
                 if (copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
                     refresh_recovery_settings(0);
                     ui_print("settings loaded from %s\n", backup_file);
                 }
                 break;
-            case 2:
-                {
-                    int ret = 1;
-                    int i = 1;
-                    char path[PATH_MAX];
-                    while (ret && i < 10) {
-                        sprintf(path, "%s/theme_%03i.ini", themes_dir, i);
-                        ret = file_found(path);
-                        ++i;
-                    }
-
-                    if (ret)
-                        LOGE("Can't save more than 10 themes!\n");
-                    else if (copy_a_file(PHILZ_SETTINGS_FILE, path) == 0)
-                        ui_print("Custom settings saved to %s\n", path);
+            }
+            case 2: {
+                int ret = 1;
+                int i = 1;
+                char path[PATH_MAX];
+                while (ret && i < 10) {
+                    sprintf(path, "%s/theme_%03i.ini", themes_dir, i);
+                    ret = file_found(path);
+                    ++i;
                 }
+
+                if (ret)
+                    LOGE("Can't save more than 10 themes!\n");
+                else if (copy_a_file(PHILZ_SETTINGS_FILE, path) == 0)
+                    ui_print("Custom settings saved to %s\n", path);
                 break;
-            case 3:
+            }
+            case 3: {
                 load_theme_settings();
                 break;
-            case 4:
-                {
-                    ensure_path_mounted(themes_dir);
-                    char* theme_file = choose_file_menu(themes_dir, ".ini", headers);
-                    if (theme_file == NULL)
-                        break;
-
-                    if (confirm_selection("Delete selected theme ?", "Yes - Delete"))
-                        delete_a_file(theme_file);
-
-                    free(theme_file);
-                }
+            }
+            case 4: {
+                ensure_path_mounted(themes_dir);
+                char* theme_file = choose_file_menu(themes_dir, ".ini", headers);
+                if (theme_file == NULL)
+                    break;
+                if (confirm_selection("Delete selected theme ?", "Yes - Delete"))
+                    delete_a_file(theme_file);
+                free(theme_file);
                 break;
+            }
         }
     }
 }
@@ -3409,37 +3398,36 @@ void show_philz_settings_menu()
         if (chosen_item == GO_BACK)
             break;
 
-        switch (chosen_item)
-        {
-            case 0:
-                {
-                    //search in default ors paths
-                    char* primary_path = get_primary_storage_path();
-                    char** extra_paths = get_extra_storage_paths();
-                    int num_extra_volumes = get_num_extra_volumes();
-                    int i = 0;
+        switch (chosen_item) {
+            case 0: {
+                //search in default ors paths
+                char* primary_path = get_primary_storage_path();
+                char** extra_paths = get_extra_storage_paths();
+                int num_extra_volumes = get_num_extra_volumes();
+                int i = 0;
 
-                    choose_default_ors_menu(primary_path);
-                    if (extra_paths != NULL) {
-                        while (browse_for_file && i < num_extra_volumes) {
-                            // while we did not find an ors script in default location, continue searching in other volumes
-                            choose_default_ors_menu(extra_paths[i]);
-                            i++;
-                        }
-                    }
-
-                    if (browse_for_file) {
-                        //no files found in default locations, let's search manually for a custom ors
-                        ui_print("No .ors files under %s\n", RECOVERY_ORS_PATH);
-                        ui_print("Manually search .ors files...\n");
-                        show_custom_ors_menu();
+                choose_default_ors_menu(primary_path);
+                if (extra_paths != NULL) {
+                    while (browse_for_file && i < num_extra_volumes) {
+                        // while we did not find an ors script in default location, continue searching in other volumes
+                        choose_default_ors_menu(extra_paths[i]);
+                        i++;
                     }
                 }
+
+                if (browse_for_file) {
+                    //no files found in default locations, let's search manually for a custom ors
+                    ui_print("No .ors files under %s\n", RECOVERY_ORS_PATH);
+                    ui_print("Manually search .ors files...\n");
+                    show_custom_ors_menu();
+                }
                 break;
-            case 1:
+            }
+            case 1: {
                 run_aroma_browser();
                 break;
-            case 2:
+            }
+            case 2: {
                 if (confirm_selection("Remove existing su ?", "Yes - Apply SuperSU")) {
                     if (0 == __system("/sbin/install-su.sh"))
                         ui_print("Done!\nNow, install SuperSU from market.\n");
@@ -3447,44 +3435,47 @@ void show_philz_settings_menu()
                         ui_print("Failed to apply root!\n");
                 }
                 break;
-            case 3:
-                {
-                    char value[5];
-                    check_root_and_recovery ^= 1;
-                    sprintf(value, "%d", check_root_and_recovery);
-                    write_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value);
-                }
+            }
+            case 3: {
+                char value[5];
+                check_root_and_recovery ^= 1;
+                sprintf(value, "%d", check_root_and_recovery);
+                write_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value);
                 break;
-            case 4:
-                {
-                    char value[5];
-                    auto_restore_settings ^= 1;
-                    sprintf(value, "%d", auto_restore_settings);
-                    write_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value);
-                }
+            }
+            case 4: {
+                char value[5];
+                auto_restore_settings ^= 1;
+                sprintf(value, "%d", auto_restore_settings);
+                write_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value);
                 break;
-            case 5:
+            }
+            case 5: {
                 import_export_settings();
                 break;
-            case 6:
+            }
+            case 6: {
                 if (confirm_selection("Reset all recovery settings?", "Yes - Reset to Defaults")) {
                     delete_a_file(PHILZ_SETTINGS_FILE);
                     refresh_recovery_settings(0);
                     ui_print("All settings reset to default!\n");
                 }
                 break;
-            case 7:
+            }
+            case 7: {
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_touch_gui_menu();
 #endif
                 break;
-            case 8:
+            }
+            case 8: {
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 ui_print("Compiled %s at %s\n", __DATE__, __TIME__);
                 break;
+            }
         }
     }
 }
