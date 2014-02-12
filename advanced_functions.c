@@ -1699,6 +1699,7 @@ void set_custom_zip_path() {
     char custom_path2[PATH_MAX];
     char *up_folder;
     sprintf(custom_path2, "%s", custom_path);
+    vold_mount_all();
     for (;;) {
         chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
@@ -1824,6 +1825,7 @@ int show_custom_zip_menu() {
     char *up_folder;
     char custom_path2[PATH_MAX];
     sprintf(custom_path2, "%s", custom_path);
+    vold_mount_all();
     for (;;) {
 /*
         LOGE("\n\n>> Total list:\n");
@@ -3064,6 +3066,7 @@ void run_aroma_browser() {
     int ret = -1;
     int i = 0;
 
+    vold_mount_all();
     ret = default_aromafm(get_primary_storage_path());
     if (extra_paths != NULL) {
         i = 0;
