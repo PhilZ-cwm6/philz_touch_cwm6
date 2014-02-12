@@ -394,8 +394,6 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
 int no_files_found = 0;
 char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]) {
     const char* fixed_headers[20];
-    DIR *dir;
-    struct dirent *de;
     int numFiles = 0;
     int numDirs = 0;
     int i;
@@ -411,10 +409,6 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
         dir_len++;
     }
 
-    i = 0;
-    while (headers[i]) {
-        i++;
-    }
     i = 0;
     while (headers[i]) {
         fixed_headers[i] = headers[i];
@@ -455,12 +449,10 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
             int chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
             if (chosen_item == GO_BACK || chosen_item == REFRESH)
                 break;
-            char ret[PATH_MAX];
             if (chosen_item < numDirs) {
                 char* subret = choose_file_menu(dirs[chosen_item], fileExtensionOrDirectory, headers);
                 if (subret != NULL) {
-                    strcpy(ret, subret);
-                    return_value = strdup(ret);
+                    return_value = strdup(subret);
                     free(subret);
                     break;
                 } else {
@@ -470,8 +462,7 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
                     continue;
                 }
             }
-            strcpy(ret, files[chosen_item - numDirs]);
-            return_value = strdup(ret);
+            return_value = strdup(files[chosen_item - numDirs]);
             break;
         }
         free_string_array(list);
