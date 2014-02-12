@@ -113,7 +113,7 @@ static void nandroid_callback(const char* filename) {
 #endif
 
     if (use_nandroid_simple_logging)
-        ui_set_log_stdout(1);
+        ui_set_log_stdout(0);
 
     // do not write size progress to log file
     ui_nolog_lines(1);
@@ -131,7 +131,7 @@ static void nandroid_callback(const char* filename) {
 #ifdef PHILZ_TOUCH_RECOVERY
     ui_print_color(0, 0);
 #endif
-    ui_set_log_stdout(0);
+    ui_set_log_stdout(1);
 }
 
 static void compute_directory_stats(const char* directory) {
