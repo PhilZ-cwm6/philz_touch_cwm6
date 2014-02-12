@@ -273,7 +273,14 @@ int is_data_media_volume_path(const char* path) {
     return strcmp(path, "/sdcard") == 0 || path == strstr(path, "/sdcard/");
 }
 
+static int ensure_path_mounted_always_true = 0;
+void set_ensure_mount_always_true(int state) {
+    ensure_path_mounted_always_true = state;
+}
+
 int ensure_path_mounted(const char* path) {
+    if (ensure_path_mounted_always_true)
+        return 0;
     return ensure_path_mounted_at_mount_point(path, NULL);
 }
 

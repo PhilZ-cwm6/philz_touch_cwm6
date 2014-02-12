@@ -39,6 +39,7 @@ int is_path_ramdisk(const char* path);
 int copy_a_file(const char* file_in, const char* file_out);
 
 // custom zip path + free browse mode
+void set_ensure_mount_always_true(int state);
 int show_custom_zip_menu();
 void set_custom_zip_path();
 

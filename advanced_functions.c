@@ -1645,20 +1645,27 @@ void set_custom_zip_path() {
     }
     list_main[num_extra_volumes + list_top_items] = NULL;
 
+    Volume* v;
     char custom_path[PATH_MAX];
-    int chosen_item = get_menu_selection(headers, list_main, 0, 0);
-    if (chosen_item == GO_BACK || chosen_item == REFRESH)
-        goto out;
-
-    switch (chosen_item)
-    {
-        case 0:
+    int chosen_item;
+    for (;;) {
+        chosen_item = get_menu_selection(headers, list_main, 0, 0);
+        if (chosen_item == GO_BACK || chosen_item == REFRESH) {
+            goto out;
+        } else if (chosen_item == 0) {
             write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", "");
             ui_print("Free browse mode disabled\n");
             goto out;
-        default:
+        } else {
             sprintf(custom_path, "%s/", list_main[chosen_item] + strlen(list_prefix));
+            if (is_data_media_volume_path(custom_path))
+                v = volume_for_path("/data");
+            else
+                v = volume_for_path(custom_path);
+            if (v == NULL || ensure_path_mounted(v->mount_point) != 0)
+                continue;
             break;
+        }
     }
 
     // populate fixed headers (display current path while browsing)
@@ -1676,8 +1683,6 @@ void set_custom_zip_path() {
     fixed_headers[j + 1] = NULL;
 
     // start browsing for custom path
-    char tmp[PATH_MAX];
-    sprintf(tmp, "%s", custom_path);
     int dir_len = strlen(custom_path);
     int numDirs = 0;
     char** dirs = gather_files(custom_path, NULL, &numDirs);
@@ -1691,27 +1696,37 @@ void set_custom_zip_path() {
         list[i] = strdup(dirs[i-2] + dir_len);
     }
 
+    char custom_path2[PATH_MAX];
+    char *up_folder;
+    sprintf(custom_path2, "%s", custom_path);
     for (;;) {
         chosen_item = get_menu_selection(fixed_headers, list, 0, 0);
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
         if (chosen_item == 0) {
-            sprintf(tmp, "%s", custom_path);
-            if (strcmp(dirname(custom_path), "/") == 0)
-                sprintf(custom_path, "/");
+            sprintf(custom_path2, "%s", custom_path);
+            up_folder = dirname(custom_path2);
+            if (strcmp(up_folder, "/") == 0 || strcmp(up_folder, ".") == 0)
+                sprintf(custom_path2, "/" );
             else
-                sprintf(custom_path, "%s/", dirname(tmp));
+                sprintf(custom_path2, "%s/", up_folder);
         } else if (chosen_item == 1) {
             if (strlen(custom_path) > PROPERTY_VALUE_MAX)
                 LOGE("Maximum allowed path length is %d\n", PROPERTY_VALUE_MAX);
-            else if (0 == write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", custom_path)) {
+            else if (0 == write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", custom_path))
                 ui_print("Default install zip folder set to %s\n", custom_path);
-                break;
-            }
-        } else
-            sprintf(custom_path, "%s", dirs[chosen_item - 2]);
+            break;
+        } else {
+            sprintf(custom_path2, "%s", dirs[chosen_item - 2]);
+        }
 
-        // browse selected folder
+        // mount known volumes before browsing folders
+        if (is_data_media_volume_path(custom_path2) && ensure_path_mounted("/data") != 0)
+            continue;
+        else if (volume_for_path(custom_path2) != NULL && ensure_path_mounted(custom_path2) != 0)
+            continue;
+
+        sprintf(custom_path, "%s", custom_path2);
         fixed_headers[j] = custom_path;
         dir_len = strlen(custom_path);
         numDirs = 0;
@@ -1745,18 +1760,21 @@ int show_custom_zip_menu() {
     };
 
     char val[PROPERTY_VALUE_MAX];
+    int ret = 0;
     read_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", val, "");
-    if (strcmp(val, "") == 0) {
-        ui_print("Free browse mode disabled. Enable it first\n");
-        return 1;
-    }
-    if (ensure_path_mounted(val) != 0) {
+
+    if (strcmp(val, "") == 0)
+        ret = 1;
+    else if (is_data_media_volume_path(val) && ensure_path_mounted("/data") != 0)
+        ret = -1;
+    else if (volume_for_path(val) != NULL && ensure_path_mounted(val) != 0)
+        ret = -1;
+    if (ret != 0) {
         LOGE("Cannot mount custom path %s\n", val);
         LOGE("You must first setup a valid folder\n");
-        return -1;
+        return ret;
     }
 
-    char tmp[PATH_MAX];
     char custom_path[PATH_MAX];
     sprintf(custom_path, "%s", val);
     if (custom_path[strlen(custom_path) - 1] != '/')
@@ -1790,8 +1808,8 @@ int show_custom_zip_menu() {
     list[total+1] = NULL;
 
     // populate menu list with current folders and zip files. Reserved list[0] for ../ to browse backward
-    int i;
     //LOGE(">> Dirs (num=%d):\n", numDirs);
+    int i;
     for(i=1; i < numDirs+1; i++) {
         list[i] = strdup(dirs[i-1] + dir_len);
         //LOGE("list[%d]=%s\n", i, list[i]);
@@ -1803,6 +1821,9 @@ int show_custom_zip_menu() {
     }
 
     int chosen_item;
+    char *up_folder;
+    char custom_path2[PATH_MAX];
+    sprintf(custom_path2, "%s", custom_path);
     for (;;) {
 /*
         LOGE("\n\n>> Total list:\n");
@@ -1815,20 +1836,29 @@ int show_custom_zip_menu() {
         if (chosen_item == REFRESH)
             continue;
         if (chosen_item == GO_BACK) {
-            if (strcmp(custom_path, "/") == 0)
+            if (strcmp(custom_path2, "/") == 0)
                 break;
             else chosen_item = 0;
         }
         if (chosen_item < numDirs+1 && chosen_item >= 0) {
             if (chosen_item == 0) {
-                sprintf(tmp, "%s", dirname(custom_path));
-                if (strcmp(tmp, "/") != 0)
-                    strcat(tmp, "/");
-                sprintf(custom_path, "%s", tmp);
-            } else sprintf(custom_path, "%s", dirs[chosen_item - 1]);
-            //LOGE("\n\n Selected chosen_item=%d is: %s\n\n", chosen_item, custom_path);
+                up_folder = dirname(custom_path2);
+                sprintf(custom_path2, "%s", up_folder);
+                if (strcmp(custom_path2, "/") != 0)
+                    strcat(custom_path2, "/");
+            } else {
+                sprintf(custom_path2, "%s", dirs[chosen_item - 1]);
+            }
+            //LOGE("\n\n Selected chosen_item=%d is: %s\n\n", chosen_item, custom_path2);
 
-            // browse selected folder
+            // mount known volumes before browsing folders
+            if (is_data_media_volume_path(custom_path2) && ensure_path_mounted("/data") != 0)
+                continue;
+            else if (volume_for_path(custom_path2) != NULL && ensure_path_mounted(custom_path2) != 0)
+                continue;
+
+            // we're now in a mounted path or ramdisk folder: browse selected folder
+            sprintf(custom_path, "%s", custom_path2);
             fixed_headers[j] = custom_path;
             dir_len = strlen(custom_path);
             numDirs = 0;
@@ -1866,9 +1896,13 @@ int show_custom_zip_menu() {
 */
     //flashing selected zip file
     if (chosen_item !=  GO_BACK) {
+        char tmp[PATH_MAX];
         sprintf(tmp, "Yes - Install %s", list[chosen_item]);
-        if (confirm_selection("Install selected file?", tmp))
+        if (confirm_selection("Install selected file?", tmp)) {
+            set_ensure_mount_always_true(1);
             install_zip(files[chosen_item - numDirs - 1]);
+            set_ensure_mount_always_true(0);
+        }
     }
     free_string_array(list);
     free_string_array(files);
