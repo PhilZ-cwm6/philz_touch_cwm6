@@ -1431,21 +1431,22 @@ void misc_nandroid_menu()
 #ifdef RECOVERY_NEED_SELINUX_FIX
     char item_secontext[MENU_MAX_COLS];
 #endif
-    char* list[] = { item_md5,
-                    item_preload,
-                    item_twrp_mode,
-                    item_compress,
-                    item_ors_path,
-                    item_size_progress,
-                    item_use_nandroid_simple_logging,
-                    item_nand_progress,
-                    item_prompt_low_space,
-                    "Default Backup Format...",
-                    "Regenerate md5 Sum",
+    char* list[] = {
+        item_md5,
+        item_preload,
+        item_twrp_mode,
+        item_compress,
+        item_ors_path,
+        item_size_progress,
+        item_use_nandroid_simple_logging,
+        item_nand_progress,
+        item_prompt_low_space,
+        "Default Backup Format...",
+        "Regenerate md5 Sum",
 #ifdef RECOVERY_NEED_SELINUX_FIX
-                    item_secontext,
+        item_secontext,
 #endif
-                    NULL
+        NULL
     };
 
     int nandroid_secontext;
