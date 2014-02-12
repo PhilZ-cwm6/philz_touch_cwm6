@@ -1,5 +1,12 @@
 // PhilZ Touch config file
 
+
+// format toggle menus to screen width
+// redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
+// used to format toggle menus to device screen width (only touch build)
+#define MENU_MAX_COLS 64
+void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
+
 // print custom logtail (detailed logging report in raw-backup.sh...)
 void ui_print_custom_logtail(const char* filename, int nb_lines);
 

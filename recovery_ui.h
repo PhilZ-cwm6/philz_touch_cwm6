@@ -123,7 +123,4 @@ extern int ui_handle_key(int key, int visible);
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg);
 
-// format toggle menus to screen width
-void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
-
 #endif

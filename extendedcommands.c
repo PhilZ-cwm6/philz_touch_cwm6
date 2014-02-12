@@ -47,7 +47,7 @@
 
 #include "adb_install.h"
 
-int signature_check_enabled = 1;
+int signature_check_enabled = 0;
 int script_assert_enabled = 1;
 
 int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
@@ -128,8 +128,11 @@ const char* read_last_install_path() {
 }
 
 void toggle_signature_check() {
+    char value[3];
     signature_check_enabled = !signature_check_enabled;
-    ui_print("Signature Check: %s\n", signature_check_enabled ? "Enabled" : "Disabled");
+    sprintf(value, "%d", signature_check_enabled);
+    write_config_file(PHILZ_SETTINGS_FILE, "signature_check_enabled", value);
+    // ui_print("Signature Check: %s\n", signature_check_enabled ? "Enabled" : "Disabled");
 }
 
 #ifdef ENABLE_LOKI
@@ -202,17 +205,22 @@ int show_install_update_menu() {
     }
 
     // FIXED_BOTTOM_INSTALL_ZIP_MENUS
+    char item_toggle_signature_check[MENU_MAX_COLS] = "Signature Verification";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip Using Free Browse Mode";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Choose zip from Last Install Folder";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Install zip from sideload";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Install Multiple zip Files";
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = "Toggle Signature Verification";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = item_toggle_signature_check;
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = "Setup Free Browse Mode";
 
     // extra NULL for GO_BACK
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + FIXED_BOTTOM_INSTALL_ZIP_MENUS] = NULL;
 
     for (;;) {
+        if (signature_check_enabled)
+            ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "(x)");
+        else ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "( )");
+            
         chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
         if (chosen_item == 0) {
             show_choose_zip_menu(primary_path);

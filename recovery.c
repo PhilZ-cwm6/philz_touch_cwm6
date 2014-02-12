@@ -1170,7 +1170,7 @@ main(int argc, char **argv) {
         status = INSTALL_ERROR;  // No command specified
         // we are starting up in user initiated recovery here
         // let's set up some default options
-        signature_check_enabled = 0;
+        // signature_check_enabled = 0;
         script_assert_enabled = 0;
         is_user_initiated_recovery = 1;
         if (!headless) {
@@ -1211,7 +1211,7 @@ main(int argc, char **argv) {
     }
 
     if (sideload) {
-        signature_check_enabled = 0;
+        // signature_check_enabled = 0;
         if (!headless)
             ui_set_show_text(1);
         if (0 == apply_from_adb()) {

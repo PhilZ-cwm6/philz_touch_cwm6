@@ -57,10 +57,6 @@
 /*****************************************/
 
 
-// redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
-// used to format toggle menus to device screen width (only touch build)
-#define MENU_MAX_COLS 64
-
 int check_root_and_recovery = 1;
 static int auto_restore_settings = 0;
 static int ignore_android_secure = 0;
@@ -3207,7 +3203,17 @@ static void check_prompt_on_low_space() {
         nand_prompt_on_low_space = 1;
 }
 
-// struct initializer
+// check if we should verify signature during install of zip packages
+static void check_signature_check() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "signature_check_enabled", value, "0");
+    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
+        signature_check_enabled = 1;
+    else
+        signature_check_enabled = 0;
+}
+
+// struct initializer for custom partitions to be supported in nandroid
 static void initialize_extra_partitions_state() {
     int i;
     for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
@@ -3225,6 +3231,7 @@ void refresh_recovery_settings(int on_start) {
     check_nandroid_md5sum();
     check_show_nand_size_progress();
     check_prompt_on_low_space();
+    check_signature_check();
     initialize_extra_partitions_state();
 #ifdef ENABLE_LOKI
     check_loki_support_action();
