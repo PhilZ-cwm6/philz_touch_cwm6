@@ -112,20 +112,26 @@ static void nandroid_callback(const char* filename) {
     ui_print_color(3, color);
 #endif
 
+    if (use_nandroid_simple_logging)
+        ui_set_log_stdout(1);
+
     // do not write size progress to log file
     ui_nolog_lines(1);
+
     // strlen(tmp) check avoids ui_nolog_lines() printing size progress to log on empty lines
     if (strlen(tmp) == 0)
         sprintf(tmp, " ");
     ui_nice_print("%s\n%s\n", tmp, size_progress);
     ui_nolog_lines(-1);
-    if (!ui_was_niced() && nandroid_files_total != 0)
-        ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
-    if (!ui_was_niced())
+    if (!ui_was_niced()) {
+        if (nandroid_files_total != 0)
+            ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
         ui_delete_line(2);
+    }
 #ifdef PHILZ_TOUCH_RECOVERY
     ui_print_color(0, 0);
 #endif
+    ui_set_log_stdout(0);
 }
 
 static void compute_directory_stats(const char* directory) {

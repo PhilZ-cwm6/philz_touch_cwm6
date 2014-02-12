@@ -23,6 +23,7 @@ int android_secure_ext = 0;
 int nandroid_add_preload = 0;
 int enable_md5sum = 1;
 int show_nandroid_size_progress = 0;
+int use_nandroid_simple_logging = 1;
 int compression_value = TAR_GZ_DEFAULT;
 int nand_prompt_on_low_space = 1;
 

@@ -1424,6 +1424,7 @@ void misc_nandroid_menu()
     char item_compress[MENU_MAX_COLS];
     char item_ors_path[MENU_MAX_COLS];
     char item_size_progress[MENU_MAX_COLS];
+    char item_use_nandroid_simple_logging[MENU_MAX_COLS];
     char item_nand_progress[MENU_MAX_COLS];
     char item_prompt_low_space[MENU_MAX_COLS];
 #ifdef RECOVERY_NEED_SELINUX_FIX
@@ -1435,6 +1436,7 @@ void misc_nandroid_menu()
                     item_compress,
                     item_ors_path,
                     item_size_progress,
+                    item_use_nandroid_simple_logging,
                     item_nand_progress,
                     item_prompt_low_space,
                     "Default Backup Format...",
@@ -1487,6 +1489,10 @@ void misc_nandroid_menu()
         if (show_nandroid_size_progress)
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
+
+        if (use_nandroid_simple_logging)
+            ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "(x)");
+        else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
 
         hidenandprogress = file_found(hidenandprogress_file);
         if (hidenandprogress)
@@ -1575,13 +1581,21 @@ void misc_nandroid_menu()
                 break;
             case 6:
                 {
+                    char value[3];
+                    use_nandroid_simple_logging ^= 1;
+                    sprintf(value, "%d", use_nandroid_simple_logging);
+                    write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
+                }
+                break;
+            case 7:
+                {
                     hidenandprogress ^= 1;
                     if (hidenandprogress)
                         write_string_to_file(hidenandprogress_file, "1");
                     else delete_a_file(hidenandprogress_file);
                 }
                 break;
-            case 7:
+            case 8:
                 {
                     char value[3];
                     nand_prompt_on_low_space ^= 1;
@@ -1589,14 +1603,14 @@ void misc_nandroid_menu()
                     write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
                 }
                 break;
-            case 8:
+            case 9:
                 choose_default_backup_format();
                 break;
-            case 9:
+            case 10:
                 regenerate_md5_sum_menu();
                 break;
 #ifdef RECOVERY_NEED_SELINUX_FIX
-            case 10:
+            case 11:
                 {
                     nandroid_secontext ^= 1;
                     if (nandroid_secontext)
@@ -3192,6 +3206,15 @@ static void check_show_nand_size_progress() {
         show_nandroid_size_progress = 1;
 }
 
+static void check_nandroid_simple_logging() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value, "1");
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
+        use_nandroid_simple_logging = 0;
+    else
+        use_nandroid_simple_logging = 1;
+}
+
 // check prompt on low backup space
 static void check_prompt_on_low_space() {
     char value_def[3] = "1";
@@ -3230,6 +3253,7 @@ void refresh_recovery_settings(int on_start) {
     check_nandroid_preload();
     check_nandroid_md5sum();
     check_show_nand_size_progress();
+    check_nandroid_simple_logging();
     check_prompt_on_low_space();
     check_signature_check();
     initialize_extra_partitions_state();

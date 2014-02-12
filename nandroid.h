@@ -65,6 +65,7 @@ void set_override_yaffs2_wrapper(int set);
 
 extern int enable_md5sum;
 extern int show_nandroid_size_progress;
+extern int use_nandroid_simple_logging;
 extern int nandroid_add_preload;
 
 //option to reboot after user initiated nandroid operations

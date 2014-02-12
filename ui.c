@@ -704,7 +704,7 @@ static int ui_niced = 0;
 void ui_set_nice(int enabled) {
     ui_nice = enabled;
 }
-#define NICE_INTERVAL 100
+#define NICE_INTERVAL 300
 int ui_was_niced() {
     return ui_niced;
 }
@@ -731,9 +731,9 @@ void ui_print(const char *fmt, ...)
     vsnprintf(buf, 256, fmt, ap);
     va_end(ap);
 
-    // check if we need to exclude some line from write to log
+    // check if we need to exclude some line from write to log file
     // first line is line 0
-    if (no_stdout_line >= 0) {
+    if (ui_log_stdout && no_stdout_line >= 0) {
         char str[256];
         char buf2[256];
         char buf3[256] = "";
