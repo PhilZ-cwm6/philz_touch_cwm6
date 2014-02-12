@@ -1497,9 +1497,11 @@ void misc_nandroid_menu()
         else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
 
         hidenandprogress = file_found(hidenandprogress_file);
-        if (hidenandprogress)
+        if (hidenandprogress) {
             ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "(x)");
-        else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
+            list[5] = NULL;
+            list[6] = NULL;
+        } else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
         if (nand_prompt_on_low_space)
             ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "(x)");
@@ -1512,7 +1514,7 @@ void misc_nandroid_menu()
         else ui_format_gui_menu(item_secontext, "Process SE Context - JB 4.3", "( )");
 #endif
 
-        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
             break;
         switch (chosen_item) {
