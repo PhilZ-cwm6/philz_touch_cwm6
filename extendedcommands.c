@@ -143,7 +143,7 @@ static void toggle_loki_support() {
     apply_loki_patch ^= 1;
     sprintf(value, "%d", apply_loki_patch);
     write_config_file(PHILZ_SETTINGS_FILE, "apply_loki_patch", value);
-    ui_print("Loki Support: %s\n", apply_loki_patch ? "Enabled" : "Disabled");
+    // ui_print("Loki Support: %s\n", apply_loki_patch ? "Enabled" : "Disabled");
 }
 
 // this is called when we load recovery settings
@@ -1561,10 +1561,7 @@ int show_advanced_menu() {
     list[3] = "Show log";
     list[4] = NULL;
 #ifdef ENABLE_LOKI
-    if (loki_support_enabled() < 0)
-        list[5] = NULL;
-    else
-        list[5] = "Toggle Loki Support";
+    list[5] = NULL;
 #endif
 
     char list_prefix[] = "Partition ";
@@ -1592,6 +1589,20 @@ int show_advanced_menu() {
                 list[4] = "Sdcard target: /data/media/0";
             else list[4] = "Sdcard target: /data/media";
         }
+
+#ifdef ENABLE_LOKI
+        char item_loki_toggle_menu[MENU_MAX_COLS];
+        int enabled = loki_support_enabled();
+        if (enabled < 0) {
+            list[5] = NULL;
+        } else {
+            if (enabled)
+                ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "(x)");
+            else
+                ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
+            list[5] = item_loki_toggle_menu;
+        }
+#endif
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
