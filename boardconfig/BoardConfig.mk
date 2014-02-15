@@ -291,9 +291,8 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S4 - i9505, jfltexx
-else ifneq ($(filter $(TARGET_PRODUCT),cm_jfltexx cm_jflteatt cm_jfltecan cm_jfltecri cm_jfltespr cm_jfltetmo cm_jflteusc cm_jfltevzw cm_jfltezm),)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_jflte cm_jfltexx cm_jflteatt cm_jfltecan cm_jfltecri cm_jfltespr cm_jfltetmo cm_jflteusc cm_jfltevzw cm_jfltezm),)
     TARGET_COMMON_NAME := i9505 ($(TARGET_PRODUCT))
-    BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun0/file"
     BOOTLOADER_CMD_ARG := "download"
     #BOARD_HAS_SLOW_STORAGE := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
