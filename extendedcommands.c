@@ -1589,8 +1589,8 @@ int show_advanced_menu() {
         if (is_data_media()) {
             ensure_path_mounted("/data");
             if (use_migrated_storage())
-                list[4] = strdup("Storage set to /data/media/0");
-            else list[4] = strdup("Storage set to /data/media");
+                list[4] = "Sdcard target: /data/media/0";
+            else list[4] = "Sdcard target: /data/media";
         }
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -1660,8 +1660,6 @@ int show_advanced_menu() {
         }
     }
 
-    if (list[4] != NULL)
-        free(list[4]);
     for (; j > 0; --j) {
         free(list[FIXED_ADVANCED_ENTRIES + j - 1]);
     }
