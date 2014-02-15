@@ -137,13 +137,35 @@ void toggle_signature_check() {
 }
 
 #ifdef ENABLE_LOKI
-int loki_support_enabled = 0;
-void toggle_loki_support() {
+static int apply_loki_patch = 1;
+static void toggle_loki_support() {
     char value[3];
-    loki_support_enabled ^= 1;
-    sprintf(value, "%d", loki_support_enabled);
-    write_config_file(PHILZ_SETTINGS_FILE, "loki_support_enabled", value);
-    ui_print("Loki Support: %s\n", loki_support_enabled ? "Enabled" : "Disabled");
+    apply_loki_patch ^= 1;
+    sprintf(value, "%d", apply_loki_patch);
+    write_config_file(PHILZ_SETTINGS_FILE, "apply_loki_patch", value);
+    ui_print("Loki Support: %s\n", apply_loki_patch ? "Enabled" : "Disabled");
+}
+
+// this is called when we load recovery settings
+// it is needed when after recovery is booted, user wipes /data, then he installs a ROM: we can still return the user setting 
+int loki_support_enabled() {
+    char device_supports_loki[PROPERTY_VALUE_MAX];
+    int ret = -1;
+
+    property_get("ro.loki_enabled", device_supports_loki, "0");
+    if (strcmp(device_supports_loki, "1") == 0) {
+        // device variant supports loki: check if user enabled it
+        // if there is no settings file (read_config_file() < 0), it could be we have wiped /data before installing zip
+        // in that case, return current value (we last loaded on start or when user last set it) and not default
+        if (read_config_file(PHILZ_SETTINGS_FILE, "apply_loki_patch", device_supports_loki, "1") >= 0) {
+            if (strcmp(device_supports_loki, "false") == 0 || strcmp(device_supports_loki, "0") == 0)
+                apply_loki_patch = 0;
+            else
+                apply_loki_patch = 1;
+        }
+        ret = apply_loki_patch;
+    }
+    return ret;
 }
 #endif
 
@@ -161,7 +183,7 @@ int install_zip(const char* packagefilepath) {
         return 1;
     }
 #ifdef ENABLE_LOKI
-    if (loki_support_enabled) {
+    if (loki_support_enabled() > 0) {
         ui_print("Checking if loki-fying is needed\n");
         status = loki_check();
         if (status != INSTALL_SUCCESS) {
@@ -1539,7 +1561,10 @@ int show_advanced_menu() {
     list[3] = "Show log";
     list[4] = NULL;
 #ifdef ENABLE_LOKI
-    list[5] = "Toggle Loki Support";
+    if (loki_support_enabled() < 0)
+        list[5] = NULL;
+    else
+        list[5] = "Toggle Loki Support";
 #endif
 
     char list_prefix[] = "Partition ";
