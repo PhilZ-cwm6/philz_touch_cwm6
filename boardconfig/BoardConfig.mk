@@ -130,9 +130,20 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100)
     TARGET_COMMON_NAME := i9100
     BOOTLOADER_CMD_ARG := "download"
     BOARD_UMS_LUNFILE := "/sys/devices/virtual/android_usb/android0/f_mass_storage/lun%d/file"
-    BOARD_HAS_LOW_RESOLUTION := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_FB2PNG := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy S2 Epic 4G Touch - SPH-D710 (d710)
+else ifeq ($(TARGET_PRODUCT), cm_d710)
+    TARGET_COMMON_NAME := SPH-D710
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -201,7 +212,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung S3 T-Mobile SGH-T999 (d2tmo), SPH-L710 (d2spr), SPH-L710 (d2att), SGH-I535 (d2vzw) // US Cellular CH-R530U (d2usc)
+#Samsung S3 Unified d2lte: d2att d2cri d2mtr d2spr d2tmo d2usc d2vzw
+else ifeq ($(TARGET_PRODUCT), cm_d2lte)
+    TARGET_COMMON_NAME := $(TARGET_PRODUCT)
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_FB2PNG := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 # Galaxy S Relay 4G - SGH-T699 (apexqtmo) // Galaxy Express AT&T (expressatt)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_d2tmo cm_d2spr cm_d2att cm_d2vzw cm_d2usc cm_apexqtmo cm_expressatt),)
     TARGET_COMMON_NAME := $(TARGET_PRODUCT)
