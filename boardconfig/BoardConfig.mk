@@ -418,6 +418,17 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx cm_melius3gxx),)
     BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Samsung Galaxy Tab 3 7.0: SM-T210 WiFi (lt02wifi)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi),)
+    TARGET_COMMON_NAME := Galaxy Tab 3 7.0 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    TARGET_SCREEN_HEIGHT := 1024
+    TARGET_SCREEN_WIDTH := 600
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Samsung Galaxy Tab 3 8.0: SM-T310 (lt01wifi), SM-T311 (lt013g), SM-T315 (lt01lte)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_lt01wifi cm_lt013g cm_lt01lte),)
     TARGET_COMMON_NAME := Galaxy Tab 3 8.0 ($(TARGET_PRODUCT))
@@ -730,6 +741,20 @@ else ifeq ($(TARGET_PRODUCT), cm_mint)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight_1/brightness"
+
+#ZTE Warp Sequent - N861 (warp2)
+else ifeq ($(TARGET_PRODUCT), cm_warp2)
+    TARGET_COMMON_NAME := ZTE Warp Sequent - N861
+    TARGET_SCREEN_HEIGHT := 960
+    TARGET_SCREEN_WIDTH := 540
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#ZTE Awe (nex)
+else ifeq ($(TARGET_PRODUCT), cm_nex)
+    TARGET_COMMON_NAME := ZTE Awe (nex)
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 endif
 #---- end device specific config
