@@ -424,8 +424,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi),)
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
-    TARGET_SCREEN_HEIGHT := 1024
-    TARGET_SCREEN_WIDTH := 600
+    TARGET_SCREEN_HEIGHT := 600
+    TARGET_SCREEN_WIDTH := 1024
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
