@@ -588,8 +588,10 @@ else ifeq ($(TARGET_PRODUCT), cm_jewel)
 
 #HTC Rezound (vigor)
 else ifeq ($(TARGET_PRODUCT), cm_vigor)
-	TARGET_COMMON_NAME := HTC Rezound
-	BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    TARGET_COMMON_NAME := HTC Rezound
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Huawei Acsend P1 U9200 - viva (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_viva)
