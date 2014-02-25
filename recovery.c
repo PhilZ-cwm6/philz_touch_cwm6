@@ -56,6 +56,10 @@
 
 #include "recovery_cmds.h"
 
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "libtouch_gui/gui_settings.h"
+#endif
+
 int no_wipe_confirm = 0; // 0 == script is not ors_boot_script, confirm on wipe
 
 struct selabel_handle *sehandle = NULL;
@@ -1045,9 +1049,12 @@ main(int argc, char **argv) {
 
     device_ui_init(&ui_parameters);
     ui_init();
-    ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
+    ui_print(EXPAND(RECOVERY_MOD_VERSION_BUILD) "\n");
     ui_print("Clockworkmod " EXPAND(CWM_BASE_VERSION) "\n");
-    LOGI("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
+    LOGI("Device target: " EXPAND(TARGET_COMMON_NAME) "\n");
+#ifdef PHILZ_TOUCH_RECOVERY
+    print_libtouch_version(0);
+#endif
 
 #ifdef BOARD_RECOVERY_SWIPE
 #if !defined(BOARD_TOUCH_RECOVERY) && !defined(PHILZ_TOUCH_RECOVERY)
@@ -1171,7 +1178,6 @@ main(int argc, char **argv) {
         // we are starting up in user initiated recovery here
         // let's set up some default options
         // signature_check_enabled = 0;
-        script_assert_enabled = 0;
         is_user_initiated_recovery = 1;
         if (!headless) {
             ui_set_show_text(1);

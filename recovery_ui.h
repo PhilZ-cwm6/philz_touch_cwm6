@@ -19,10 +19,6 @@
 
 #include "common.h"
 
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_touch.h"
-#endif
-
 // Called before UI library is initialized.  Can change things like
 // how many frames are included in various animations, etc.
 extern void device_ui_init(UIParameters* ui_parameters);
@@ -35,6 +31,7 @@ extern int device_recovery_start();
 // keys are already pressed.  Return true if the text display should
 // be toggled.
 extern int device_toggle_display(volatile char* key_pressed, int key_code);
+int get_allow_toggle_display();
 
 // Called in the input thread when a new key (key_code) is pressed.
 // *key_pressed is an array of KEY_MAX+1 bytes indicating which other
@@ -83,6 +80,7 @@ int device_wipe_data();
 #define HIGHLIGHT_DOWN      -3
 #define SELECT_ITEM         -4
 #define GO_BACK             -5
+
 #ifdef PHILZ_TOUCH_RECOVERY
 #define HIGHLIGHT_ON_TOUCH  -6
 #define GESTURE_ACTIONS     -7

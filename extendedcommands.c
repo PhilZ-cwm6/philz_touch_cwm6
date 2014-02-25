@@ -47,9 +47,11 @@
 
 #include "adb_install.h"
 
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "libtouch_gui/gui_settings.h"
+#endif
+
 int check_update_binary_version = 1;
-int signature_check_enabled = 0;
-int script_assert_enabled = 1;
 
 int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
@@ -101,7 +103,7 @@ void write_recovery_version() {
     char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_VERSION_FILE);
     write_string_to_file(path, EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
-    // force unmount /data as we call this on recovery exit
+    // force unmount /data for /data/media devices as we call this on recovery exit
     ignore_data_media_workaround(1);
     ensure_path_unmounted(path);
     ignore_data_media_workaround(0);
@@ -114,7 +116,7 @@ static void write_last_install_path(const char* install_path) {
 }
 
 const char* read_last_install_path() {
-    char path[PATH_MAX];
+    static char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_LAST_INSTALL_FILE);
 
     ensure_path_mounted(path);
@@ -130,20 +132,19 @@ const char* read_last_install_path() {
 
 void toggle_signature_check() {
     char value[3];
-    signature_check_enabled = !signature_check_enabled;
-    sprintf(value, "%d", signature_check_enabled);
-    write_config_file(PHILZ_SETTINGS_FILE, "signature_check_enabled", value);
-    // ui_print("Signature Check: %s\n", signature_check_enabled ? "Enabled" : "Disabled");
+    signature_check_enabled.value = !signature_check_enabled.value;
+    sprintf(value, "%d", signature_check_enabled.value);
+    write_config_file(PHILZ_SETTINGS_FILE, signature_check_enabled.key, value);
+    // ui_print("Signature Check: %s\n", signature_check_enabled.value ? "Enabled" : "Disabled");
 }
 
 #ifdef ENABLE_LOKI
-static int apply_loki_patch = 1;
 static void toggle_loki_support() {
     char value[3];
-    apply_loki_patch ^= 1;
-    sprintf(value, "%d", apply_loki_patch);
-    write_config_file(PHILZ_SETTINGS_FILE, "apply_loki_patch", value);
-    // ui_print("Loki Support: %s\n", apply_loki_patch ? "Enabled" : "Disabled");
+    apply_loki_patch.value ^= 1;
+    sprintf(value, "%d", apply_loki_patch.value);
+    write_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, value);
+    // ui_print("Loki Support: %s\n", apply_loki_patch.value ? "Enabled" : "Disabled");
 }
 
 // this is called when we load recovery settings
@@ -157,13 +158,13 @@ int loki_support_enabled() {
         // device variant supports loki: check if user enabled it
         // if there is no settings file (read_config_file() < 0), it could be we have wiped /data before installing zip
         // in that case, return current value (we last loaded on start or when user last set it) and not default
-        if (read_config_file(PHILZ_SETTINGS_FILE, "apply_loki_patch", device_supports_loki, "1") >= 0) {
+        if (read_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, device_supports_loki, "1") >= 0) {
             if (strcmp(device_supports_loki, "false") == 0 || strcmp(device_supports_loki, "0") == 0)
-                apply_loki_patch = 0;
+                apply_loki_patch.value = 0;
             else
-                apply_loki_patch = 1;
+                apply_loki_patch.value = 1;
         }
-        ret = apply_loki_patch;
+        ret = apply_loki_patch.value;
     }
     return ret;
 }
@@ -242,7 +243,7 @@ int show_install_update_menu() {
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + FIXED_BOTTOM_INSTALL_ZIP_MENUS] = NULL;
 
     for (;;) {
-        if (signature_check_enabled)
+        if (signature_check_enabled.value)
             ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "(x)");
         else ui_format_gui_menu(item_toggle_signature_check, "Signature Verification", "( )");
 
@@ -259,8 +260,7 @@ int show_install_update_menu() {
             if (show_custom_zip_menu() != 0)
                 set_custom_zip_path();
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
-            char *last_path_used;
-            last_path_used = read_last_install_path();
+            const char *last_path_used = read_last_install_path();
             if (last_path_used == NULL)
                 show_choose_zip_menu(primary_path);
             else
@@ -544,7 +544,7 @@ void show_nandroid_delete_menu(const char* path) {
     char backup_path[PATH_MAX];
     char tmp[PATH_MAX];
 
-    if (twrp_backup_mode) {
+    if (twrp_backup_mode.value) {
         char device_id[PROPERTY_VALUE_MAX];
         get_device_id(device_id);
         sprintf(backup_path, "%s/%s/%s", path, TWRP_BACKUP_PATH, device_id);
@@ -1280,7 +1280,7 @@ int show_nandroid_menu() {
             switch (chosen_subitem) {
                 case 0: {
                     char backup_path[PATH_MAX];
-                    if (twrp_backup_mode) {
+                    if (twrp_backup_mode.value) {
                         int fmt = nandroid_get_default_backup_format();
                         if (fmt != NANDROID_BACKUP_FORMAT_TAR && fmt != NANDROID_BACKUP_FORMAT_TGZ) {
                             LOGE("TWRP backup format must be tar(.gz)!\n");
@@ -1295,7 +1295,7 @@ int show_nandroid_menu() {
                     break;
                 }
                 case 1: {
-                    if (twrp_backup_mode)
+                    if (twrp_backup_mode.value)
                         show_twrp_restore_menu(chosen_path);
                     else
                         show_nandroid_restore_menu(chosen_path);
@@ -1336,7 +1336,7 @@ void format_sdcard(const char* volume) {
     if (!fs_mgr_is_voldmanaged(v) && !can_partition(volume))
         return;
 
-    char* headers[] = { "Format device:", volume, "", NULL };
+    const char* headers[] = { "Format device:", volume, "", NULL };
 
     static char* list[] = { "default",
                             "vfat",
@@ -1403,7 +1403,7 @@ void format_sdcard(const char* volume) {
         ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
 }
 
-static void partition_sdcard(const char* volume) {
+void partition_sdcard(const char* volume) {
     if (!can_partition(volume)) {
         ui_print("Can't partition device: %s\n", volume);
         return;
@@ -1758,10 +1758,12 @@ void process_volumes() {
 
         if (count != 0) {
             count = 5;
-            while (count > 0 && umount("/data")) {
+            ignore_data_media_workaround(1);
+            while (count > 0 && ensure_path_unmounted("/data") != 0) {
                 usleep(500000);
                 count--;
             }
+            ignore_data_media_workaround(0);
             if (count == 0)
                 LOGE("could not unmount /data after /data/media setup\n");
         }
@@ -1849,7 +1851,7 @@ int volume_main(int argc, char **argv) {
 }
 
 int verify_root_and_recovery() {
-    if (!check_root_and_recovery)
+    if (!check_root_and_recovery.value)
         return 0;
 
     if (ensure_path_mounted("/system") != 0)

@@ -1,0 +1,50 @@
+#!/sbin/sh
+
+#version alpha 06
+#by PhilZ
+
+rm -rf /tmp/image-edify /tmp/image /tmp/install-system /tmp/install-preload /tmp/system.err /tmp/preload.err /tmp/error-edify
+mkdir -p /tmp/image
+cd /tmp/image
+touch nandroid.md5
+unzip $3 boot.*
+unzip -p $3 image-edify > /tmp/image-edify
+
+echo -e "#!/sbin/sh\n\ncd /; /sbin/unzip -p $3 'system.*' | tar x" >/tmp/install-system
+echo 'if [ "0" != "$?" ]; then echo 1>/tmp/system.err; fi;' >>/tmp/install-system
+chmod 0755 /tmp/install-system
+
+unzip -l $3 | grep -v "#" | grep preload
+if [ "0" = "$?" ]
+then
+  echo -e "#!/sbin/sh\n\ncd /; /sbin/unzip -p $3 'preload.*' | tar x" >/tmp/install-preload
+  echo 'if [ "0" != "$?" ]; then echo 1>/tmp/preload.err; fi;' >>/tmp/install-preload
+  chmod 0755 /tmp/install-preload
+  echo -e 'ui_print("Formatting preload...");' >>/tmp/image-edify
+  echo -e 'assert(format("/preload"));\nassert(mount("/preload"));\n' >>/tmp/image-edify
+  echo -e 'ui_print("Installing preload files...");\nrun_program("/tmp/install-preload");\n' >>/tmp/image-edify
+fi
+
+echo -e '\nui_print("Done!");\n' >>/tmp/image-edify
+
+edify /tmp/image-edify
+if [ "0" != "$?" ]
+then
+  exit $?
+fi
+
+#error check and report to user
+if [ -f "/tmp/system.err" ]
+then
+ echo -e 'ui_print("Error while extracting /system ");\n' >>/tmp/error-edify
+fi
+if [ -f "/tmp/preload.err" ]
+then
+ echo -e 'ui_print("Error while extracting /preload ");\n' >>/tmp/error-edify
+fi
+if [ -f "/tmp/error-edify" ]
+then
+ edify /tmp/error-edify
+ exit 1
+fi
+exit $?

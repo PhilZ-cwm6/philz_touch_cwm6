@@ -1,12 +1,28 @@
 ifneq ($(WITH_SIMPLE_RECOVERY),true)
 
 LOCAL_PATH := $(call my-dir)
+
+# philz touch gui: either prebuilt or from sources
+# PHILZ_TOUCH_RECOVERY := true
+# USE_PREBUILT_LIBTOUCH_GUI := true
+
+ifdef PHILZ_TOUCH_RECOVERY
+ifdef USE_PREBUILT_LIBTOUCH_GUI
+include $(CLEAR_VARS)
+MY_LOCAL_PATH := $(LOCAL_PATH)
+LOCAL_PREBUILT_LIBS := libtouch_gui/libtouch_gui.a
+include $(BUILD_MULTI_PREBUILT)
+LOCAL_PATH := $(MY_LOCAL_PATH)
+endif
+endif
+
+# start recovery binary makefile
 include $(CLEAR_VARS)
 
 commands_recovery_local_path := $(LOCAL_PATH)
 
 #Extra BoardConfig flags
-include $(LOCAL_PATH)/boardconfig/BoardConfig.mk
+include $(commands_recovery_local_path)/boardconfig/BoardConfig.mk
 
 # LOCAL_CPP_EXTENSION := .c
 
@@ -19,6 +35,7 @@ LOCAL_SRC_FILES := \
     mounts.c \
     extendedcommands.c \
     advanced_functions.c \
+    recovery_settings.c \
     nandroid.c \
     reboot.c \
     ../../system/core/toolbox/dynarray.c \
@@ -51,7 +68,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-PHILZ_BUILD := 6.15.4
+PHILZ_BUILD := 6.18.7
 CWM_BASE_VERSION := v6.0.4.7
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 RECOVERY_VERSION := $(RECOVERY_NAME) $(CWM_BASE_VERSION)
@@ -60,18 +77,19 @@ LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 
-#PHILZ_TOUCH_RECOVERY := true
 ifdef PHILZ_TOUCH_RECOVERY
-LOCAL_CFLAGS += -DPHILZ_TOUCH_RECOVERY
-RECOVERY_MOD_NAME := PhilZ Touch
+    LOCAL_CFLAGS += -DPHILZ_TOUCH_RECOVERY
+    RECOVERY_MOD_NAME := PhilZ Touch
 else
-ifndef RECOVERY_MOD_NAME
-RECOVERY_MOD_NAME := CWM Advanced Edition
-endif
+    ifndef RECOVERY_MOD_NAME
+    RECOVERY_MOD_NAME := CWM Advanced Edition
+    endif
 endif
 
 RECOVERY_MOD_VERSION := $(RECOVERY_MOD_NAME) $(shell echo $(PHILZ_BUILD) | cut -d . -f 1)
+RECOVERY_MOD_VERSION_BUILD := $(RECOVERY_MOD_NAME) $(PHILZ_BUILD)
 LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION="$(RECOVERY_MOD_VERSION)"
+LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION_BUILD="$(RECOVERY_MOD_VERSION_BUILD)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
 #LOCAL_CFLAGS += -DBUILD_DATE="\"`date`\""
@@ -163,6 +181,10 @@ LOCAL_STATIC_LIBRARIES += libminui libpixelflinger_static libpng libcutils liblo
 LOCAL_STATIC_LIBRARIES += libstdc++ libc
 
 LOCAL_STATIC_LIBRARIES += libselinux
+
+ifdef PHILZ_TOUCH_RECOVERY
+LOCAL_STATIC_LIBRARIES += libtouch_gui
+endif
 
 include $(BUILD_EXECUTABLE)
 
@@ -265,6 +287,12 @@ include $(commands_recovery_local_path)/su/supersu/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/device_images/Android.mk
 include $(commands_recovery_local_path)/loki/Android.mk
+
+ifdef PHILZ_TOUCH_RECOVERY
+ifndef USE_PREBUILT_LIBTOUCH_GUI
+include $(commands_recovery_local_path)/libtouch_gui/Android.mk
+endif
+endif
 
 ifneq ($(BOARD_USE_FB2PNG),)
     include $(commands_recovery_local_path)/fb2png/Android.mk

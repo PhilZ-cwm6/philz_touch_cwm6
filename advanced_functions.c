@@ -45,6 +45,14 @@
 #include "mtdutils/mtdutils.h"
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
+#include "mmcutils/mmcutils.h"
+#include "voldclient/voldclient.h"
+
+#include "adb_install.h"
+
+#ifdef PHILZ_TOUCH_RECOVERY
+#include "libtouch_gui/gui_settings.h"
+#endif
 
 /*****************************************/
 /*   DO NOT REMOVE THIS CREDITS HEARDER  */
@@ -56,12 +64,25 @@
 /*      Part of PhilZ Touch Recovery     */
 /*****************************************/
 
-
-int check_root_and_recovery = 1;
-static int auto_restore_settings = 0;
+// ignore_android_secure = 1: this will force skipping android secure from backup/restore jobs
 static int ignore_android_secure = 0;
 
-static unsigned long long gettime() {
+
+// time using gettimeofday()
+// to get time in usec, we call timenow_usec() which will link here if clock_gettime fails
+static long long gettime_usec() {
+    struct timeval now;
+    long long useconds;
+    gettimeofday(&now, NULL);
+    useconds = (long long)(now.tv_sec) * 1000000LL;
+    useconds += (long long)now.tv_usec;
+    return useconds;
+}
+
+// use clock_gettime for elapsed time
+// this is nsec precise + less prone to issues for elapsed time
+// unsigned integers cannot be negative (overflow): set error return code to 0 (1.1.1970 00:00)
+unsigned long long gettime_nsec() {
     struct timespec ts;
     static int err = 0;
 
@@ -74,23 +95,15 @@ static unsigned long long gettime() {
     }
 
     unsigned long long nseconds = (unsigned long long)(ts.tv_sec) * 1000000000ULL;
-	nseconds += (unsigned long long)(ts.tv_nsec);
+    nseconds += (unsigned long long)(ts.tv_nsec);
     return nseconds;
 }
 
-static long long gettime_usec() {
-    struct timeval now;
-    long long useconds;
-    gettimeofday(&now, NULL);
-    useconds = (long long)(now.tv_sec) * 1000000LL;
-    useconds += (long long)now.tv_usec;
-    return useconds;
-}
-
+// returns the current time in usec: 
 long long timenow_usec() {
     // try clock_gettime
     unsigned long long nseconds;
-    nseconds = gettime();
+    nseconds = gettime_nsec();
     if (nseconds == 0) {
         // LOGI("dropping to gettimeofday()\n");
         return gettime_usec();
@@ -103,7 +116,7 @@ long long timenow_usec() {
 long long timenow_msec() {
     // first try using clock_gettime
     unsigned long long nseconds;
-    nseconds = gettime();
+    nseconds = gettime_nsec();
     if (nseconds == 0) {
         // LOGI("dropping to gettimeofday()\n");
         return (gettime_usec() / 1000LL);
@@ -212,7 +225,7 @@ int copy_a_file(const char* file_in, const char* file_out) {
     char buf[PATH_MAX];
     size_t size;
     // unsigned int size;
-    while (size = fread(buf, 1, sizeof(buf), fp)) {
+    while ((size = fread(buf, 1, sizeof(buf), fp))) {
         fwrite(buf, 1, size, fp_out);
     }
     fclose(fp);
@@ -297,7 +310,7 @@ int Find_Partition_Size(const char* Path) {
 
     if (volume == NULL) {
         LOGE("Failed to find partition size '%s'\n", Path);
-        LOGE("  > invalid volume\n", Path);
+        LOGE("  > invalid volume %s\n", Path);
         return -1;
     }
 
@@ -337,7 +350,7 @@ int Find_Partition_Size(const char* Path) {
             char label[32], device[32];
             unsigned long size = 0;
 
-            sscanf(line, "%s %lx %*lx %*lu %s", label, &size, device);
+            sscanf(line, "%s %lx %*x %*u %s", label, &size, device);
 
             // Skip header, annotation  and blank lines
             if ((strncmp(device, "/dev/", 5) != 0) || (strlen(line) < 8))
@@ -475,7 +488,6 @@ int read_config_file(const char* config_file, const char *key, char *value, cons
         while(fgets(line, sizeof(line), fp) != NULL) {
             if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=') {
                 strcpy(value, strstr(line, "=") + 1);
-                //remove trailing \n char
                 if (value[strlen(value)-1] == '\n')
                     value[strlen(value)-1] = '\0';
                 if (value[0] != '\0') {
@@ -770,17 +782,19 @@ int run_ors_boot_script() {
 }
 
 // sets the default backup volume for ors backup command
+// default is primary storage
 static void get_ors_backup_volume(char *volume) {
-    char value[PROPERTY_VALUE_MAX];
     char value_def[PATH_MAX];
     sprintf(value_def, "%s", get_primary_storage_path());
-    read_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", value, value_def);
-    Volume* v = volume_for_path(value);
-    if (v != NULL && ensure_path_mounted(value) == 0 && strcmp(value, v->mount_point) == 0)
-        strcpy(volume, value);
+    read_config_file(PHILZ_SETTINGS_FILE, ors_backup_path.key, ors_backup_path.value, value_def);
+    // on data media device, v == NULL if it is sdcard. But, it doesn't matter since value_def will be /sdcard in that case
+    Volume* v = volume_for_path(ors_backup_path.value);
+    if (v != NULL && ensure_path_mounted(ors_backup_path.value) == 0 && strcmp(ors_backup_path.value, v->mount_point) == 0)
+        strcpy(volume, ors_backup_path.value);
     else strcpy(volume, value_def);
 }
 
+// choose ors backup volume and save user setting
 static void choose_ors_volume() {
     char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
@@ -806,7 +820,7 @@ static void choose_ors_volume() {
 
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     if (chosen_item != GO_BACK && chosen_item != REFRESH)
-        write_config_file(PHILZ_SETTINGS_FILE, "ors_backup_path", list[chosen_item]);
+        write_config_file(PHILZ_SETTINGS_FILE, ors_backup_path.key, list[chosen_item]);
 
     free(list[0]);
     if (extra_paths != NULL) {
@@ -820,13 +834,14 @@ static void choose_ors_volume() {
 // Stock CWM as of v6.x, doesn't support backup options
 #define SCRIPT_COMMAND_SIZE 512
 
-static int ors_backup_command(const char* backup_path, const char* options) {
+int ors_backup_command(const char* backup_path, const char* options) {
     is_custom_backup = 1;
-    int old_enable_md5sum = enable_md5sum;
-    enable_md5sum = 1;
+    int old_enable_md5sum = enable_md5sum.value;
+    enable_md5sum.value = 1;
     backup_boot = 0, backup_recovery = 0, backup_wimax = 0, backup_system = 0;
     backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
     ignore_android_secure = 1;
+    // yaffs2 partition must be backed up using default yaffs2 wrapper
     set_override_yaffs2_wrapper(0);
     nandroid_force_backup_format("tar");
 
@@ -839,7 +854,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
         if (value1[i] == 'S' || value1[i] == 's') {
             backup_system = 1;
             ui_print("System\n");
-            if (nandroid_add_preload) {
+            if (nandroid_add_preload.value) {
                 backup_preload = 1;
                 ui_print("Preload enabled in nandroid settings.\n");
                 ui_print("It will be Processed with /system\n");
@@ -881,7 +896,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
             nandroid_force_backup_format("tgz");
             ui_print("Compression is on\n");
         } else if (value1[i] == 'M' || value1[i] == 'm') {
-            enable_md5sum = 0;
+            enable_md5sum.value = 0;
             ui_print("MD5 Generation is off\n");
         }
     }
@@ -889,7 +904,7 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     int ret = -1;
     if (file_found(backup_path)) {
         LOGE("Specified ors backup target '%s' already exists!\n", backup_path);
-    } else if (twrp_backup_mode) {
+    } else if (twrp_backup_mode.value) {
         ret = twrp_backup(backup_path);
     } else {
         ret = nandroid_backup(backup_path);
@@ -899,13 +914,13 @@ static int ors_backup_command(const char* backup_path, const char* options) {
     nandroid_force_backup_format("");
     set_override_yaffs2_wrapper(1);
     reset_custom_job_settings(0);
-    enable_md5sum = old_enable_md5sum;
+    enable_md5sum.value = old_enable_md5sum;
     return ret;
 }
 
 // run ors script code
 // this can be started on boot or manually for custom ors
-static int run_ors_script(const char* ors_script) {
+int run_ors_script(const char* ors_script) {
     FILE *fp = fopen(ors_script, "r");
     int ret_val = 0, cindex, line_len, i, remove_nl;
     char script_line[SCRIPT_COMMAND_SIZE], command[SCRIPT_COMMAND_SIZE],
@@ -1018,14 +1033,14 @@ static int run_ors_script(const char* ors_script) {
 
                     strncpy(value2, tok, line_len - remove_nl);
                     ui_print("Backup folder set to '%s'\n", value2);
-                    if (twrp_backup_mode) {
+                    if (twrp_backup_mode.value) {
                         char device_id[PROPERTY_VALUE_MAX];
                         get_device_id(device_id);
                         sprintf(backup_path, "%s/%s/%s/%s", backup_volume, TWRP_BACKUP_PATH, device_id, value2);
                     } else {
                         sprintf(backup_path, "%s/clockworkmod/backup/%s", backup_volume, value2);
                     }
-                } else if (twrp_backup_mode) {
+                } else if (twrp_backup_mode.value) {
                     get_twrp_backup_path(backup_volume, backup_path);
                 } else {
                     get_cwm_backup_path(backup_volume, backup_path);
@@ -1040,16 +1055,16 @@ static int run_ors_script(const char* ors_script) {
 
                 // custom restore settings
                 is_custom_backup = 1;
-                int old_enable_md5sum = enable_md5sum;
-                enable_md5sum = 1;
+                int old_enable_md5sum = enable_md5sum.value;
+                enable_md5sum.value = 1;
                 backup_boot = 0, backup_recovery = 0, backup_system = 0;
                 backup_preload = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
                 ignore_android_secure = 1; //disable
 
                 // check what type of restore we need and force twrp mode in that case
-                int old_twrp_backup_mode = twrp_backup_mode;
+                int old_twrp_backup_mode = twrp_backup_mode.value;
                 if (strstr(value1, TWRP_BACKUP_PATH) != NULL)
-                    twrp_backup_mode = 1;
+                    twrp_backup_mode.value = 1;
 
                 tok = strtok(NULL, " ");
                 if (tok != NULL) {
@@ -1061,7 +1076,7 @@ static int run_ors_script(const char* ors_script) {
                         if (value2[i] == 'S' || value2[i] == 's') {
                             backup_system = 1;
                             ui_print("System\n");
-                            if (nandroid_add_preload) {
+                            if (nandroid_add_preload.value) {
                                 backup_preload = 1;
                                 ui_print("Preload enabled in nandroid settings.\n");
                                 ui_print("It will be Processed with /system\n");
@@ -1100,7 +1115,7 @@ static int run_ors_script(const char* ors_script) {
                             backup_sdext = 1;
                             ui_print("SD-Ext\n");
                         } else if (value2[i] == 'M' || value2[i] == 'm') {
-                            enable_md5sum = 0;
+                            enable_md5sum.value = 0;
                             ui_print("MD5 Check is off\n");
                         }
                     }
@@ -1110,10 +1125,10 @@ static int run_ors_script(const char* ors_script) {
                     backup_boot = 1, backup_system = 1;
                     backup_data = 1, backup_cache = 1, backup_sdext = 1;
                     ignore_android_secure = 0;
-                    backup_preload = nandroid_add_preload;
+                    backup_preload = nandroid_add_preload.value;
                 }
 
-                if (twrp_backup_mode)
+                if (twrp_backup_mode.value)
                     ret_val = twrp_restore(value1);
                 else
                     ret_val = nandroid_restore(value1, backup_boot, backup_system, backup_data, backup_cache, backup_sdext, 0);
@@ -1121,9 +1136,9 @@ static int run_ors_script(const char* ors_script) {
                 if (ret_val != 0)
                     ui_print("Restore failed!\n");
 
-                is_custom_backup = 0, twrp_backup_mode = old_twrp_backup_mode;
+                is_custom_backup = 0, twrp_backup_mode.value = old_twrp_backup_mode;
                 reset_custom_job_settings(0);
-                enable_md5sum = old_enable_md5sum;
+                enable_md5sum.value = old_enable_md5sum;
             } else if (strcmp(command, "mount") == 0) {
                 // Mount
                 if (value[0] != '/') {
@@ -1414,9 +1429,10 @@ out:
 
 void misc_nandroid_menu()
 {
-    static const char* headers[] = {  "Misc Nandroid Settings",
-                                "",
-                                NULL
+    static const char* headers[] = {
+        "Misc Nandroid Settings",
+        "",
+        NULL
     };
 
     char item_md5[MENU_MAX_COLS];
@@ -1460,23 +1476,23 @@ void misc_nandroid_menu()
 
     int fmt;
     for (;;) {
-        if (enable_md5sum) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
+        if (enable_md5sum.value) ui_format_gui_menu(item_md5, "MD5 checksum", "(x)");
         else ui_format_gui_menu(item_md5, "MD5 checksum", "( )");
 
         if (volume_for_path("/preload") == NULL)
             ui_format_gui_menu(item_preload, "Include /preload", "N/A");
-        else if (nandroid_add_preload) ui_format_gui_menu(item_preload, "Include /preload", "(x)");
+        else if (nandroid_add_preload.value) ui_format_gui_menu(item_preload, "Include /preload", "(x)");
         else ui_format_gui_menu(item_preload, "Include /preload", "( )");
 
-        if (twrp_backup_mode) ui_format_gui_menu(item_twrp_mode, "Use TWRP Mode", "(x)");
+        if (twrp_backup_mode.value) ui_format_gui_menu(item_twrp_mode, "Use TWRP Mode", "(x)");
         else ui_format_gui_menu(item_twrp_mode, "Use TWRP Mode", "( )");
 
-        if (show_nandroid_size_progress)
+        if (show_nandroid_size_progress.value)
             ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "(x)");
         else ui_format_gui_menu(item_size_progress, "Show Nandroid Size Progress", "( )");
         list[3] = item_size_progress;
 
-        if (use_nandroid_simple_logging)
+        if (use_nandroid_simple_logging.value)
             ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "(x)");
         else ui_format_gui_menu(item_use_nandroid_simple_logging, "Use Simple Logging (faster)", "( )");
         list[4] = item_use_nandroid_simple_logging;
@@ -1488,7 +1504,7 @@ void misc_nandroid_menu()
             list[4] = NULL;
         } else ui_format_gui_menu(item_nand_progress, "Hide Nandroid Progress", "( )");
 
-        if (nand_prompt_on_low_space)
+        if (nand_prompt_on_low_space.value)
             ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "(x)");
         else ui_format_gui_menu(item_prompt_low_space, "Prompt on Low Free Space", "( )");
 
@@ -1498,13 +1514,13 @@ void misc_nandroid_menu()
 
         fmt = nandroid_get_default_backup_format();
         if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
-            if (compression_value == TAR_GZ_FAST)
+            if (compression_value.value == TAR_GZ_FAST)
                 ui_format_gui_menu(item_compress, "Compression", "fast");
-            else if (compression_value == TAR_GZ_LOW)
+            else if (compression_value.value == TAR_GZ_LOW)
                 ui_format_gui_menu(item_compress, "Compression", "low");
-            else if (compression_value == TAR_GZ_MEDIUM)
+            else if (compression_value.value == TAR_GZ_MEDIUM)
                 ui_format_gui_menu(item_compress, "Compression", "medium");
-            else if (compression_value == TAR_GZ_HIGH)
+            else if (compression_value.value == TAR_GZ_HIGH)
                 ui_format_gui_menu(item_compress, "Compression", "high");
             else ui_format_gui_menu(item_compress, "Compression", TAR_GZ_DEFAULT_STR); // useless but to not make exceptions
         } else
@@ -1523,40 +1539,40 @@ void misc_nandroid_menu()
         switch (chosen_item) {
             case 0: {
                 char value[3];
-                enable_md5sum ^= 1;
-                sprintf(value, "%d", enable_md5sum);
-                write_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value);
+                enable_md5sum.value ^= 1;
+                sprintf(value, "%d", enable_md5sum.value);
+                write_config_file(PHILZ_SETTINGS_FILE, enable_md5sum.key, value);
                 break;
             }
             case 1: {
                 char value[3];
                 if (volume_for_path("/preload") == NULL)
-                    nandroid_add_preload = 0;
+                    nandroid_add_preload.value = 0;
                 else
-                    nandroid_add_preload ^= 1;
-                sprintf(value, "%d", nandroid_add_preload);
-                write_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value);
+                    nandroid_add_preload.value ^= 1;
+                sprintf(value, "%d", nandroid_add_preload.value);
+                write_config_file(PHILZ_SETTINGS_FILE, nandroid_add_preload.key, value);
                 break;
             }
             case 2: {
                 char value[3];
-                twrp_backup_mode ^= 1;
-                sprintf(value, "%d", twrp_backup_mode);
-                write_config_file(PHILZ_SETTINGS_FILE, "twrp_backup_mode", value);
+                twrp_backup_mode.value ^= 1;
+                sprintf(value, "%d", twrp_backup_mode.value);
+                write_config_file(PHILZ_SETTINGS_FILE, twrp_backup_mode.key, value);
                 break;
             }
             case 3: {
                 char value[3];
-                show_nandroid_size_progress ^= 1;
-                sprintf(value, "%d", show_nandroid_size_progress);
-                write_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value);
+                show_nandroid_size_progress.value ^= 1;
+                sprintf(value, "%d", show_nandroid_size_progress.value);
+                write_config_file(PHILZ_SETTINGS_FILE, show_nandroid_size_progress.key, value);
                 break;
             }
             case 4: {
                 char value[3];
-                use_nandroid_simple_logging ^= 1;
-                sprintf(value, "%d", use_nandroid_simple_logging);
-                write_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value);
+                use_nandroid_simple_logging.value ^= 1;
+                sprintf(value, "%d", use_nandroid_simple_logging.value);
+                write_config_file(PHILZ_SETTINGS_FILE, use_nandroid_simple_logging.key, value);
                 break;
             }
             case 5: {
@@ -1568,9 +1584,9 @@ void misc_nandroid_menu()
             }
             case 6: {
                 char value[3];
-                nand_prompt_on_low_space ^= 1;
-                sprintf(value, "%d", nand_prompt_on_low_space);
-                write_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value);
+                nand_prompt_on_low_space.value ^= 1;
+                sprintf(value, "%d", nand_prompt_on_low_space.value);
+                write_config_file(PHILZ_SETTINGS_FILE, nand_prompt_on_low_space.key, value);
                 break;
             }
             case 7: {
@@ -1581,21 +1597,23 @@ void misc_nandroid_menu()
                 if (fmt != NANDROID_BACKUP_FORMAT_TGZ) {
                     ui_print("First set backup format to tar.gz\n");
                 } else {
+                    // switch pigz -[ fast(1), low(3), medium(5), high(7) ] compression level
                     char value[8];
-                    compression_value += 2;
-                    if (compression_value == TAR_GZ_FAST)
+                    compression_value.value += 2;
+                    if (compression_value.value == TAR_GZ_FAST)
                         sprintf(value, "fast");
-                    else if (compression_value == TAR_GZ_LOW)
+                    else if (compression_value.value == TAR_GZ_LOW)
                         sprintf(value, "low");
-                    else if (compression_value == TAR_GZ_MEDIUM)
+                    else if (compression_value.value == TAR_GZ_MEDIUM)
                         sprintf(value, "medium");
-                    else if (compression_value == TAR_GZ_HIGH)
+                    else if (compression_value.value == TAR_GZ_HIGH)
                         sprintf(value, "high");
                     else {
-                        compression_value = TAR_GZ_FAST;
+                        // loop back the toggle
+                        compression_value.value = TAR_GZ_FAST;
                         sprintf(value, "fast");
                     }
-                    write_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value);
+                    write_config_file(PHILZ_SETTINGS_FILE, compression_value.key, value);
                 }
                 break;
             }
@@ -1660,7 +1678,7 @@ void set_custom_zip_path() {
         if (chosen_item == GO_BACK || chosen_item == REFRESH) {
             goto out;
         } else if (chosen_item == 0) {
-            write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", "");
+            write_config_file(PHILZ_SETTINGS_FILE, user_zip_folder.key, "");
             ui_print("Free browse mode disabled\n");
             goto out;
         } else {
@@ -1680,7 +1698,7 @@ void set_custom_zip_path() {
     while (headers[j]) {
         j++;
     }
-    const char** fixed_headers = (const char*)malloc((j + 2) * sizeof(char*));
+    const char** fixed_headers = (const char**)malloc((j + 2) * sizeof(char*));
     j = 0;
     while (headers[j]) {
         fixed_headers[j] = headers[j];
@@ -1719,12 +1737,15 @@ void set_custom_zip_path() {
             else
                 sprintf(custom_path2, "%s/", up_folder);
         } else if (chosen_item == 1) {
+            // save default folder
+            // no need to ensure custom_path is mountable as it is always if we reached here
             if (strlen(custom_path) > PROPERTY_VALUE_MAX)
                 LOGE("Maximum allowed path length is %d\n", PROPERTY_VALUE_MAX);
-            else if (0 == write_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", custom_path))
+            else if (0 == write_config_file(PHILZ_SETTINGS_FILE, user_zip_folder.key, custom_path))
                 ui_print("Default install zip folder set to %s\n", custom_path);
             break;
         } else {
+            // continue browsing folders
             sprintf(custom_path2, "%s", dirs[chosen_item - 2]);
         }
 
@@ -1763,38 +1784,40 @@ out:
 }
 
 int show_custom_zip_menu() {
-    static const char* headers[] = {  "Choose a zip to apply",
-                                NULL
+    static const char* headers[] = {
+        "Choose a zip to apply",
+        NULL
     };
 
-    char val[PROPERTY_VALUE_MAX];
     int ret = 0;
-    read_config_file(PHILZ_SETTINGS_FILE, "user_zip_folder", val, "");
+    read_config_file(PHILZ_SETTINGS_FILE, user_zip_folder.key, user_zip_folder.value, "");
 
-    if (strcmp(val, "") == 0)
+    // try to mount known volumes, ignore unknown ones to permit using ramdisk and other paths
+    if (strcmp(user_zip_folder.value, "") == 0)
         ret = 1;
-    else if (is_data_media_volume_path(val) && ensure_path_mounted("/data") != 0)
+    else if (is_data_media_volume_path(user_zip_folder.value) && ensure_path_mounted("/data") != 0)
         ret = -1;
-    else if (volume_for_path(val) != NULL && ensure_path_mounted(val) != 0)
+    else if (volume_for_path(user_zip_folder.value) != NULL && ensure_path_mounted(user_zip_folder.value) != 0)
         ret = -1;
+
     if (ret != 0) {
-        LOGE("Cannot mount custom path %s\n", val);
+        LOGE("Cannot mount custom path %s\n", user_zip_folder.value);
         LOGE("You must first setup a valid folder\n");
         return ret;
     }
 
     char custom_path[PATH_MAX];
-    sprintf(custom_path, "%s", val);
+    sprintf(custom_path, "%s", user_zip_folder.value);
     if (custom_path[strlen(custom_path) - 1] != '/')
         strcat(custom_path, "/");
-    //LOGE("Retained val to custom_path=%s\n", custom_path);
+    //LOGE("Retained user_zip_folder.value to custom_path=%s\n", custom_path);
 
     // populate fixed headers (display current path while browsing)
     int j = 0;
     while (headers[j]) {
         j++;
     }
-    const char** fixed_headers = (const char*)malloc((j + 2) * sizeof(char*));
+    const char** fixed_headers = (const char**)malloc((j + 2) * sizeof(char*));
     j = 0;
     while (headers[j]) {
         fixed_headers[j] = headers[j];
@@ -2055,12 +2078,14 @@ void get_cwm_backup_path(const char* backup_volume, char *backup_path) {
         struct timeval tp;
         gettimeofday(&tp, NULL);
         if (backup_efs)
-            sprintf(backup_path, "%s/%s/%d", backup_volume, EFS_BACKUP_PATH, tp.tv_sec);
+            sprintf(backup_path, "%s/%s/%ld", backup_volume, EFS_BACKUP_PATH, tp.tv_sec);
         else
-            sprintf(backup_path, "%s/%s/%d_%s", backup_volume, CWM_BACKUP_PATH, tp.tv_sec, rom_name);
+            sprintf(backup_path, "%s/%s/%ld_%s", backup_volume, CWM_BACKUP_PATH, tp.tv_sec, rom_name);
     } else {
         char tmp[PATH_MAX];
         strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
+        // this sprintf results in:
+        // clockworkmod/custom_backup/%F.%H.%M.%S (time values are populated too)
         if (backup_efs)
             sprintf(backup_path, "%s/%s/%s", backup_volume, EFS_BACKUP_PATH, tmp);
         else
@@ -2257,12 +2282,13 @@ static void validate_backup_job(const char* backup_volume, int is_backup) {
 
     if (is_backup)
     {
+        // it is a backup job to validate: ensure default backup handler is not dup before processing
         char backup_path[PATH_MAX] = "";
         ui_print_backup_list();
         int fmt = nandroid_get_default_backup_format();
         if (fmt != NANDROID_BACKUP_FORMAT_TAR && fmt != NANDROID_BACKUP_FORMAT_TGZ) {
             LOGE("Backup format must be tar(.gz)!\n");
-        } else if (twrp_backup_mode) {
+        } else if (twrp_backup_mode.value) {
             get_twrp_backup_path(backup_volume, backup_path);
             twrp_backup(backup_path);
         } else if (backup_efs && (sum + backup_modem + backup_radio) != 0) {
@@ -2286,7 +2312,7 @@ static void validate_backup_job(const char* backup_volume, int is_backup) {
             else
                 custom_restore_handler(backup_volume, RADIO_BIN_PATH);
         }
-        else if (twrp_backup_mode)
+        else if (twrp_backup_mode.value)
             show_twrp_restore_menu(backup_volume);
         else if (backup_efs && (sum + backup_modem + backup_radio) != 0)
             ui_print("efs must be restored alone!\n");
@@ -2442,7 +2468,7 @@ void custom_restore_menu(const char* backup_volume) {
             list[LIST_ITEM_MISC] = NULL;
         }
 
-        if (is_data_media() && !twrp_backup_mode) {
+        if (is_data_media() && !twrp_backup_mode.value) {
             if (backup_data_media)
                 ui_format_gui_menu(item_datamedia, "Restore /data/media", "(x)");
             else ui_format_gui_menu(item_datamedia, "Restore /data/media", "( )");
@@ -2451,7 +2477,7 @@ void custom_restore_menu(const char* backup_volume) {
             list[LIST_ITEM_DATAMEDIA] = NULL;
         }
 
-        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode) {
+        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode.value) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Restore WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Restore WiMax", "( )");
@@ -2518,32 +2544,32 @@ void custom_restore_menu(const char* backup_volume) {
                 backup_modem++;
                 if (backup_modem > 2)
                     backup_modem = 0;
-                if (twrp_backup_mode && backup_modem == RAW_BIN_FILE)
+                if (twrp_backup_mode.value && backup_modem == RAW_BIN_FILE)
                     backup_modem = 0;
                 break;
             case LIST_ITEM_RADIO:
                 backup_radio++;
                 if (backup_radio > 2)
                     backup_radio = 0;
-                if (twrp_backup_mode && backup_radio == RAW_BIN_FILE)
+                if (twrp_backup_mode.value && backup_radio == RAW_BIN_FILE)
                     backup_radio = 0;
                 break;
             case LIST_ITEM_EFS:
                 backup_efs++;
                 if (backup_efs > 2)
                     backup_efs = 0;
-                if (twrp_backup_mode && backup_efs == RESTORE_EFS_IMG)
+                if (twrp_backup_mode.value && backup_efs == RESTORE_EFS_IMG)
                     backup_efs = 0;
                 break;
             case LIST_ITEM_MISC:
                 backup_misc ^= 1;
                 break;
             case LIST_ITEM_DATAMEDIA:
-                if (is_data_media() && !twrp_backup_mode)
+                if (is_data_media() && !twrp_backup_mode.value)
                     backup_data_media ^= 1;
                 break;
             case LIST_ITEM_WIMAX:
-                if (!twrp_backup_mode)
+                if (!twrp_backup_mode.value)
                     backup_wimax ^= 1;
                 break;
             default: // extra partitions toggle
@@ -2702,7 +2728,7 @@ void custom_backup_menu(const char* backup_volume)
             list[LIST_ITEM_MISC] = NULL;
         }
 
-        if (is_data_media() && !twrp_backup_mode) {
+        if (is_data_media() && !twrp_backup_mode.value) {
             if (backup_data_media)
                 ui_format_gui_menu(item_datamedia, "Backup /data/media", "(x)");
             else ui_format_gui_menu(item_datamedia, "Backup /data/media", "( )");
@@ -2711,7 +2737,7 @@ void custom_backup_menu(const char* backup_volume)
             list[LIST_ITEM_DATAMEDIA] = NULL;
         }
 
-        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode) {
+        if (volume_for_path("/wimax") != NULL && !twrp_backup_mode.value) {
             if (backup_wimax)
                 ui_format_gui_menu(item_wimax, "Backup WiMax", "(x)");
             else ui_format_gui_menu(item_wimax, "Backup WiMax", "( )");
@@ -2787,11 +2813,11 @@ void custom_backup_menu(const char* backup_volume)
                 backup_misc ^= 1;
                 break;
             case LIST_ITEM_DATAMEDIA:
-                if (is_data_media() && !twrp_backup_mode)
+                if (is_data_media() && !twrp_backup_mode.value)
                     backup_data_media ^= 1;
                 break;
             case LIST_ITEM_WIMAX:
-                if (!twrp_backup_mode)
+                if (!twrp_backup_mode.value)
                     backup_wimax ^= 1;
                 break;
             default: // extra partitions toggle
@@ -3041,10 +3067,12 @@ void get_twrp_backup_path(const char* backup_volume, char *backup_path) {
     if (timeptr == NULL) {
         struct timeval tp;
         gettimeofday(&tp, NULL);
-        sprintf(backup_path, "%s/%s/%s/%d_%s", backup_volume, TWRP_BACKUP_PATH, device_id, tp.tv_sec, rom_name);
+        sprintf(backup_path, "%s/%s/%s/%ld_%s", backup_volume, TWRP_BACKUP_PATH, device_id, tp.tv_sec, rom_name);
     } else {
         char tmp[PATH_MAX];
         strftime(tmp, sizeof(tmp), "%F.%H.%M.%S", timeptr);
+        // this sprintf results in:
+        // clockworkmod/backup/%F.%H.%M.%S (time values are populated too)
         sprintf(backup_path, "%s/%s/%s/%s_%s", backup_volume, TWRP_BACKUP_PATH, device_id, tmp, rom_name);
     }
 }
@@ -3088,184 +3116,16 @@ void run_aroma_browser() {
 //------ end aromafm launcher functions
 
 
-/***********************************/
-/*                                 */
-/* Start PhilZ Touch Settings Menu */
-/*                                 */
-/***********************************/
-#ifdef PHILZ_TOUCH_RECOVERY
-#include "/root/Desktop/PhilZ_Touch/touch_source/philz_gui_settings.c"
-#endif
-
-void verify_settings_file() {
-    char backup_file[PATH_MAX];
-    sprintf(backup_file, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_BAK);
-    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(backup_file)) {
-        if (auto_restore_settings && copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
-            ui_print("Settings restored.\n");
-        }
-        else if (confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard") &&
-                    copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
-            ui_print("Settings restored.\n");
-        }
-    }
-}
-
-static void check_auto_restore_settings() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value, "false");
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
-        auto_restore_settings = 1;
-    else
-        auto_restore_settings = 0;
-}
-
-static void check_root_and_recovery_settings() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value, "true");
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
-        check_root_and_recovery = 0;
-    else
-        check_root_and_recovery = 1;
-}
-
-// refresh nandroid compression
-static void refresh_nandroid_compression() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_compression", value, TAR_GZ_DEFAULT_STR);
-    if (strcmp(value, "fast") == 0)
-        compression_value = TAR_GZ_FAST;
-    else if (strcmp(value, "low") == 0)
-        compression_value = TAR_GZ_LOW;
-    else if (strcmp(value, "medium") == 0)
-        compression_value = TAR_GZ_MEDIUM;
-    else if (strcmp(value, "high") == 0)
-        compression_value = TAR_GZ_HIGH;
-    else
-        compression_value = TAR_GZ_DEFAULT;
-}
-
-// check user setting for backup mode (TWRP vs CWM)
-static void check_backup_restore_mode() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "twrp_backup_mode", value, "false");
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
-        twrp_backup_mode = 1;
-    else
-        twrp_backup_mode = 0;
-}
-
-// check nandroid preload setting
-static void check_nandroid_preload() {
-    if (volume_for_path("/preload") == NULL)
-        return; // nandroid_add_preload = 0 by default on recovery start
-
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_preload", value, "0");
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
-        nandroid_add_preload = 1;
-    else
-        nandroid_add_preload = 0;
-}
-
-// check nandroid md5 sum
-static void check_nandroid_md5sum() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nandroid_md5sum", value, "1");
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
-        enable_md5sum = 0;
-    else
-        enable_md5sum = 1;
-}
-
-// check show nandroid size progress
-static void check_show_nand_size_progress() {
-    char value_def[3] = "1";
-#ifdef BOARD_HAS_SLOW_STORAGE
-    sprintf(value_def, "0");
-#endif
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "show_nandroid_size_progress", value, value_def);
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
-        show_nandroid_size_progress = 0;
-    else
-        show_nandroid_size_progress = 1;
-}
-
-static void check_nandroid_simple_logging() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "use_nandroid_simple_logging", value, "1");
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
-        use_nandroid_simple_logging = 0;
-    else
-        use_nandroid_simple_logging = 1;
-}
-
-// check prompt on low backup space
-static void check_prompt_on_low_space() {
-    char value_def[3] = "1";
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "nand_prompt_on_low_space", value, value_def);
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
-        nand_prompt_on_low_space = 0;
-    else
-        nand_prompt_on_low_space = 1;
-}
-
-// check if we should verify signature during install of zip packages
-static void check_signature_check() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, "signature_check_enabled", value, "0");
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
-        signature_check_enabled = 1;
-    else
-        signature_check_enabled = 0;
-}
-
-// struct initializer for custom partitions to be supported in nandroid
-static void initialize_extra_partitions_state() {
-    int i;
-    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        extra_partition[i].menu_label[0] = '\0';
-        extra_partition[i].backup_state = 0;
-    }
-}
-
-void refresh_recovery_settings(int on_start) {
-    check_auto_restore_settings();
-    check_root_and_recovery_settings();
-    refresh_nandroid_compression();
-    check_backup_restore_mode();
-    check_nandroid_preload();
-    check_nandroid_md5sum();
-    check_show_nand_size_progress();
-    check_nandroid_simple_logging();
-    check_prompt_on_low_space();
-    check_signature_check();
-    initialize_extra_partitions_state();
-#ifdef ENABLE_LOKI
-    loki_support_enabled();
-#endif
-#ifdef PHILZ_TOUCH_RECOVERY
-    refresh_touch_gui_settings(on_start);
-#endif
-    // unmount settings file on recovery start
-    if (on_start) {
-        ignore_data_media_workaround(1);
-        ensure_path_unmounted(PHILZ_SETTINGS_FILE);
-        ignore_data_media_workaround(0);
-    }
-}
-
-//import / export settings
+//import / export recovery and theme settings
 static void load_theme_settings()
 {
 #ifdef PHILZ_TOUCH_RECOVERY
     selective_load_theme_settings();
 #else
-    static const char* headers[] = {  "Select a theme to load",
-                                "",
-                                NULL
+    static const char* headers[] = {
+        "Select a theme to load",
+        "",
+        NULL
     };
 
     char themes_dir[PATH_MAX];
@@ -3290,17 +3150,19 @@ static void load_theme_settings()
 }
 
 static void import_export_settings() {
-    static const char* headers[] = {  "Save / Restore Settings",
-                                "",
-                                NULL
+    static const char* headers[] = {
+        "Save / Restore Settings",
+        "",
+        NULL
     };
 
-    static char* list[] = { "Save Default Settings to sdcard",
-                    "Load Default Settings from sdcard",
-                    "Save Current Theme to sdcard",
-                    "Load Existing Theme from sdcard",
-                    "Delete Saved Themes",
-                    NULL
+    static char* list[] = {
+        "Save Default Settings to sdcard",
+        "Load Default Settings from sdcard",
+        "Save Current Theme to sdcard",
+        "Load Existing Theme from sdcard",
+        "Delete Saved Themes",
+        NULL
     };
 
     char backup_file[PATH_MAX];
@@ -3381,11 +3243,11 @@ void show_philz_settings_menu()
     };
 
     for (;;) {
-        if (check_root_and_recovery)
+        if (check_root_and_recovery.value)
             ui_format_gui_menu(item_check_root_and_recovery, "Verify Root on Exit", "(x)");
         else ui_format_gui_menu(item_check_root_and_recovery, "Verify Root on Exit", "( )");
 
-        if (auto_restore_settings)
+        if (auto_restore_settings.value)
             ui_format_gui_menu(item_auto_restore, "Auto Restore Settings", "(x)");
         else ui_format_gui_menu(item_auto_restore, "Auto Restore Settings", "( )");
 
@@ -3433,16 +3295,16 @@ void show_philz_settings_menu()
             }
             case 3: {
                 char value[5];
-                check_root_and_recovery ^= 1;
-                sprintf(value, "%d", check_root_and_recovery);
-                write_config_file(PHILZ_SETTINGS_FILE, "check_root_and_recovery", value);
+                check_root_and_recovery.value ^= 1;
+                sprintf(value, "%d", check_root_and_recovery.value);
+                write_config_file(PHILZ_SETTINGS_FILE, check_root_and_recovery.key, value);
                 break;
             }
             case 4: {
                 char value[5];
-                auto_restore_settings ^= 1;
-                sprintf(value, "%d", auto_restore_settings);
-                write_config_file(PHILZ_SETTINGS_FILE, "auto_restore_settings", value);
+                auto_restore_settings.value ^= 1;
+                sprintf(value, "%d", auto_restore_settings.value);
+                write_config_file(PHILZ_SETTINGS_FILE, auto_restore_settings.key, value);
                 break;
             }
             case 5: {
@@ -3467,6 +3329,7 @@ void show_philz_settings_menu()
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
+                print_libtouch_version(1);
                 //ui_print(EXPAND(BUILD_DATE)"\n");
                 ui_print("Compiled %s at %s\n", __DATE__, __TIME__);
                 break;

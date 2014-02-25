@@ -17,21 +17,15 @@ int backup_data = 1, backup_cache = 1, backup_sdext = 1;
 int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0, backup_radio = 0;
 int backup_data_media = 0;
 int is_custom_backup = 0;
-int twrp_backup_mode = 0;
 int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
-int nandroid_add_preload = 0;
-int enable_md5sum = 1;
-int show_nandroid_size_progress = 0;
-int use_nandroid_simple_logging = 1;
-int compression_value = TAR_GZ_DEFAULT;
-int nand_prompt_on_low_space = 1;
+
 
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
     sync();
 #ifdef PHILZ_TOUCH_RECOVERY
-    if (show_background_icon)
+    if (show_background_icon.value)
         ui_set_background(BACKGROUND_ICON_CLOCKWORK);
     else
 #endif
@@ -134,7 +128,7 @@ int check_backup_size(const char* backup_path) {
     };
 
     int preload_status = 0;
-    if ((is_custom_backup && backup_preload) || (!is_custom_backup && nandroid_add_preload))
+    if ((is_custom_backup && backup_preload) || (!is_custom_backup && nandroid_add_preload.value))
         preload_status = 1;
 
     int backup_status[] = {
@@ -252,15 +246,14 @@ int check_backup_size(const char* backup_path) {
 
     if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb + 50)) {
         LOGW("Low space for backup!\n");
-        if (nand_prompt_on_low_space && !confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
+        if (nand_prompt_on_low_space.value && !confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
             return -1;
     }
 
     return 0;
 }
 
-void check_restore_size(const char* backup_file_image, const char* backup_path)
-{
+void check_restore_size(const char* backup_file_image, const char* backup_path) {
     if (Get_Size_Via_statfs(backup_path) != 0) {
         Backup_Size = 0;
         return;
@@ -326,8 +319,7 @@ void show_restore_stats() {
     ui_print("Restore time: %02lld:%02lld mn\n", minutes, seconds);
 }
 
-int dd_raw_backup_handler(const char* backup_path, const char* root)
-{
+int dd_raw_backup_handler(const char* backup_path, const char* root) {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
 
     Volume *vol = volume_for_path(root);
@@ -368,8 +360,7 @@ int dd_raw_backup_handler(const char* backup_path, const char* root)
     return ret;
 }
 
-int dd_raw_restore_handler(const char* backup_file_image, const char* root)
-{
+int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
 
     ui_print("\n>> Restoring %s...\n", root);
@@ -456,8 +447,7 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root)
 int Makelist_File_Count;
 unsigned long long Makelist_Current_Size;
 
-static void compute_twrp_backup_stats(int index)
-{
+static void compute_twrp_backup_stats(int index) {
     char tmp[PATH_MAX];
     char line[PATH_MAX];
     struct stat info;
@@ -573,8 +563,7 @@ int Generate_File_Lists(const char* Path) {
     return 0;
 }
 
-int Make_File_List(const char* backup_path)
-{
+int Make_File_List(const char* backup_path) {
     Makelist_File_Count = 0;
     Makelist_Current_Size = 0;
     __system("cd /tmp && rm -rf list");
@@ -593,7 +582,8 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         ui_print("Unable to find volume.\n");
         return -1;
     }
-    MountedVolume *mv = find_mounted_volume_by_mount_point(v->mount_point);
+
+    const MountedVolume *mv = find_mounted_volume_by_mount_point(v->mount_point);
     if (mv == NULL) {
         ui_print("Unable to find mounted volume: %s\n", v->mount_point);
         return -1;
@@ -627,7 +617,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
             sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
         else
-            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value, backup_file_image, index);
+            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
         FILE *fp = __popen(tmp, "r");
@@ -644,7 +634,7 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
                 return -1;
             }
 #endif
-            tmp[PATH_MAX - 1] = NULL;
+            tmp[PATH_MAX - 1] = '\0';
             if (callback) {
                 update_size_progress(backup_file_image);
                 nandroid_callback(tmp);
@@ -786,7 +776,7 @@ int twrp_backup(const char* backup_path) {
             return ret;
     }
 
-    if (enable_md5sum) {
+    if (enable_md5sum.value) {
         if (0 != (ret = gen_twrp_md5sum(backup_path)))
             return ret;
     }
@@ -822,7 +812,7 @@ int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path,
             return -1;
         }
 #endif
-        tmp[PATH_MAX - 1] = NULL;
+        tmp[PATH_MAX - 1] = '\0';
         if (callback) {
             update_size_progress(backup_path);
             nandroid_callback(tmp);
@@ -872,8 +862,7 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
     return ret;
 }
 
-int twrp_restore(const char* backup_path)
-{
+int twrp_restore(const char* backup_path) {
     Backup_Size = 0;
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
@@ -886,7 +875,7 @@ int twrp_restore(const char* backup_path)
         return print_and_error("Can't mount backup path\n");
 
     char tmp[PATH_MAX];
-    if (enable_md5sum) {
+    if (enable_md5sum.value) {
         if (0 != check_twrp_md5sum(backup_path))
             return print_and_error("MD5 mismatch!\n");
     }
@@ -979,8 +968,7 @@ int twrp_restore(const char* backup_path)
 
 
 // backup /data/media support
-int nandroid_backup_datamedia(const char* backup_path)
-{
+int nandroid_backup_datamedia(const char* backup_path) {
     char tmp[PATH_MAX];
     ui_print("\n>> Backing up /data/media...\n");
     if (is_data_media_volume_path(backup_path)) {
@@ -1012,7 +1000,7 @@ int nandroid_backup_datamedia(const char* backup_path)
     }
     else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
         sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
-                backup_file_image, compression_value, backup_file_image);
+                backup_file_image, compression_value.value, backup_file_image);
     }
     else {
         // non fatal failure
@@ -1032,8 +1020,7 @@ int nandroid_backup_datamedia(const char* backup_path)
     return 0;
 }
 
-int nandroid_restore_datamedia(const char* backup_path)
-{
+int nandroid_restore_datamedia(const char* backup_path) {
     char tmp[PATH_MAX];
     ui_print("\n>> Restoring /data/media...\n");
     if (is_data_media_volume_path(backup_path)) {
@@ -1053,7 +1040,7 @@ int nandroid_restore_datamedia(const char* backup_path)
     struct stat s;
     char backup_file_image[PATH_MAX];
     const char *filesystems[] = { "yaffs2", "ext2", "ext3", "ext4", "vfat", "exfat", "rfs", "f2fs", "auto", NULL };
-    char *filesystem = NULL;
+    const char *filesystem;
     int i = 0;
     nandroid_restore_handler restore_handler = NULL;
     while ((filesystem = filesystems[i]) != NULL) {

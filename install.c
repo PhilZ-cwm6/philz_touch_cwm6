@@ -36,6 +36,7 @@
 #include "firmware.h"
 
 #include "extendedcommands.h"
+#include "recovery_settings.h"
 
 
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
@@ -365,7 +366,7 @@ really_install_package(const char *path)
 
     int err;
 
-    if (signature_check_enabled) {
+    if (signature_check_enabled.value) {
         int numKeys;
         Certificate* loadedKeys = load_keys(PUBLIC_KEYS_FILE, &numKeys);
         if (loadedKeys == NULL) {

@@ -1,11 +1,20 @@
-extern int signature_check_enabled;
-extern int script_assert_enabled;
-
 void
 toggle_signature_check();
 
 void
 show_choose_zip_menu();
+
+char**
+gather_files(const char* directory, const char* fileExtensionOrDirectory, int* numFiles);
+
+char*
+choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]);
+
+int
+get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count);
+
+void
+write_string_to_file(const char* filename, const char* string);
 
 int
 do_nandroid_backup(const char* backup_name);
@@ -37,6 +46,10 @@ show_advanced_menu();
 int format_device(const char *device, const char *path, const char *fs_type);
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
+
+void format_sdcard(const char* volume);
+
+void partition_sdcard(const char* volume);
 
 void create_fstab();
 

@@ -1,10 +1,13 @@
 // PhilZ Touch config file
 
+#ifndef __ADVANCED_FUNCTIONS_H
+#define __ADVANCED_FUNCTIONS_H
+
+
+#include "ui_defines.h"
 
 // format toggle menus to screen width
-// redefined MENU_MAX_COLS from ui.c - Keep same value as ui.c until a better implementation.
 // used to format toggle menus to device screen width (only touch build)
-#define MENU_MAX_COLS 64
 void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
 
 // print custom logtail (detailed logging report in raw-backup.sh...)
@@ -13,9 +16,11 @@ void ui_print_custom_logtail(const char* filename, int nb_lines);
 int read_config_file(const char* config_file, const char *key, char *value, const char *value_def);
 int write_config_file(const char* config_file, const char* key, const char* value);
 void show_philz_settings_menu();
-void refresh_recovery_settings(int on_start);
 void wipe_data_menu();
 extern int no_files_found;
+
+// aroma launcher
+void run_aroma_browser();
 
 // get partition size function (adapted from Dees_Troy - TWRP)
 unsigned long long Total_Size; // Overall size of the partition
@@ -30,9 +35,11 @@ void wipe_data(int confirm);
 extern int no_wipe_confirm;
 int check_boot_script_file(const char* boot_script);
 int run_ors_boot_script();
-static int run_ors_script(const char* ors_script);
+int run_ors_script(const char* ors_script);
+int ors_backup_command(const char* backup_path, const char* options);
 
 // general system functions
+unsigned long long gettime_nsec();
 long long timenow_usec(void);
 long long timenow_msec(void);
 char* readlink_device_blk(const char* Path);
@@ -51,7 +58,6 @@ int show_custom_zip_menu();
 void set_custom_zip_path();
 
 // nandroid settings and functions
-extern int nand_prompt_on_low_space;
 void show_twrp_restore_menu(const char* backup_volume);
 void custom_backup_menu(const char* backup_volume);
 void custom_restore_menu(const char* backup_volume);
@@ -59,7 +65,8 @@ void get_twrp_backup_path(const char* backup_volume, char *backup_path);
 void get_cwm_backup_path(const char* backup_volume, char *backup_path);
 void misc_nandroid_menu();
 void get_rom_name(char *rom_name);
-void get_device_id(char *device_id); // twrp backup folder for device
+void get_device_id(char *device_id);
+void reset_custom_job_settings(int custom_job);
 
 // custom backup and restore menu items
 enum {
@@ -91,13 +98,11 @@ enum {
 #endif
 #define EXTRA_PARTITIONS_NUM    5
 struct extra_partitions_list {
-    char menu_label[64];
+    char menu_label[MENU_MAX_COLS];
     int backup_state;
 } extra_partition[EXTRA_PARTITIONS_NUM];
 
 // multi zip installer
 void show_multi_flash_menu();
 
-extern int check_root_and_recovery;
-
-void verify_settings_file();
+#endif // __ADVANCED_FUNCTIONS_H

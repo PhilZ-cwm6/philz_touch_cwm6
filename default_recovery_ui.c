@@ -20,6 +20,7 @@
 #include "common.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
+#include "recovery_settings.h"
 
 char* MENU_HEADERS[] = { NULL };
 
