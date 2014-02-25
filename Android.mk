@@ -3,8 +3,8 @@ ifneq ($(WITH_SIMPLE_RECOVERY),true)
 LOCAL_PATH := $(call my-dir)
 
 # philz touch gui: either prebuilt or from sources
-# PHILZ_TOUCH_RECOVERY := true
-# USE_PREBUILT_LIBTOUCH_GUI := true
+PHILZ_TOUCH_RECOVERY := true
+USE_PREBUILT_LIBTOUCH_GUI := true
 
 ifdef PHILZ_TOUCH_RECOVERY
 ifdef USE_PREBUILT_LIBTOUCH_GUI
