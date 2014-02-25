@@ -23,3 +23,4 @@ void ui_print_default_color(int colored_rows_num);
 void print_libtouch_version(int onscreen);
 
 #endif // __GUI_SETTINGS_H
+

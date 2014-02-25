@@ -106,3 +106,4 @@ struct extra_partitions_list {
 void show_multi_flash_menu();
 
 #endif // __ADVANCED_FUNCTIONS_H
+
