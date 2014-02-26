@@ -153,7 +153,7 @@ apply_from_adb() {
 
 #ifdef ENABLE_LOKI
     else if (loki_support_enabled) {
-        ui_print("检测loki-dying需求");
+        ui_print("检测loki-fying需求");
         install_status = loki_check();
         if (install_status != INSTALL_SUCCESS)
             ui_set_background(BACKGROUND_ICON_ERROR);

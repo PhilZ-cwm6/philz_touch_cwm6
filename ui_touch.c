@@ -603,6 +603,7 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
+
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
 
@@ -642,8 +643,7 @@ static int input_callback(int fd, short revents, void *data)
     }
 
     if (ev.value > 0 && device_reboot_now(key_pressed, ev.code)) {
-        vold_unmount_all();
-        android_reboot(ANDROID_RB_RESTART, 0, 0);
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
     }
 
     return 0;

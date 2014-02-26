@@ -92,7 +92,7 @@ $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
     $(eval LOCAL_CFLAGS += -D$(board_define)=\"$($(board_define))\") \
   ) \
   )
-
+#LOCAL_CFLAGS += -DTARGET_DEVICE=flte
 LOCAL_STATIC_LIBRARIES :=
 
 LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
