@@ -9,6 +9,7 @@
 #                               it will only work if you have modified vold sources (contact me for info)
 #                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
 #                               you need either an exfat enabled prebuilt kernel or to compile exfat modules along kernel
+#                               you also need to patch minivold: https://github.com/PhilZ-cwm6/android_system_vold
 #   - KERNEL_NTFS_MODULE_NAME:  Same as above, but for ntfs.
 #   - BOARD_USE_MTK_LAYOUT :=   true
 #                               will enable backup/restore of boot, recovery and uboot partitions on MTK devices
