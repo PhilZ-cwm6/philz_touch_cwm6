@@ -934,11 +934,19 @@ int ui_start_menu(const char** headers, char** items, int initial_selection) {
     if (text_rows > 0 && text_cols > 0) {
         for (i = 0; i < text_rows; ++i) {
             if (headers[i] == NULL) break;
-#ifdef USE_CHINESE_FONT
-            strncpy(menu[i], headers[i], sizeof(menu[i]));
-#else
+#ifndef USE_CHINESE_FONT
             strncpy(menu[i], headers[i], text_cols-1);
             menu[i][text_cols-1] = '\0';
+#else
+            int j = 0, fwidth = 0, fwidth_sum = 0;
+            for(j=0; headers[i][j] != '\0' && fwidth_sum < gr_fb_width(); j++) {
+                fwidth = gr_measure(&headers[i][j]);
+                fwidth_sum += fwidth;
+                //if (j == sizeof(menu[i])) break;
+            }
+            strncpy(menu[i], headers[i], j);
+            menu[i][j] = '\0';
+            //LOGI("%d %s\n", j, menu[i]);
 #endif
         }
         menu_top = i;
