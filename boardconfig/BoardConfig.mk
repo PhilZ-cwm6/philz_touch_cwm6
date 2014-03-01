@@ -408,14 +408,25 @@ else ifeq ($(TARGET_PRODUCT), cm_superior)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Mega I9205 (meliusltexx) & Galaxy Mega i9200 (melius3gxx)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx cm_melius3gxx),)
-    TARGET_COMMON_NAME := Galaxy Mega ($(TARGET_PRODUCT))
+#Galaxy Mega I9205 (meliusltexx)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_meliusltexx),)
+    TARGET_COMMON_NAME := Galaxy Mega I9205
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy Mega i9200 (melius3gxx)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_melius3gxx),)
+    TARGET_COMMON_NAME := Galaxy Mega i9200
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    KERNEL_NTFS_MODULE_NAME := "ntfs"
+    TARGET_SCREEN_HEIGHT := 960
+    TARGET_SCREEN_WIDTH := 540
     BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
@@ -428,6 +439,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi),)
     TARGET_SCREEN_HEIGHT := 600
     TARGET_SCREEN_WIDTH := 1024
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung Galaxy Tab 3 8.0: SM-T310 (lt01wifi), SM-T311 (lt013g), SM-T315 (lt01lte)
@@ -484,7 +496,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_flo cm_deb),)
     TARGET_COMMON_NAME := Nexus 7 (2013 $(TARGET_PRODUCT))
     TARGET_SCREEN_HEIGHT := 1920
-    TARGET_SCREEN_WIDTH := 1080
+    TARGET_SCREEN_WIDTH := 1200
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Google Nexus 10 (Samsung) - manta
@@ -641,7 +653,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_d800 cm_d801 cm_d802 cm_d803 cm_d805 c
 else ifeq ($(TARGET_PRODUCT), cm_v500)
     TARGET_COMMON_NAME := LG G Pad 8.3
     TARGET_SCREEN_HEIGHT := 1920
-    TARGET_SCREEN_WIDTH := 1080
+    TARGET_SCREEN_WIDTH := 1200
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #LG Optimus 4X HD P880 (p880)
