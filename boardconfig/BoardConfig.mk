@@ -100,6 +100,7 @@ else ifeq ($(TARGET_PRODUCT), cm_i9082)
 #Galaxy S - i9000 (galaxysmtd)
 else ifeq ($(TARGET_PRODUCT), cm_galaxysmtd)
     TARGET_COMMON_NAME := Galaxy i9000
+    BOARD_USE_NTFS_3G := false
     BOOTLOADER_CMD_ARG := "download"
     TARGET_SCREEN_HEIGHT := 800
     TARGET_SCREEN_WIDTH := 480
