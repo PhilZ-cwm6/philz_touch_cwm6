@@ -24,6 +24,11 @@
 #include "../libcrecovery/common.h"    // __system
 
 
+#define ABOOT_DUMP_IMAGE    "/tmp/loki_aboot-dump.img"
+#define BOOT_DUMP_IMAGE     "/tmp/loki_boot-dump.img"
+#define RECOVERY_DUMP_IMAGE "/tmp/loki_recovery-dump.img"
+#define LOKI_IMAGE          "/tmp/loki_lokied-image"
+
 static int loki_dump_partitions() {
     char cmd[PATH_MAX];
     int ifd;

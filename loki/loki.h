@@ -11,11 +11,6 @@
 #define RECOVERY_PARTITION  "/dev/block/platform/msm_sdcc.1/by-name/recovery"
 #define ABOOT_PARTITION     "/dev/block/platform/msm_sdcc.1/by-name/aboot"
 
-#define ABOOT_DUMP_IMAGE    "/tmp/loki_aboot-dump.img"
-#define BOOT_DUMP_IMAGE     "/tmp/loki_boot-dump.img"
-#define RECOVERY_DUMP_IMAGE "/tmp/loki_recovery-dump.img"
-#define LOKI_IMAGE          "/tmp/loki_lokied-image"
-
 #define PATTERN1 "\xf0\xb5\x8f\xb0\x06\x46\xf0\xf7"
 #define PATTERN2 "\xf0\xb5\x8f\xb0\x07\x46\xf0\xf7"
 #define PATTERN3 "\x2d\xe9\xf0\x41\x86\xb0\xf1\xf7"
