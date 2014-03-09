@@ -501,11 +501,15 @@ void show_choose_zip_menu(const char *mount_point) {
     char* file = choose_file_menu(mount_point, ".zip", headers);
     if (file == NULL)
         return;
+
     static char* confirm_install = "Confirm install?";
     static char confirm[PATH_MAX];
+    int yes_confirm;
+    start_md5_display_thread(file);
     sprintf(confirm, "Yes - Install %s", basename(file));
-
-    if (confirm_selection(confirm_install, confirm)) {
+    yes_confirm = confirm_selection(confirm_install, confirm);
+    stop_md5_display_thread();
+    if (yes_confirm) {
         install_zip(file);
         write_last_install_path(dirname(file));
     }

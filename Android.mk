@@ -35,6 +35,7 @@ LOCAL_SRC_FILES := \
     mounts.c \
     extendedcommands.c \
     advanced_functions.c \
+    digest/md5.c \
     recovery_settings.c \
     nandroid.c \
     reboot.c \

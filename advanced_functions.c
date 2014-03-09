@@ -50,6 +50,10 @@
 
 #include "adb_install.h"
 
+// md5 display
+#include <pthread.h>
+#include "digest/md5.h"
+
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "libtouch_gui/gui_settings.h"
 #endif
@@ -471,6 +475,162 @@ unsigned long long Get_Folder_Size(const char* Path) {
     closedir(d);
     return dusize;
 }
+
+char* read_file_to_buffer(const char* filepath) {
+    char* buffer = NULL;
+    long size;
+    long result;
+    FILE *file;
+
+    if (!file_found(filepath)) {
+        LOGE("read_file_to_buffer: '%s' not found\n", filepath);
+        return NULL;
+    }
+
+    file = fopen(filepath, "rb");
+    if (file == NULL) {
+        LOGE("read_file_to_buffer: can't open '%s'\n", filepath);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    size = ftell(file);
+    rewind(file);
+    if (size < 0) {
+        LOGE("read_file_to_buffer: ftell error\n");
+        fclose(file);
+        return NULL;
+    }
+
+    buffer = (char*) malloc(size + 1);
+    if (buffer == NULL) {
+        LOGE("read_file_to_buffer: memory error\n");
+        fclose(file);
+        return NULL;
+    }
+
+    result = fread(buffer, 1, size, file);
+    if (result != size) {
+        LOGE("read_file_to_buffer: read error\n");
+        free(buffer);
+        fclose(file);
+        return NULL;
+    }
+
+    fclose(file);
+    return buffer;
+}
+
+/**********************************/
+/*       Start md5sum display     */
+/*    Original source by PhilZ    */
+/*    MD5 code from twrpDigest    */
+/*              by                */
+/*    bigbiff/Dees_Troy TeamWin   */
+/**********************************/
+static int cancel_md5digest = 0;
+unsigned char md5sum_array[MD5LENGTH];
+
+static int computeMD5(const char* filepath) {
+	struct MD5Context md5c;
+	int len;
+	unsigned char buf[1024];
+	FILE *file;
+
+    MD5Init(&md5c);
+	file = fopen(filepath, "rb");
+	if (file == NULL) {
+        LOGE("computeMD5: can't open %s\n", filepath);
+		return -1;
+    }
+
+    cancel_md5digest = 0;
+	while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
+		MD5Update(&md5c, buf, len);
+	}
+	fclose(file);
+
+    if (!cancel_md5digest)
+        MD5Final(md5sum_array ,&md5c);
+	return cancel_md5digest;
+}
+
+int write_md5digest(const char* md5file) {
+	int i;
+	char hex[3];
+	char md5sum[PATH_MAX] = "";
+
+	for (i = 0; i < 16; ++i) {
+		snprintf(hex, 3 ,"%02x", md5sum_array[i]);
+		strcat(md5sum, hex);
+	}
+
+    if (md5file == NULL)
+        ui_print("%s\n", md5sum);
+    else
+        write_string_to_file(md5file, md5sum);
+	return 0;
+}
+
+int verify_md5digest(const char* filepath, const char* md5file) {
+    char tmp[PATH_MAX];
+	if (md5file == NULL) {
+		sprintf(tmp, "%s", filepath);
+		strcat(tmp, ".md5");
+		md5file = tmp;
+    }
+
+    char* md5read = read_file_to_buffer(md5file);
+    if (md5read == NULL)
+		return -1;
+
+    int ret = 1;
+    int i;
+    char hex[3];
+	char md5sum[PATH_MAX] = "";
+    if (computeMD5(filepath) == 0) {
+        for (i = 0; i < 16; ++i) {
+            snprintf(hex, 3 ,"%02x", md5sum_array[i]);
+            strcat(md5sum, hex);
+        }
+
+        char filename[PATH_MAX];
+        strcpy(filename, filepath);
+        sprintf(tmp, "%s", basename(filename));
+        strcat(md5sum, "  ");
+        strcat(md5sum, tmp);
+        strcat(md5sum, "\n");
+        if (strcmp(md5read, md5sum) == 0)
+            ret = 0;
+    }
+
+    free(md5read);
+	return ret;
+}
+
+pthread_t tmd5_display;
+static void *md5_display_thread(void *arg) {
+	char filepath[PATH_MAX];
+    sprintf(filepath, "%s", (char*)arg);
+    if (computeMD5(filepath) == 0)
+        write_md5digest(NULL);
+
+    return NULL;
+}
+
+void start_md5_display_thread(char* filepath) {
+    ui_print("Calculating md5sum...\n");
+    pthread_create(&tmd5_display, NULL, &md5_display_thread, filepath);
+}
+
+void stop_md5_display_thread() {
+    cancel_md5digest = 1;
+    if (pthread_kill(tmd5_display, 0) != ESRCH)
+        ui_print("Cancelling md5check...\n");
+    pthread_join(tmd5_display, NULL);
+}
+
+// ------- End md5sum display
 
 
 /**********************************/
@@ -1929,8 +2089,12 @@ int show_custom_zip_menu() {
     //flashing selected zip file
     if (chosen_item !=  GO_BACK) {
         char tmp[PATH_MAX];
+        int confirm;
+        start_md5_display_thread(files[chosen_item - numDirs - 1]);
         sprintf(tmp, "Yes - Install %s", list[chosen_item]);
-        if (confirm_selection("Install selected file?", tmp)) {
+        confirm = confirm_selection("Install selected file?", tmp);
+        stop_md5_display_thread();
+        if (confirm) {
             set_ensure_mount_always_true(1);
             install_zip(files[chosen_item - numDirs - 1]);
             set_ensure_mount_always_true(0);
