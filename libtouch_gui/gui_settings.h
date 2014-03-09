@@ -19,6 +19,12 @@ void show_log_menu();
 // if colored_rows_num == 0 then, default color used for all ui_print text
 void ui_print_default_color(int colored_rows_num);
 
+// Highlight on first touch
+int ui_menu_touch_select();
+
+// gesture action support
+void handle_gesture_actions(const char** headers, char** items, int initial_selection);
+
 // display and log the libtouch_gui version
 void print_libtouch_version(int onscreen);
 

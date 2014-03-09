@@ -129,7 +129,7 @@ static void nandroid_callback(const char* filename) {
         ui_delete_line(2);
     }
 #ifdef PHILZ_TOUCH_RECOVERY
-    ui_print_color(0, 0);
+    ui_print_default_color(0);
 #endif
     ui_set_log_stdout(1);
 }
