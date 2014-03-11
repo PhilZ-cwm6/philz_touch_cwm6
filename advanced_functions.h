@@ -52,6 +52,8 @@ void ensure_directory(const char* dir); // in nandroid.c
 int is_path_ramdisk(const char* path);
 int copy_a_file(const char* file_in, const char* file_out);
 char* read_file_to_buffer(const char* filepath);
+char* BaseName(const char* path);
+char* DirName(const char* path);
 
 // calculate md5sum when installing zip files from menu
 void start_md5_display_thread(char* filepath);

@@ -502,16 +502,15 @@ void show_choose_zip_menu(const char *mount_point) {
     if (file == NULL)
         return;
 
-    static char* confirm_install = "Confirm install?";
-    static char confirm[PATH_MAX];
+    char tmp[PATH_MAX];
     int yes_confirm;
+    sprintf(tmp, "Yes - Install %s", BaseName(file));
     start_md5_display_thread(file);
-    sprintf(confirm, "Yes - Install %s", basename(file));
-    yes_confirm = confirm_selection(confirm_install, confirm);
+    yes_confirm = confirm_selection("Confirm install?", tmp);
     stop_md5_display_thread();
     if (yes_confirm) {
         install_zip(file);
-        write_last_install_path(dirname(file));
+        write_last_install_path(DirName(file));
     }
 
     free(file);
@@ -537,31 +536,29 @@ void show_nandroid_restore_menu(const char* path) {
     free(file);
 }
 
-void show_nandroid_delete_menu(const char* path) {
-    if (ensure_path_mounted(path) != 0) {
-        LOGE("Can't mount %s\n", path);
+void show_nandroid_delete_menu(const char* volume_path) {
+    if (ensure_path_mounted(volume_path) != 0) {
+        LOGE("Can't mount %s\n", volume_path);
         return;
     }
 
     static const char* headers[] = { "Choose a backup to delete", NULL };
-
-    char backup_path[PATH_MAX];
     char tmp[PATH_MAX];
 
     if (twrp_backup_mode.value) {
         char device_id[PROPERTY_VALUE_MAX];
         get_device_id(device_id);
-        sprintf(backup_path, "%s/%s/%s", path, TWRP_BACKUP_PATH, device_id);
+        sprintf(tmp, "%s/%s/%s", volume_path, TWRP_BACKUP_PATH, device_id);
     } else {
-        sprintf(backup_path, "%s/%s", path, CWM_BACKUP_PATH);    
+        sprintf(tmp, "%s/%s", volume_path, CWM_BACKUP_PATH);    
     }
 
     for(;;) {
-        char* file = choose_file_menu(backup_path, NULL, headers);
+        char* file = choose_file_menu(tmp, NULL, headers);
         if (file == NULL)
             return;
 
-        sprintf(tmp, "Yes - Delete %s", basename(file));
+        sprintf(tmp, "Yes - Delete %s", BaseName(file));
         if (confirm_selection("Confirm delete?", tmp)) {
             sprintf(tmp, "rm -rf '%s'", file);
             __system(tmp);
