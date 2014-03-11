@@ -150,6 +150,141 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
         LOGE("Cannot open /tmp/custom_tail.log\n");
 }
 
+// basename and dirname implementation that is thread safe, no free and doesn't modify argument
+// it is extracted from NDK and modified dirname_r to never modify passed argument
+int BaseName_r(const char* path, char*  buffer, size_t  bufflen)
+{
+    const char *endp, *startp;
+    int         len, result;
+
+    /* Empty or NULL string gets treated as "." */
+    if (path == NULL || *path == '\0') {
+        startp  = ".";
+        len     = 1;
+        goto Exit;
+    }
+
+    /* Strip trailing slashes */
+    endp = path + strlen(path) - 1;
+    while (endp > path && *endp == '/')
+        endp--;
+
+    /* All slashes becomes "/" */
+    if (endp == path && *endp == '/') {
+        startp = "/";
+        len    = 1;
+        goto Exit;
+    }
+
+    /* Find the start of the base */
+    startp = endp;
+    while (startp > path && *(startp - 1) != '/')
+        startp--;
+
+    len = endp - startp +1;
+
+Exit:
+    result = len;
+    if (buffer == NULL) {
+        return result;
+    }
+    if (len > (int)bufflen-1) {
+        len    = (int)bufflen-1;
+        result = -1;
+        errno  = ERANGE;
+    }
+
+    if (len >= 0) {
+        memcpy( buffer, startp, len );
+        buffer[len] = 0;
+    }
+    return result;
+}
+
+char* BaseName(const char* path) {
+    static char* bname = NULL;
+    int ret;
+
+    if (bname == NULL) {
+        bname = (char *)malloc(PATH_MAX);
+        if (bname == NULL)
+            return(NULL);
+    }
+    ret = BaseName_r(path, bname, PATH_MAX);
+    return (ret < 0) ? NULL : bname;
+}
+
+int DirName_r(const char*  path, char*  buffer, size_t  bufflen)
+{
+    const char *endp, *startp;
+    int         result, len;
+
+    /* Empty or NULL string gets treated as "." */
+    if (path == NULL || *path == '\0') {
+        startp = ".";
+        len  = 1;
+        goto Exit;
+    }
+
+    /* Strip trailing slashes */
+    endp = path + strlen(path) - 1;
+    while (endp > path && *endp == '/')
+        endp--;
+
+    /* Find the start of the dir */
+    while (endp > path && *endp != '/')
+        endp--;
+
+    /* Either the dir is "/" or there are no slashes */
+    if (endp == path) {
+        startp = (*endp == '/') ? "/" : ".";
+        len  = 1;
+        goto Exit;
+    }
+
+    do {
+        endp--;
+    } while (endp > path && *endp == '/');
+
+    startp = path;
+    len = endp - startp +1;
+
+Exit:
+    result = len;
+    if (len+1 > PATH_MAX) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    if (buffer == NULL)
+        return result;
+
+    if (len > (int)bufflen-1) {
+        len    = (int)bufflen-1;
+        result = -1;
+        errno  = ERANGE;
+    }
+
+    if (len >= 0) {
+        memcpy( buffer, startp, len );
+        buffer[len] = 0;
+    }
+    return result;
+}
+
+char* DirName(const char* path) {
+    static char*  bname = NULL;
+    int ret;
+
+    if (bname == NULL) {
+        bname = (char *)malloc(PATH_MAX);
+        if (bname == NULL)
+            return(NULL);
+    }
+
+    ret = DirName_r(path, bname, PATH_MAX);
+    return (ret < 0) ? NULL : bname;
+}
+
 // delete a file
 void delete_a_file(const char* filename) {
     ensure_path_mounted(filename);
