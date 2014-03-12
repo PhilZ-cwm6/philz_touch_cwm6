@@ -261,8 +261,8 @@ int show_install_update_menu() {
         else ui_format_gui_menu(item_install_zip_verify_md5, "Verify zip md5sum", "( )");
 
         if (check_update_binary_version)
-            ui_format_gui_menu(item_check_update_binary_version, "Don't Allow Old update-binary", "(x)");
-        else ui_format_gui_menu(item_check_update_binary_version, "Don't Allow Old update-binary", "( )");
+            ui_format_gui_menu(item_check_update_binary_version, "Allow Old update-binary", "( )");
+        else ui_format_gui_menu(item_check_update_binary_version, "Allow Old update-binary", "(x)");
 
         chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
         if (chosen_item == 0) {
