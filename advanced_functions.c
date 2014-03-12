@@ -643,6 +643,7 @@ char* read_file_to_buffer(const char* filepath) {
     }
 
     result = fread(buffer, 1, size, file);
+    buffer[size] = '\0';
     if (result != size) {
         LOGE("read_file_to_buffer: read error\n");
         free(buffer);
@@ -707,6 +708,7 @@ int write_md5digest(const char* md5file) {
 
 int verify_md5digest(const char* filepath, const char* md5file) {
     char tmp[PATH_MAX];
+    int ret = -1;
 	if (md5file == NULL) {
 		sprintf(tmp, "%s.md5", filepath);
 		md5file = tmp;
@@ -714,13 +716,12 @@ int verify_md5digest(const char* filepath, const char* md5file) {
 
     char* md5read = read_file_to_buffer(md5file);
     if (md5read == NULL)
-		return -1;
+		return ret;
 
-    int ret = 1;
     int i;
     char hex[3];
 	char md5sum[PATH_MAX] = "";
-    if (computeMD5(filepath) == 0) {
+    if (0 == (ret = computeMD5(filepath))) {
         for (i = 0; i < 16; ++i) {
             snprintf(hex, 3 ,"%02x", md5sum_array[i]);
             strcat(md5sum, hex);
@@ -730,8 +731,11 @@ int verify_md5digest(const char* filepath, const char* md5file) {
         strcat(md5sum, "  ");
         strcat(md5sum, tmp);
         strcat(md5sum, "\n");
-        if (strcmp(md5read, md5sum) == 0)
-            ret = 0;
+        if (strcmp(md5read, md5sum) != 0) {
+            LOGE("MD5 calc: %s\n", md5sum);
+            LOGE("Expected: %s\n", md5read);
+            ret = -1;
+        }
     }
 
     free(md5read);
@@ -739,11 +743,26 @@ int verify_md5digest(const char* filepath, const char* md5file) {
 }
 
 pthread_t tmd5_display;
+pthread_t tmd5_verify;
 static void *md5_display_thread(void *arg) {
 	char filepath[PATH_MAX];
     sprintf(filepath, "%s", (char*)arg);
     if (computeMD5(filepath) == 0)
         write_md5digest(NULL);
+
+    return NULL;
+}
+
+static void *md5_verify_thread(void *arg) {
+    int ret;
+	char filepath[PATH_MAX];
+
+    sprintf(filepath, "%s", (char*)arg);
+    ret = verify_md5digest(filepath, NULL);
+    if (ret < 0)
+        ui_print("MD5 check: error\n");
+    else if (ret == 0)
+        ui_print("MD5 check: success\n");
 
     return NULL;
 }
@@ -756,10 +775,21 @@ void start_md5_display_thread(char* filepath) {
 void stop_md5_display_thread() {
     cancel_md5digest = 1;
     if (pthread_kill(tmd5_display, 0) != ESRCH)
-        ui_print("Cancelling md5check...\n");
+        ui_print("Cancelling md5sum...\n");
     pthread_join(tmd5_display, NULL);
 }
 
+void start_md5_verify_thread(char* filepath) {
+    ui_print("Verifying md5sum...\n");
+    pthread_create(&tmd5_verify, NULL, &md5_verify_thread, filepath);
+}
+
+void stop_md5_verify_thread() {
+    cancel_md5digest = 1;
+    if (pthread_kill(tmd5_verify, 0) != ESRCH)
+        ui_print("Cancelling md5 check...\n");
+    pthread_join(tmd5_verify, NULL);
+}
 // ------- End md5sum display
 
 

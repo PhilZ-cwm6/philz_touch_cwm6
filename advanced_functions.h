@@ -58,6 +58,8 @@ char* DirName(const char* path);
 // calculate md5sum when installing zip files from menu
 void start_md5_display_thread(char* filepath);
 void stop_md5_display_thread();
+void start_md5_verify_thread(char* filepath);
+void stop_md5_verify_thread();
 
 // md5sum calculate / display / write / check
 int write_md5digest(const char* md5file);
