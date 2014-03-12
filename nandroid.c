@@ -977,6 +977,10 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         backup_filesystem = NULL;
     if (0 == strcmp(vol->mount_point, "/data") && is_data_media())
         backup_filesystem = NULL;
+#ifdef NANDROID_DISABLE_REFORMAT
+    if (0 == strcmp(vol->mount_point, "/system") || 0 == strcmp(vol->mount_point, "/cache"))
+        backup_filesystem = NULL;
+#endif
 
     ensure_directory(mount_point);
 
@@ -987,8 +991,14 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ui_print("Restoring %s...\n", name);
     if (backup_filesystem == NULL) {
+#ifdef NANDROID_DISABLE_REFORMAT
+        ui_print("Recursive delete %s...\n", name);
+        if (0 != (ret = format_unknown_device(NULL, mount_point, NULL))) {
+            ui_print("Error while deleting %s!\n", mount_point);
+#else
         if (0 != (ret = format_volume(mount_point))) {
             ui_print("Error while formatting %s!\n", mount_point);
+#endif
             return ret;
         }
     } else if (0 != (ret = format_device(device, mount_point, backup_filesystem))) {
