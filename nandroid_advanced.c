@@ -199,8 +199,7 @@ int check_backup_size(const char* backup_path) {
     unsigned long long data_backup_size = 0;
     unsigned long long data_used_bytes = 0;
     unsigned long long data_media_size = 0;
-    if (is_data_media() && (backup_data || backup_data_media))
-    {
+    if (is_data_media() && (backup_data || backup_data_media)) {
         if (0 == ensure_path_mounted("/data") && 0 == Get_Size_Via_statfs("/data")) {
             data_media_size = Get_Folder_Size("/data/media");
             data_used_bytes = Get_Folder_Size("/data");
@@ -988,12 +987,10 @@ int nandroid_backup_datamedia(const char* backup_path) {
     if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
         sprintf(tmp, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
-    }
-    else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
+    } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
         sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value.value, backup_file_image);
-    }
-    else {
+    } else {
         // non fatal failure
         LOGE("  - backup format must be tar(.gz), skipping...\n");
         return 0;

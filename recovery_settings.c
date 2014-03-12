@@ -48,25 +48,25 @@
 
 
 // Start initialize recovery key/value settings
-struct CWMSettingsIntValues auto_restore_settings = { "auto_restore_settings", 0};
-struct CWMSettingsIntValues check_root_and_recovery = { "check_root_and_recovery", 1};
-struct CWMSettingsIntValues apply_loki_patch = { "apply_loki_patch", 1};
-struct CWMSettingsIntValues twrp_backup_mode = { "twrp_backup_mode", 0};
-struct CWMSettingsIntValues compression_value = { "compression_value", TAR_GZ_DEFAULT};
-struct CWMSettingsIntValues nandroid_add_preload = { "nandroid_add_preload", 0};
-struct CWMSettingsIntValues enable_md5sum = { "enable_md5sum", 1};
-struct CWMSettingsIntValues show_nandroid_size_progress = { "show_nandroid_size_progress", 0};
-struct CWMSettingsIntValues use_nandroid_simple_logging = { "use_nandroid_simple_logging", 1};
-struct CWMSettingsIntValues nand_prompt_on_low_space = { "nand_prompt_on_low_space", 1};
-struct CWMSettingsIntValues signature_check_enabled = { "signature_check_enabled", 0};
+struct CWMSettingsIntValues auto_restore_settings = { "auto_restore_settings", 0 };
+struct CWMSettingsIntValues check_root_and_recovery = { "check_root_and_recovery", 1 };
+struct CWMSettingsIntValues apply_loki_patch = { "apply_loki_patch", 1 };
+struct CWMSettingsIntValues twrp_backup_mode = { "twrp_backup_mode", 0 };
+struct CWMSettingsIntValues compression_value = { "compression_value", TAR_GZ_DEFAULT };
+struct CWMSettingsIntValues nandroid_add_preload = { "nandroid_add_preload", 0 };
+struct CWMSettingsIntValues enable_md5sum = { "enable_md5sum", 1 };
+struct CWMSettingsIntValues show_nandroid_size_progress = { "show_nandroid_size_progress", 0 };
+struct CWMSettingsIntValues use_nandroid_simple_logging = { "use_nandroid_simple_logging", 1 };
+struct CWMSettingsIntValues nand_prompt_on_low_space = { "nand_prompt_on_low_space", 1 };
+struct CWMSettingsIntValues signature_check_enabled = { "signature_check_enabled", 0 };
 struct CWMSettingsIntValues install_zip_verify_md5 = { "install_zip_verify_md5", 0 };
 
-struct CWMSettingsIntValues boardEnableKeyRepeat = { "boardEnableKeyRepeat", 1};
+struct CWMSettingsIntValues boardEnableKeyRepeat = { "boardEnableKeyRepeat", 1 };
 
 // these are not checked on recovery start
 // they are initialized on first call
-struct CWMSettingsCharValues ors_backup_path = { "ors_backup_path", ""};
-struct CWMSettingsCharValues user_zip_folder = { "user_zip_folder", ""};
+struct CWMSettingsCharValues ors_backup_path = { "ors_backup_path", "" };
+struct CWMSettingsCharValues user_zip_folder = { "user_zip_folder", "" };
 
 //----- End initialize recovery key/value settings
 

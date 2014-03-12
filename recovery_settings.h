@@ -139,3 +139,4 @@ struct CompilerFlagsUI {
 struct CompilerFlagsUI libtouch_flags;
 
 #endif // _RECOVERY_SETTINGS_H
+
