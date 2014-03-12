@@ -466,6 +466,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt01wifi cm_lt013g cm_lt01lte),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
     NANDROID_DISABLE_REFORMAT := true
+    ENABLE_BLACKHAWK_PATCH := true
 
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)

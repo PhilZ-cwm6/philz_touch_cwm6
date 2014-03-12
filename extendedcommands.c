@@ -931,6 +931,60 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+static void format_ext4_or_f2fs(const char* volume) {
+    if (is_data_media_volume_path(volume))
+        return;
+
+    Volume *v = volume_for_path(volume);
+    if (v == NULL)
+        return;
+
+    const char* headers[] = { "Format device:", volume, "", NULL };
+
+    static char* list[] = { "default",
+                            "ext4",
+                            "f2fs",
+                            NULL };
+
+    int ret = -1;
+    char cmd[PATH_MAX];
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    if (chosen_item < 0) // REFRESH or GO_BACK
+        return;
+    if (!confirm_selection("Confirm formatting?", "Yes - Format device"))
+        return;
+
+    if (ensure_path_unmounted(v->mount_point) != 0)
+        return;
+
+    switch (chosen_item) {
+        case 0:
+            ret = format_volume(v->mount_point);
+            break;
+        case 1:
+        case 2: {
+            if (strcmp(list[chosen_item], "ext4") == 0) {
+                char options[64] = "";
+                if (v->length)
+                    sprintf(options, "-l %lld", v->length);
+                sprintf(cmd, "/sbin/make_ext4fs -J %s %s", options, v->blk_device);
+                ret = __system(cmd);
+            } else if (strcmp(list[chosen_item], "f2fs") == 0) {
+                sprintf(cmd, "/sbin/mkfs.f2fs %s", v->blk_device);
+                ret = __system(cmd);
+            }
+            break;
+        }
+    }
+
+    if (ret)
+        ui_print("Could not format %s (%s)\n", volume, list[chosen_item]);
+    else
+        ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
+}
+#endif
+
 int show_partition_menu() {
     static const char* headers[] = { "Mounts and Storage Menu", NULL };
 
@@ -1010,6 +1064,10 @@ int show_partition_menu() {
             if (!is_data_media()) {
                 show_mount_usb_storage_menu();
             } else {
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+                ignore_data_media_workaround(1);
+                format_ext4_or_f2fs("/data");
+#else
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
                     continue;
                 ignore_data_media_workaround(1);
@@ -1018,6 +1076,7 @@ int show_partition_menu() {
                     ui_print("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
+#endif
                 ignore_data_media_workaround(0);
             }
         } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
@@ -1046,6 +1105,14 @@ int show_partition_menu() {
                 format_sdcard(e->path);
                 continue;
             }
+
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+            if ((strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) &&
+	            strcmp(e->path, "/data") != 0) {
+                format_ext4_or_f2fs(e->path);
+                continue;
+            }
+#endif
 
             if (!confirm_selection(confirm_string, confirm))
                 continue;
