@@ -397,6 +397,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p3100 cm_p3110),)
     #RECOVERY_TOUCHSCREEN_SWAP_XY := true
     #RECOVERY_TOUCHSCREEN_FLIP_Y := true
     BOARD_USE_B_SLOT_PROTOCOL := true
+    ENABLE_BLACKHAWK_PATCH := true
 
 #Galaxy Tab 2 - p5100 / p5110
 else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
@@ -409,6 +410,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
+    ENABLE_BLACKHAWK_PATCH := true
 
 #Galaxy Premier I9260 - superior
 else ifeq ($(TARGET_PRODUCT), cm_superior)
@@ -465,7 +467,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt01wifi cm_lt013g cm_lt01lte),)
     TARGET_SCREEN_WIDTH := 800
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
-    NANDROID_DISABLE_REFORMAT := true
     ENABLE_BLACKHAWK_PATCH := true
 
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
