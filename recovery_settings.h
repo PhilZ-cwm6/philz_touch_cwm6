@@ -66,6 +66,7 @@ struct CWMSettingsIntValues show_nandroid_size_progress;
 struct CWMSettingsIntValues use_nandroid_simple_logging;
 struct CWMSettingsIntValues nand_prompt_on_low_space;
 struct CWMSettingsIntValues signature_check_enabled;
+struct CWMSettingsIntValues install_zip_verify_md5;
 
 struct CWMSettingsIntValues boardEnableKeyRepeat;
 

@@ -59,6 +59,7 @@ struct CWMSettingsIntValues show_nandroid_size_progress = { "show_nandroid_size_
 struct CWMSettingsIntValues use_nandroid_simple_logging = { "use_nandroid_simple_logging", 1};
 struct CWMSettingsIntValues nand_prompt_on_low_space = { "nand_prompt_on_low_space", 1};
 struct CWMSettingsIntValues signature_check_enabled = { "signature_check_enabled", 0};
+struct CWMSettingsIntValues install_zip_verify_md5 = { "install_zip_verify_md5", 0 };
 
 struct CWMSettingsIntValues boardEnableKeyRepeat = { "boardEnableKeyRepeat", 1};
 
@@ -249,6 +250,15 @@ static void check_signature_check() {
         signature_check_enabled.value = 0;
 }
 
+static void check_install_zip_verify_md5() {
+    char value[PROPERTY_VALUE_MAX];
+    read_config_file(PHILZ_SETTINGS_FILE, install_zip_verify_md5.key, value, "0");
+    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
+        install_zip_verify_md5.value = 1;
+    else
+        install_zip_verify_md5.value = 0;
+}
+
 static void initialize_extra_partitions_state() {
     int i;
     for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
@@ -268,6 +278,7 @@ void refresh_recovery_settings(int on_start) {
     check_nandroid_simple_logging();
     check_prompt_on_low_space();
     check_signature_check();
+    check_install_zip_verify_md5();
     initialize_extra_partitions_state();
 #ifdef ENABLE_LOKI
     loki_support_enabled();

@@ -2237,10 +2237,16 @@ int show_custom_zip_menu() {
     if (chosen_item !=  GO_BACK) {
         char tmp[PATH_MAX];
         int confirm;
-        start_md5_display_thread(files[chosen_item - numDirs - 1]);
+
         sprintf(tmp, "Yes - Install %s", list[chosen_item]);
+        if (install_zip_verify_md5.value) start_md5_verify_thread(files[chosen_item - numDirs - 1]);
+        else start_md5_display_thread(files[chosen_item - numDirs - 1]);
+
         confirm = confirm_selection("Install selected file?", tmp);
-        stop_md5_display_thread();
+
+        if (install_zip_verify_md5.value) stop_md5_verify_thread();
+        else stop_md5_display_thread();
+
         if (confirm) {
             set_ensure_mount_always_true(1);
             install_zip(files[chosen_item - numDirs - 1]);
