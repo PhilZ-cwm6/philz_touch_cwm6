@@ -109,7 +109,7 @@ static void nandroid_callback(const char* filename) {
     size_progress[ui_get_text_cols() - 1] = '\0';
 
 #ifdef PHILZ_TOUCH_RECOVERY
-    ui_print_default_color(3);
+    ui_print_preset_colors(3, NULL);
 #endif
 
     if (use_nandroid_simple_logging.value)
@@ -129,7 +129,7 @@ static void nandroid_callback(const char* filename) {
         ui_delete_line(2);
     }
 #ifdef PHILZ_TOUCH_RECOVERY
-    ui_print_default_color(0);
+    ui_print_preset_colors(0, NULL);
 #endif
     ui_set_log_stdout(1);
 }

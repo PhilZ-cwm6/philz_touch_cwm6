@@ -759,16 +759,23 @@ static void *md5_verify_thread(void *arg) {
 
     sprintf(filepath, "%s", (char*)arg);
     ret = verify_md5digest(filepath, NULL);
-    if (ret < 0)
+    if (ret < 0) {
+        ui_print_preset_colors(1, "red");
         ui_print("MD5 check: error\n");
-    else if (ret == 0)
+        ui_print_preset_colors(0, NULL);
+    } else if (ret == 0) {
+        ui_print_preset_colors(1, "green");
         ui_print("MD5 check: success\n");
+        ui_print_preset_colors(0, NULL);
+    }
 
     return NULL;
 }
 
 void start_md5_display_thread(char* filepath) {
+    ui_print_preset_colors(1, NULL);
     ui_print("Calculating md5sum...\n");
+    ui_print_preset_colors(0, NULL);
     pthread_create(&tmd5_display, NULL, &md5_display_thread, filepath);
 }
 
@@ -780,7 +787,9 @@ void stop_md5_display_thread() {
 }
 
 void start_md5_verify_thread(char* filepath) {
+    ui_print_preset_colors(1, NULL);
     ui_print("Verifying md5sum...\n");
+    ui_print_preset_colors(0, NULL);
     pthread_create(&tmd5_verify, NULL, &md5_verify_thread, filepath);
 }
 

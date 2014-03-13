@@ -16,8 +16,8 @@ void custom_rom_menu();
 void show_log_menu();
 
 // call to set ui_print in color, colored_rows_num is the number of rows to color from bottom to top
-// if colored_rows_num == 0 then, default color used for all ui_print text
-void ui_print_default_color(int colored_rows_num);
+// if colored_rows_num == 0 then, color used for all ui_print text
+void ui_print_preset_colors(int colored_rows_num, const char* color);
 
 // Highlight on first touch
 int ui_menu_touch_select();
