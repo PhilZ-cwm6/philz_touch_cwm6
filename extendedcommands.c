@@ -931,6 +931,24 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
+#ifdef ENABLE_BLACKHAWK_PATCH
+static int is_second_recovery() {
+    static char path[PATH_MAX];
+    sprintf(path, "/data/media/.defaultrecovery");
+    int ret = 0;
+
+    FILE *f = fopen(path, "r");
+    if (f != NULL) {
+        fgets(path, PATH_MAX, f);
+        fclose(f);
+        if (strcmp(path, "1") == 0)
+            ret = 1;
+    }
+
+    return ret;
+}
+#endif
+
 #if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
 static void format_ext4_or_f2fs(const char* volume) {
     if (is_data_media_volume_path(volume))
@@ -1048,7 +1066,11 @@ int show_partition_menu() {
             list[mountable_volumes + i] = e->txt;
         }
 
+#ifdef ENABLE_BLACKHAWK_PATCH
+        if (!is_data_media() || is_second_recovery()) {
+#else
         if (!is_data_media()) {
+#endif
             list[mountable_volumes + formatable_volumes] = "mount USB storage";
             list[mountable_volumes + formatable_volumes + 1] = '\0';
         } else {
@@ -1087,7 +1109,16 @@ int show_partition_menu() {
             if (is_path_mounted(e->path)) {
                 ignore_data_media_workaround(1);
                 if (0 != ensure_path_unmounted(e->path))
+#ifdef ENABLE_BLACKHAWK_PATCH
+                {
+                    if (strcmp(e->path, "/data") == 0 && is_second_recovery())
+                        ui_print("/data locked in 2nd recovery!\n");
+                    else
+#endif
                     ui_print("Error unmounting %s!\n", e->path);
+#ifdef ENABLE_BLACKHAWK_PATCH
+                }
+#endif
                 ignore_data_media_workaround(0);
             } else {
                 if (0 != ensure_path_mounted(e->path))
@@ -1652,6 +1683,9 @@ int show_advanced_menu() {
 #ifdef ENABLE_LOKI
     list[5] = NULL;
 #endif
+#ifdef ENABLE_BLACKHAWK_PATCH
+    list[6] = NULL;
+#endif
 
     char list_prefix[] = "Partition ";
     if (can_partition(primary_path)) {
@@ -1691,6 +1725,14 @@ int show_advanced_menu() {
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
             list[5] = item_loki_toggle_menu;
         }
+#endif
+
+#ifdef ENABLE_BLACKHAWK_PATCH
+        struct stat st;
+        if (0 == stat("/res/misc/tool.zip", &st) && !is_second_recovery())
+            list[6] = "Run Aroma Dual Boot Tool";
+        else
+            list[6] = NULL;
 #endif
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -1752,6 +1794,11 @@ int show_advanced_menu() {
 #ifdef ENABLE_LOKI
             case 5:
                 toggle_loki_support();
+                break;
+#endif
+#ifdef ENABLE_BLACKHAWK_PATCH
+            case 6:
+                __system("aroma 1 0 /res/misc/tool.zip");
                 break;
 #endif
             default:
@@ -1853,7 +1900,11 @@ void process_volumes() {
                 count--;
             }
             ignore_data_media_workaround(0);
+#ifdef ENABLE_BLACKHAWK_PATCH
+            if (count == 0 && !is_second_recovery())
+#else
             if (count == 0)
+#endif
                 LOGE("could not unmount /data after /data/media setup\n");
         }
     }
