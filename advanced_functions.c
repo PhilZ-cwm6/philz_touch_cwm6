@@ -133,9 +133,9 @@ static long long interval_passed_t_timer = 0;
 int is_time_interval_passed(long long msec_interval) {
     long long t = timenow_msec();
     if (msec_interval != 0 && t - interval_passed_t_timer < msec_interval)
-    	return 0;
+        return 0;
 
-	interval_passed_t_timer = t;
+    interval_passed_t_timer = t;
     return 1;
 }
 
@@ -662,11 +662,11 @@ static int cancel_md5digest = 0;
 unsigned char md5sum_array[MD5LENGTH];
 
 static int computeMD5(const char* filepath) {
-	struct MD5Context md5c;
-	unsigned char buf[1024];
+    struct MD5Context md5c;
+    unsigned char buf[1024];
     unsigned long size_total;
     unsigned long size_progress;
-	unsigned len;
+    unsigned len;
     FILE *file;
 
     if (!file_found(filepath)) {
@@ -674,10 +674,10 @@ static int computeMD5(const char* filepath) {
         return -1;
     }
 
-	file = fopen(filepath, "rb");
-	if (file == NULL) {
+    file = fopen(filepath, "rb");
+    if (file == NULL) {
         LOGE("computeMD5: can't open %s\n", filepath);
-		return -1;
+        return -1;
     }
 
     size_total = Get_File_Size(filepath);
@@ -687,43 +687,43 @@ static int computeMD5(const char* filepath) {
     is_time_interval_passed(0);
     cancel_md5digest = 0;
     MD5Init(&md5c);
-	while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
+    while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
         size_progress += len;
         if (size_total != 0 && is_time_interval_passed(300))
             ui_set_progress((float)size_progress / (float)size_total);
-		MD5Update(&md5c, buf, len);
-	}
+        MD5Update(&md5c, buf, len);
+    }
 
     ui_reset_progress();
-	fclose(file);
+    fclose(file);
     if (!cancel_md5digest)
         MD5Final(md5sum_array ,&md5c);
-	return cancel_md5digest;
+    return cancel_md5digest;
 }
 
 int write_md5digest(const char* md5file) {
-	int i;
-	char hex[3];
-	char md5sum[PATH_MAX] = "";
+    int i;
+    char hex[3];
+    char md5sum[PATH_MAX] = "";
 
-	for (i = 0; i < 16; ++i) {
-		snprintf(hex, 3 ,"%02x", md5sum_array[i]);
-		strcat(md5sum, hex);
-	}
+    for (i = 0; i < 16; ++i) {
+        snprintf(hex, 3 ,"%02x", md5sum_array[i]);
+        strcat(md5sum, hex);
+    }
 
     if (md5file == NULL)
         ui_print("%s\n", md5sum);
     else
         write_string_to_file(md5file, md5sum);
-	return 0;
+    return 0;
 }
 
 int verify_md5digest(const char* filepath, const char* md5file) {
     char tmp[PATH_MAX];
     int ret = -1;
-	if (md5file == NULL) {
-		sprintf(tmp, "%s.md5", filepath);
-		md5file = tmp;
+    if (md5file == NULL) {
+        sprintf(tmp, "%s.md5", filepath);
+        md5file = tmp;
     }
 
     if (!file_found(filepath)) {
@@ -740,12 +740,12 @@ int verify_md5digest(const char* filepath, const char* md5file) {
     unsigned long len = 0;
     char* md5read = read_file_to_buffer(md5file, &len);
     if (md5read == NULL)
-		return ret;
+        return ret;
     md5read[len] = '\0';
 
     int i;
     char hex[3];
-	char md5sum[PATH_MAX] = "";
+    char md5sum[PATH_MAX] = "";
     if (0 == (ret = computeMD5(filepath))) {
         for (i = 0; i < 16; ++i) {
             snprintf(hex, 3 ,"%02x", md5sum_array[i]);
@@ -764,13 +764,13 @@ int verify_md5digest(const char* filepath, const char* md5file) {
     }
 
     free(md5read);
-	return ret;
+    return ret;
 }
 
 pthread_t tmd5_display;
 pthread_t tmd5_verify;
 static void *md5_display_thread(void *arg) {
-	char filepath[PATH_MAX];
+    char filepath[PATH_MAX];
     sprintf(filepath, "%s", (char*)arg);
     if (computeMD5(filepath) == 0)
         write_md5digest(NULL);
@@ -780,7 +780,7 @@ static void *md5_display_thread(void *arg) {
 
 static void *md5_verify_thread(void *arg) {
     int ret;
-	char filepath[PATH_MAX];
+    char filepath[PATH_MAX];
 
     sprintf(filepath, "%s", (char*)arg);
     ret = verify_md5digest(filepath, NULL);
