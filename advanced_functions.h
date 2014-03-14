@@ -42,6 +42,7 @@ int ors_backup_command(const char* backup_path, const char* options);
 unsigned long long gettime_nsec();
 long long timenow_usec(void);
 long long timenow_msec(void);
+int is_time_interval_passed(long long msec_interval);
 char* readlink_device_blk(const char* Path);
 unsigned long Get_File_Size(const char* Path);
 unsigned long long Get_Folder_Size(const char* Path);

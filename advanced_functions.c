@@ -129,6 +129,16 @@ long long timenow_msec() {
     return (long long)(nseconds / 1000000ULL);
 }
 
+static long long interval_passed_t_timer = 0;
+int is_time_interval_passed(long long msec_interval) {
+    long long t = timenow_msec();
+    if (msec_interval != 0 && t - interval_passed_t_timer < msec_interval)
+    	return 0;
+
+	interval_passed_t_timer = t;
+    return 1;
+}
+
 //start print tail from custom log file
 void ui_print_custom_logtail(const char* filename, int nb_lines) {
     char * backup_log;
@@ -654,8 +664,15 @@ unsigned char md5sum_array[MD5LENGTH];
 static int computeMD5(const char* filepath) {
 	struct MD5Context md5c;
 	unsigned char buf[1024];
+    unsigned long size_total;
+    unsigned long size_progress;
 	unsigned len;
     FILE *file;
+
+    if (!file_found(filepath)) {
+        LOGE("computeMD5: '%s' not found\n", filepath);
+        return -1;
+    }
 
 	file = fopen(filepath, "rb");
 	if (file == NULL) {
@@ -663,12 +680,21 @@ static int computeMD5(const char* filepath) {
 		return -1;
     }
 
+    size_total = Get_File_Size(filepath);
+    size_progress = 0;
+    ui_reset_progress();
+    ui_show_progress(1, 0);
+    is_time_interval_passed(0);
     cancel_md5digest = 0;
     MD5Init(&md5c);
 	while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
+        size_progress += len;
+        if (size_total != 0 && is_time_interval_passed(300))
+            ui_set_progress((float)size_progress / (float)size_total);
 		MD5Update(&md5c, buf, len);
 	}
 
+    ui_reset_progress();
 	fclose(file);
     if (!cancel_md5digest)
         MD5Final(md5sum_array ,&md5c);
@@ -700,6 +726,17 @@ int verify_md5digest(const char* filepath, const char* md5file) {
 		md5file = tmp;
     }
 
+    if (!file_found(filepath)) {
+        LOGE("verify_md5digest: '%s' not found\n", filepath);
+        return ret;
+    }
+
+    if (!file_found(md5file)) {
+        LOGE("verify_md5digest: '%s' not found\n", md5file);
+        return ret;
+    }
+
+    // read md5 sum from md5file
     unsigned long len = 0;
     char* md5read = read_file_to_buffer(md5file, &len);
     if (md5read == NULL)
@@ -750,11 +787,9 @@ static void *md5_verify_thread(void *arg) {
     if (ret < 0) {
         ui_print_preset_colors(1, "red");
         ui_print("MD5 check: error\n");
-        ui_print_preset_colors(0, NULL);
     } else if (ret == 0) {
         ui_print_preset_colors(1, "green");
         ui_print("MD5 check: success\n");
-        ui_print_preset_colors(0, NULL);
     }
 
     return NULL;
@@ -763,12 +798,12 @@ static void *md5_verify_thread(void *arg) {
 void start_md5_display_thread(char* filepath) {
     ui_print_preset_colors(1, NULL);
     ui_print("Calculating md5sum...\n");
-    ui_print_preset_colors(0, NULL);
     pthread_create(&tmd5_display, NULL, &md5_display_thread, filepath);
 }
 
 void stop_md5_display_thread() {
     cancel_md5digest = 1;
+    ui_print_preset_colors(0, NULL);
     if (pthread_kill(tmd5_display, 0) != ESRCH)
         ui_print("Cancelling md5sum...\n");
     pthread_join(tmd5_display, NULL);
@@ -777,12 +812,12 @@ void stop_md5_display_thread() {
 void start_md5_verify_thread(char* filepath) {
     ui_print_preset_colors(1, NULL);
     ui_print("Verifying md5sum...\n");
-    ui_print_preset_colors(0, NULL);
     pthread_create(&tmd5_verify, NULL, &md5_verify_thread, filepath);
 }
 
 void stop_md5_verify_thread() {
     cancel_md5digest = 1;
+    ui_print_preset_colors(0, NULL);
     if (pthread_kill(tmd5_verify, 0) != ESRCH)
         ui_print("Cancelling md5 check...\n");
     pthread_join(tmd5_verify, NULL);
