@@ -688,10 +688,10 @@ static int computeMD5(const char* filepath) {
     cancel_md5digest = 0;
     MD5Init(&md5c);
     while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
+        MD5Update(&md5c, buf, len);
         size_progress += len;
         if (size_total != 0 && is_time_interval_passed(300))
             ui_set_progress((float)size_progress / (float)size_total);
-        MD5Update(&md5c, buf, len);
     }
 
     ui_reset_progress();
