@@ -609,42 +609,28 @@ unsigned long long Get_Folder_Size(const char* Path) {
     return dusize;
 }
 
-char* read_file_to_buffer(const char* filepath) {
-    char* buffer = NULL;
-    long size;
-    long result;
-    FILE *file;
-
+char* read_file_to_buffer(const char* filepath, unsigned long *len) {
     if (!file_found(filepath)) {
         LOGE("read_file_to_buffer: '%s' not found\n", filepath);
         return NULL;
     }
 
-    file = fopen(filepath, "rb");
-    if (file == NULL) {
-        LOGE("read_file_to_buffer: can't open '%s'\n", filepath);
-        return NULL;
-    }
-
-    fseek(file, 0, SEEK_END);
-    size = ftell(file);
-    rewind(file);
-    if (size < 0) {
-        LOGE("read_file_to_buffer: ftell error\n");
-        fclose(file);
-        return NULL;
-    }
-
-    buffer = (char*) malloc(size + 1);
+    unsigned long size = Get_File_Size(filepath);
+    char* buffer = (char*)malloc(size + 1);
     if (buffer == NULL) {
         LOGE("read_file_to_buffer: memory error\n");
-        fclose(file);
         return NULL;
     }
 
-    result = fread(buffer, 1, size, file);
-    buffer[size] = '\0';
-    if (result != size) {
+    FILE *file = fopen(filepath, "rb");
+    if (file == NULL) {
+        LOGE("read_file_to_buffer: can't open '%s'\n", filepath);
+        free(buffer);
+        return NULL;
+    }
+
+    *len = fread(buffer, 1, size, file);
+    if (size != *len) {
         LOGE("read_file_to_buffer: read error\n");
         free(buffer);
         fclose(file);
@@ -667,11 +653,10 @@ unsigned char md5sum_array[MD5LENGTH];
 
 static int computeMD5(const char* filepath) {
 	struct MD5Context md5c;
-	int len;
 	unsigned char buf[1024];
-	FILE *file;
+	unsigned len;
+    FILE *file;
 
-    MD5Init(&md5c);
 	file = fopen(filepath, "rb");
 	if (file == NULL) {
         LOGE("computeMD5: can't open %s\n", filepath);
@@ -679,11 +664,12 @@ static int computeMD5(const char* filepath) {
     }
 
     cancel_md5digest = 0;
+    MD5Init(&md5c);
 	while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
 		MD5Update(&md5c, buf, len);
 	}
-	fclose(file);
 
+	fclose(file);
     if (!cancel_md5digest)
         MD5Final(md5sum_array ,&md5c);
 	return cancel_md5digest;
@@ -714,9 +700,11 @@ int verify_md5digest(const char* filepath, const char* md5file) {
 		md5file = tmp;
     }
 
-    char* md5read = read_file_to_buffer(md5file);
+    unsigned long len = 0;
+    char* md5read = read_file_to_buffer(md5file, &len);
     if (md5read == NULL)
 		return ret;
+    md5read[len] = '\0';
 
     int i;
     char hex[3];

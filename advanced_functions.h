@@ -51,7 +51,7 @@ void delete_a_file(const char* filename);
 void ensure_directory(const char* dir); // in nandroid.c
 int is_path_ramdisk(const char* path);
 int copy_a_file(const char* file_in, const char* file_out);
-char* read_file_to_buffer(const char* filepath);
+char* read_file_to_buffer(const char* filepath, unsigned long *len);
 char* BaseName(const char* path);
 char* DirName(const char* path);
 
