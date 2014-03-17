@@ -53,6 +53,8 @@ static int totalbaks = 0;
 #include "make_ext4fs.h"
 #endif
 
+int __system(const char *command);
+
 // mount(fs_type, partition_type, location, mount_point)
 //
 //    fs_type="yaffs2" partition_type="MTD"     location=partition
@@ -121,8 +123,14 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
         }
         result = mount_point;
     } else {
+#ifdef ENABLE_BLACKHAWK_PATCH
+        char cmd[PATH_MAX];
+        sprintf(cmd, "/sbin/mount -t %s -o noatime,nodev,nodiratime %s %s", fs_type, location, mount_point);
+        if (__system(cmd) < 0) {
+#else
         if (mount(location, mount_point, fs_type,
                   MS_NOATIME | MS_NODEV | MS_NODIRATIME, "") < 0) {
+#endif
             fprintf(stderr, "%s: failed to mount %s at %s: %s\n",
                     name, location, mount_point, strerror(errno));
             result = strdup("");
@@ -272,6 +280,19 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
         int status = make_ext4fs(location, atoll(fs_size), mount_point, sehandle);
         if (status != 0) {
             fprintf(stderr, "%s: make_ext4fs failed (%d) on %s",
+                    name, status, location);
+            result = strdup("");
+            goto done;
+        }
+        result = location;
+#endif
+#ifdef USE_F2FS
+    } else if (strcmp(fs_type, "f2fs") == 0) {
+        char cmd[PATH_MAX];
+        sprintf(cmd, "/sbin/mkfs.f2fs %s", location);
+        int status = __system(cmd);
+        if (status != 0) {
+            fprintf(stderr, "%s: mkfs.f2fs failed (%d) on %s",
                     name, status, location);
             result = strdup("");
             goto done;
