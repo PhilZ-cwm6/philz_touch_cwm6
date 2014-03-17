@@ -647,7 +647,7 @@ int confirm_selection(const char* title, const char* confirm) {
     const char* confirm_headers[] = { title, "  THIS CAN NOT BE UNDONE.", "", NULL };
 
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_MANY_CONFIRM_FILE);
-    ensure_path_mounted(path);
+    // ensure_path_mounted(path);
     many_confirm = 0 == stat(path, &info);
 
     if (many_confirm) {
