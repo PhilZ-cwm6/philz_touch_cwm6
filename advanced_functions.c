@@ -716,26 +716,23 @@ int write_md5digest(const char* md5file) {
 }
 
 int verify_md5digest(const char* filepath, const char* md5file) {
-    char tmp[PATH_MAX];
+    char md5file2[PATH_MAX];
     int ret = -1;
-    if (md5file == NULL) {
-        sprintf(tmp, "%s.md5", filepath);
-        md5file = tmp;
-    }
 
     if (!file_found(filepath)) {
         LOGE("verify_md5digest: '%s' not found\n", filepath);
         return ret;
     }
 
-    if (!file_found(md5file)) {
-        LOGE("verify_md5digest: '%s' not found\n", md5file);
-        return ret;
+    if (md5file != NULL) {
+        sprintf(md5file2, "%s", md5file);
+    } else {
+        sprintf(md5file2, "%s.md5", filepath);
     }
 
     // read md5 sum from md5file
     unsigned long len = 0;
-    char* md5read = read_file_to_buffer(md5file, &len);
+    char* md5read = read_file_to_buffer(md5file2, &len);
     if (md5read == NULL)
         return ret;
     md5read[len] = '\0';
@@ -749,9 +746,9 @@ int verify_md5digest(const char* filepath, const char* md5file) {
             strcat(md5sum, hex);
         }
 
-        sprintf(tmp, "%s", BaseName(filepath));
+        sprintf(md5file2, "%s", BaseName(filepath));
         strcat(md5sum, "  ");
-        strcat(md5sum, tmp);
+        strcat(md5sum, md5file2);
         strcat(md5sum, "\n");
         if (strcmp(md5read, md5sum) != 0) {
             LOGE("MD5 calc: %s\n", md5sum);
