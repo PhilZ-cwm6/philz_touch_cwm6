@@ -77,15 +77,17 @@ else ifeq ($(TARGET_PRODUCT), cm_i9103)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Exhibit Variants - codinaxxx (no cm device tree)
-else ifeq ($(TARGET_PRODUCT), cm_codinamtr)
-    TARGET_COMMON_NAME := SGH-T599N
+#Galaxy Exhibit Variants (codinalte)
+else ifeq ($(TARGET_PRODUCT), cm_codinalte)
+    TARGET_COMMON_NAME := SGH-T599X (codinalte)
     BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Grand Duos - i9082
+#Galaxy Grand Duos (i9082)
 else ifeq ($(TARGET_PRODUCT), cm_i9082)
     TARGET_COMMON_NAME := Galaxy i9082
     BOOTLOADER_CMD_ARG := "download"
@@ -202,7 +204,7 @@ else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung Exhilarate SGH-I577 - exhilarate
+#Samsung Exhilarate SGH-I577 (exhilarate)
 else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     TARGET_COMMON_NAME := SGH-I577 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
@@ -213,6 +215,16 @@ else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_FB2PNG := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy Core Duos (i8262)
+else ifeq ($(TARGET_PRODUCT), cm_i8262)
+    TARGET_COMMON_NAME := Galaxy i8262
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 Skyrocket i727 - skyrocket
