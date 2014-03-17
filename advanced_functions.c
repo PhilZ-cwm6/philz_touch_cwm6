@@ -162,10 +162,9 @@ void ui_print_custom_logtail(const char* filename, int nb_lines) {
 
 // basename and dirname implementation that is thread safe, no free and doesn't modify argument
 // it is extracted from NDK and modified dirname_r to never modify passed argument
-int BaseName_r(const char* path, char*  buffer, size_t  bufflen)
-{
+int BaseName_r(const char* path, char*  buffer, size_t  bufflen) {
     const char *endp, *startp;
-    int         len, result;
+    int len, result;
 
     /* Empty or NULL string gets treated as "." */
     if (path == NULL || *path == '\0') {
@@ -176,8 +175,9 @@ int BaseName_r(const char* path, char*  buffer, size_t  bufflen)
 
     /* Strip trailing slashes */
     endp = path + strlen(path) - 1;
-    while (endp > path && *endp == '/')
+    while (endp > path && *endp == '/') {
         endp--;
+    }
 
     /* All slashes becomes "/" */
     if (endp == path && *endp == '/') {
@@ -188,8 +188,9 @@ int BaseName_r(const char* path, char*  buffer, size_t  bufflen)
 
     /* Find the start of the base */
     startp = endp;
-    while (startp > path && *(startp - 1) != '/')
+    while (startp > path && *(startp - 1) != '/') {
         startp--;
+    }
 
     len = endp - startp +1;
 
@@ -224,10 +225,9 @@ char* BaseName(const char* path) {
     return (ret < 0) ? NULL : bname;
 }
 
-int DirName_r(const char*  path, char*  buffer, size_t  bufflen)
-{
+int DirName_r(const char*  path, char*  buffer, size_t  bufflen) {
     const char *endp, *startp;
-    int         result, len;
+    int result, len;
 
     /* Empty or NULL string gets treated as "." */
     if (path == NULL || *path == '\0') {
@@ -238,12 +238,14 @@ int DirName_r(const char*  path, char*  buffer, size_t  bufflen)
 
     /* Strip trailing slashes */
     endp = path + strlen(path) - 1;
-    while (endp > path && *endp == '/')
+    while (endp > path && *endp == '/') {
         endp--;
+    }
 
     /* Find the start of the dir */
-    while (endp > path && *endp != '/')
+    while (endp > path && *endp != '/') {
         endp--;
+    }
 
     /* Either the dir is "/" or there are no slashes */
     if (endp == path) {
@@ -588,26 +590,21 @@ unsigned long long Get_Folder_Size(const char* Path) {
     strcpy(path2, Path);
 
     d = opendir(path2);
-    if (d == NULL)
-    {
+    if (d == NULL) {
         LOGE("error opening '%s'\n", path2);
         LOGE("error: %s\n", strerror(errno));
         return 0;
     }
 
-    while ((de = readdir(d)) != NULL)
-    {
-        if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0)
-        {
+    while ((de = readdir(d)) != NULL) {
+        if (de->d_type == DT_DIR && strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
             strcpy(filename, path2);
             strcat(filename, "/");
             strcat(filename, de->d_name);
             dutemp = Get_Folder_Size(filename);
             dusize += dutemp;
             dutemp = 0;
-        }
-        else if (de->d_type == DT_REG)
-        {
+        } else if (de->d_type == DT_REG) {
             strcpy(filename, path2);
             strcat(filename, "/");
             strcat(filename, de->d_name);
