@@ -639,7 +639,7 @@ char* read_file_to_buffer(const char* filepath, unsigned long *len) {
         return NULL;
     }
 
-    *len = fread(buffer, 1, size, file);
+    *len = fread(buffer, 1, (size_t)size, file);
     if (size != *len) {
         LOGE("read_file_to_buffer: read error\n");
         free(buffer);
