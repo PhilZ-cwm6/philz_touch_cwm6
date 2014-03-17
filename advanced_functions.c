@@ -765,16 +765,22 @@ pthread_t tmd5_display;
 pthread_t tmd5_verify;
 static void *md5_display_thread(void *arg) {
     char filepath[PATH_MAX];
+
+    set_ensure_mount_always_true(1);
+
     sprintf(filepath, "%s", (char*)arg);
     if (computeMD5(filepath) == 0)
         write_md5digest(NULL);
 
+    set_ensure_mount_always_true(0);
     return NULL;
 }
 
 static void *md5_verify_thread(void *arg) {
     int ret;
     char filepath[PATH_MAX];
+
+    set_ensure_mount_always_true(1);
 
     sprintf(filepath, "%s", (char*)arg);
     ret = verify_md5digest(filepath, NULL);
@@ -786,6 +792,7 @@ static void *md5_verify_thread(void *arg) {
         ui_print("MD5 check: success\n");
     }
 
+    set_ensure_mount_always_true(0);
     return NULL;
 }
 
