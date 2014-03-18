@@ -765,22 +765,16 @@ pthread_t tmd5_display;
 pthread_t tmd5_verify;
 static void *md5_display_thread(void *arg) {
     char filepath[PATH_MAX];
-
-    set_ensure_mount_always_true(1);
-
     sprintf(filepath, "%s", (char*)arg);
     if (computeMD5(filepath) == 0)
         write_md5digest(NULL);
 
-    set_ensure_mount_always_true(0);
     return NULL;
 }
 
 static void *md5_verify_thread(void *arg) {
     int ret;
     char filepath[PATH_MAX];
-
-    set_ensure_mount_always_true(1);
 
     sprintf(filepath, "%s", (char*)arg);
     ret = verify_md5digest(filepath, NULL);
@@ -792,13 +786,18 @@ static void *md5_verify_thread(void *arg) {
         ui_print("MD5 check: success\n");
     }
 
-    set_ensure_mount_always_true(0);
     return NULL;
 }
 
 void start_md5_display_thread(char* filepath) {
+    // ensure_path_mounted() is not thread safe, we must disable it when starting a thread for md5 checks
+    // we ensure primary storage is also mounted as it is needed by confirm_install() function
+    ensure_path_mounted(get_primary_storage_path());
+    set_ensure_mount_always_true(1);
+
     ui_print_preset_colors(1, NULL);
     ui_print("Calculating md5sum...\n");
+
     pthread_create(&tmd5_display, NULL, &md5_display_thread, filepath);
 }
 
@@ -807,12 +806,20 @@ void stop_md5_display_thread() {
     ui_print_preset_colors(0, NULL);
     if (pthread_kill(tmd5_display, 0) != ESRCH)
         ui_print("Cancelling md5sum...\n");
+
     pthread_join(tmd5_display, NULL);
+    set_ensure_mount_always_true(0);
 }
 
 void start_md5_verify_thread(char* filepath) {
+    // ensure_path_mounted() is not thread safe, we must disable it when starting a thread for md5 checks
+    // we ensure primary storage is also mounted as it is needed by confirm_install() function
+    ensure_path_mounted(get_primary_storage_path());
+    set_ensure_mount_always_true(1);
+
     ui_print_preset_colors(1, NULL);
     ui_print("Verifying md5sum...\n");
+
     pthread_create(&tmd5_verify, NULL, &md5_verify_thread, filepath);
 }
 
@@ -821,7 +828,9 @@ void stop_md5_verify_thread() {
     ui_print_preset_colors(0, NULL);
     if (pthread_kill(tmd5_verify, 0) != ESRCH)
         ui_print("Cancelling md5 check...\n");
+
     pthread_join(tmd5_verify, NULL);
+    set_ensure_mount_always_true(0);
 }
 // ------- End md5sum display
 
