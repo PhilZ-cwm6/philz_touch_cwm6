@@ -10,6 +10,7 @@ LOCAL_C_INCLUDES += bootable/recovery
 LOCAL_STATIC_LIBRARIES := libmmcutils libmtdutils libbmlutils libcrecovery
 
 BOARD_RECOVERY_DEFINES := BOARD_BML_BOOT BOARD_BML_RECOVERY
+BOARD_RECOVERY_DEFINES += BOARD_USE_MTK_LAYOUT BOARD_MTK_BOOT_LABEL
 
 $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
   $(if $($(board_define)), \
