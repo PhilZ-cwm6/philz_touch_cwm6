@@ -779,10 +779,14 @@ static void *md5_verify_thread(void *arg) {
     sprintf(filepath, "%s", (char*)arg);
     ret = verify_md5digest(filepath, NULL);
     if (ret < 0) {
+#ifdef PHILZ_TOUCH_RECOVERY
         ui_print_preset_colors(1, "red");
+#endif
         ui_print("MD5 check: error\n");
     } else if (ret == 0) {
+#ifdef PHILZ_TOUCH_RECOVERY
         ui_print_preset_colors(1, "green");
+#endif
         ui_print("MD5 check: success\n");
     }
 
@@ -795,7 +799,9 @@ void start_md5_display_thread(char* filepath) {
     ensure_path_mounted(get_primary_storage_path());
     set_ensure_mount_always_true(1);
 
+#ifdef PHILZ_TOUCH_RECOVERY
     ui_print_preset_colors(1, NULL);
+#endif
     ui_print("Calculating md5sum...\n");
 
     pthread_create(&tmd5_display, NULL, &md5_display_thread, filepath);
@@ -803,7 +809,9 @@ void start_md5_display_thread(char* filepath) {
 
 void stop_md5_display_thread() {
     cancel_md5digest = 1;
+#ifdef PHILZ_TOUCH_RECOVERY
     ui_print_preset_colors(0, NULL);
+#endif
     if (pthread_kill(tmd5_display, 0) != ESRCH)
         ui_print("Cancelling md5sum...\n");
 
@@ -817,7 +825,9 @@ void start_md5_verify_thread(char* filepath) {
     ensure_path_mounted(get_primary_storage_path());
     set_ensure_mount_always_true(1);
 
+#ifdef PHILZ_TOUCH_RECOVERY
     ui_print_preset_colors(1, NULL);
+#endif
     ui_print("Verifying md5sum...\n");
 
     pthread_create(&tmd5_verify, NULL, &md5_verify_thread, filepath);
@@ -825,7 +835,9 @@ void start_md5_verify_thread(char* filepath) {
 
 void stop_md5_verify_thread() {
     cancel_md5digest = 1;
+#ifdef PHILZ_TOUCH_RECOVERY
     ui_print_preset_colors(0, NULL);
+#endif
     if (pthread_kill(tmd5_verify, 0) != ESRCH)
         ui_print("Cancelling md5 check...\n");
 
