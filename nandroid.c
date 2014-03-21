@@ -1493,7 +1493,7 @@ int restorecon_recursive(const char *pathname, const char *exclude) {
         if (strncmp(pathname, exclude, strlen(exclude)) == 0)
             return 0;
     }
-    if (selinux_android_restorecon(pathname) < 0) {
+    if (selinux_android_restorecon(pathname, 0) < 0) {
         LOGW("restorecon: error restoring %s context\n", pathname);
         ret = 1;
     }
