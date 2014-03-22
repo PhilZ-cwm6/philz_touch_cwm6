@@ -69,7 +69,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-PHILZ_BUILD := 6.22.5
+PHILZ_BUILD := 6.22.6
 CWM_BASE_VERSION := v6.0.4.7
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 # Corresponds to CWM_BASE_VERSION, they should be the same
