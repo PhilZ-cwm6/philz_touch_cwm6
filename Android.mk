@@ -69,11 +69,12 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 endif
 
-PHILZ_BUILD := 6.22.6
-CWM_BASE_VERSION := v6.0.4.7
-LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
-# Corresponds to CWM_BASE_VERSION, they should be the same
+# This should be the same line as upstream to not break makerecoveries.sh
 RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.7
+
+PHILZ_BUILD := 6.22.7
+CWM_BASE_VERSION := $(shell echo $(RECOVERY_VERSION) | cut -d ' ' -f 3)
+LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
