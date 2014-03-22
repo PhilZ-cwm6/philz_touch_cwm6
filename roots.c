@@ -36,6 +36,37 @@
 
 #include "voldclient/voldclient.h"
 
+#include "libcrecovery/common.h"
+
+#ifdef ENABLE_BLACKHAWK_PATCH
+char *get_fs_type(const char* device) {
+    char tmp[PATH_MAX];
+    char *fstype = NULL;
+    
+    sprintf(tmp, "/sbin/blkid -c /dev/null %s", device);
+    FILE *fp = __popen(tmp, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Unable to execute blkid.\n");
+        return NULL;
+    }
+
+    char line[1024];
+    char value[128];
+    if (fgets(line, sizeof(line), fp) != NULL) {
+        char* start = strstr(line, "TYPE=");
+        if (start != NULL && sscanf(start + 5, "\"%127[^\"]\"", value) == 1) {
+            /* fprintf(stderr, "Found %s filesystem on %s\n", value, device); */
+            fstype = value;
+        } else {
+            /* fprintf(stderr, "None or unknown filesystem on %s\n", device); */
+        }
+    }
+
+    __pclose(fp);
+    return fstype;
+}
+#endif
+
 static struct fstab *fstab = NULL;
 
 // Support additional extra.fstab entries and add device2
@@ -65,6 +96,17 @@ static void load_volume_table_extra() {
     fprintf(stderr, "extra filesystem table (device2, fstype2, options2):\n");
     for(i = 0; i < fstab_extra->num_entries; ++i) {
         Volume* v = &fstab_extra->recs[i];
+#ifdef ENABLE_BLACKHAWK_PATCH
+        char *fstype = get_fs_type(v->blk_device);
+        if (fstype != NULL) {
+            free(v->fs_type);
+            v->fs_type = strdup(fstype);
+#ifdef USE_F2FS
+            if (strcmp(v->fs_type, "f2fs") == 0)
+                v->fs_options = "noatime,nodev,nodiratime,inline_xattr";
+#endif
+        }
+#endif
         add_extra_fstab_entries(i);
         fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
@@ -122,9 +164,31 @@ void load_volume_table() {
     fprintf(stderr, "=========================\n");
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = &fstab->recs[i];
+#ifdef ENABLE_BLACKHAWK_PATCH
+        char *fstype = get_fs_type(v->blk_device);
+        if (fstype != NULL) {
+                free(v->fs_type);
+                v->fs_type = strdup(fstype);
+#ifdef USE_F2FS
+        if (strcmp(v->fs_type, "f2fs") == 0)
+            v->fs_options = "noatime,nodev,nodiratime,inline_xattr";
+#endif
+        }
+#endif
         fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
         if (v->blk_device2 != NULL) {
+#ifdef ENABLE_BLACKHAWK_PATCH
+            fstype = get_fs_type(v->blk_device2);
+            if (fstype != NULL) {
+                    free(v->fs_type2);
+                    v->fs_type2 = strdup(fstype);
+#ifdef USE_F2FS
+        if (strcmp(v->fs_type2, "f2fs") == 0)
+            v->fs_options2 = "noatime,nodev,nodiratime,inline_xattr";
+#endif
+            }
+#endif
             fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type2,
                     v->blk_device2, v->length);
         }

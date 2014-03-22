@@ -931,6 +931,78 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
+#ifdef ENABLE_BLACKHAWK_PATCH
+static int is_second_recovery() {
+    static char path[PATH_MAX];
+    sprintf(path, "/data/media/.defaultrecovery");
+    int ret = 0;
+
+    FILE *f = fopen(path, "r");
+    if (f != NULL) {
+        fgets(path, PATH_MAX, f);
+        fclose(f);
+        if (strcmp(path, "1") == 0)
+            ret = 1;
+    }
+
+    return ret;
+}
+#endif
+
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+static void format_ext4_or_f2fs(const char* volume) {
+    if (is_data_media_volume_path(volume))
+        return;
+
+    Volume *v = volume_for_path(volume);
+    if (v == NULL)
+        return;
+
+    const char* headers[] = { "Format device:", volume, "", NULL };
+
+    static char* list[] = { "default",
+                            "ext4",
+                            "f2fs",
+                            NULL };
+
+    int ret = -1;
+    char cmd[PATH_MAX];
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    if (chosen_item < 0) // REFRESH or GO_BACK
+        return;
+    if (!confirm_selection("Confirm formatting?", "Yes - Format device"))
+        return;
+
+    if (ensure_path_unmounted(v->mount_point) != 0)
+        return;
+
+    switch (chosen_item) {
+        case 0:
+            ret = format_volume(v->mount_point);
+            break;
+        case 1:
+        case 2: {
+            if (strcmp(list[chosen_item], "ext4") == 0) {
+                char options[64] = "";
+                if (v->length)
+                    sprintf(options, "-l %lld", v->length);
+                sprintf(cmd, "/sbin/make_ext4fs -J %s %s", options, v->blk_device);
+                ret = __system(cmd);
+            } else if (strcmp(list[chosen_item], "f2fs") == 0) {
+                sprintf(cmd, "/sbin/mkfs.f2fs %s", v->blk_device);
+                ret = __system(cmd);
+            }
+            break;
+        }
+    }
+
+    if (ret)
+        ui_print("Could not format %s (%s)\n", volume, list[chosen_item]);
+    else
+        ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
+}
+#endif
+
 int show_partition_menu() {
     static const char* headers[] = { "Mounts and Storage Menu", NULL };
 
@@ -994,7 +1066,11 @@ int show_partition_menu() {
             list[mountable_volumes + i] = e->txt;
         }
 
+#ifdef ENABLE_BLACKHAWK_PATCH
+        if (!is_data_media() || is_second_recovery()) {
+#else
         if (!is_data_media()) {
+#endif
             list[mountable_volumes + formatable_volumes] = "mount USB storage";
             list[mountable_volumes + formatable_volumes + 1] = '\0';
         } else {
@@ -1010,6 +1086,10 @@ int show_partition_menu() {
             if (!is_data_media()) {
                 show_mount_usb_storage_menu();
             } else {
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+                ignore_data_media_workaround(1);
+                format_ext4_or_f2fs("/data");
+#else
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
                     continue;
                 ignore_data_media_workaround(1);
@@ -1018,6 +1098,7 @@ int show_partition_menu() {
                     ui_print("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
+#endif
                 ignore_data_media_workaround(0);
             }
         } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
@@ -1028,7 +1109,16 @@ int show_partition_menu() {
             if (is_path_mounted(e->path)) {
                 ignore_data_media_workaround(1);
                 if (0 != ensure_path_unmounted(e->path))
+#ifdef ENABLE_BLACKHAWK_PATCH
+                {
+                    if (strcmp(e->path, "/data") == 0 && is_second_recovery())
+                        ui_print("/data locked in 2nd recovery!\n");
+                    else
+#endif
                     ui_print("Error unmounting %s!\n", e->path);
+#ifdef ENABLE_BLACKHAWK_PATCH
+                }
+#endif
                 ignore_data_media_workaround(0);
             } else {
                 if (0 != ensure_path_mounted(e->path))
@@ -1046,6 +1136,14 @@ int show_partition_menu() {
                 format_sdcard(e->path);
                 continue;
             }
+
+#if defined(USE_F2FS) && defined(ENABLE_BLACKHAWK_PATCH)
+            if ((strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) &&
+	            strcmp(e->path, "/data") != 0) {
+                format_ext4_or_f2fs(e->path);
+                continue;
+            }
+#endif
 
             if (!confirm_selection(confirm_string, confirm))
                 continue;
@@ -1363,6 +1461,9 @@ void format_sdcard(const char* volume) {
     static char* list[] = { "default",
                             "vfat",
                             "exfat",
+#ifdef USE_F2FS
+                            "f2fs",
+#endif
                             "ntfs",
                             "ext4",
                             "ext3",
@@ -1387,7 +1488,8 @@ void format_sdcard(const char* volume) {
         case 1:
         case 2:
         case 3:
-        case 4: {
+        case 4:
+        case 5: {
             if (fs_mgr_is_voldmanaged(v)) {
                 ret = vold_custom_format_volume(v->mount_point, list[chosen_item], 1) == CommandOkay ? 0 : -1;
             } else if (strcmp(list[chosen_item], "vfat") == 0) {
@@ -1396,6 +1498,11 @@ void format_sdcard(const char* volume) {
             } else if (strcmp(list[chosen_item], "exfat") == 0) {
                 sprintf(cmd, "/sbin/mkfs.exfat %s", v->blk_device);
                 ret = __system(cmd);
+#ifdef USE_F2FS
+            } else if (strcmp(list[chosen_item], "f2fs") == 0) {
+                sprintf(cmd, "/sbin/mkfs.f2fs %s", v->blk_device);
+                ret = __system(cmd);
+#endif
             } else if (strcmp(list[chosen_item], "ntfs") == 0) {
                 sprintf(cmd, "/sbin/mkntfs -f %s", v->blk_device);
                 ret = __system(cmd);
@@ -1408,8 +1515,8 @@ void format_sdcard(const char* volume) {
             }
             break;
         }
-        case 5:
-        case 6: {
+        case 6:
+        case 7: {
             // workaround for new vold managed volumes that cannot be recognized by prebuilt ext2/ext3 bins
             const char *device = v->blk_device2;
             if (device == NULL)
@@ -1585,6 +1692,9 @@ int show_advanced_menu() {
 #ifdef ENABLE_LOKI
     list[5] = NULL;
 #endif
+#ifdef ENABLE_BLACKHAWK_PATCH
+    list[6] = NULL;
+#endif
 
     char list_prefix[] = "Partition ";
     if (can_partition(primary_path)) {
@@ -1624,6 +1734,14 @@ int show_advanced_menu() {
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
             list[5] = item_loki_toggle_menu;
         }
+#endif
+
+#ifdef ENABLE_BLACKHAWK_PATCH
+        struct stat st;
+        if (0 == stat("/res/misc/tool.zip", &st) && !is_second_recovery())
+            list[6] = "Run Aroma Dual Boot Tool";
+        else
+            list[6] = NULL;
 #endif
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
@@ -1685,6 +1803,11 @@ int show_advanced_menu() {
 #ifdef ENABLE_LOKI
             case 5:
                 toggle_loki_support();
+                break;
+#endif
+#ifdef ENABLE_BLACKHAWK_PATCH
+            case 6:
+                __system("aroma 1 0 /res/misc/tool.zip");
                 break;
 #endif
             default:
@@ -1786,7 +1909,11 @@ void process_volumes() {
                 count--;
             }
             ignore_data_media_workaround(0);
+#ifdef ENABLE_BLACKHAWK_PATCH
+            if (count == 0 && !is_second_recovery())
+#else
             if (count == 0)
+#endif
                 LOGE("could not unmount /data after /data/media setup\n");
         }
     }
