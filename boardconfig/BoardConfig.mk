@@ -43,8 +43,8 @@
 #                               you still need to enable a LOCAL_CFLAGS if defined
 #   - BOARD_HAS_SLOW_STORAGE := true
 #                               default setting will disable size progress info during backup/restore
-#   - BOARD_USE_FB2PNG := true
-#                               define this to true if your device supports screen capture using fb2png
+#   - BOARD_USE_FB2PNG := false
+#                               define this to false to spare some space (do not use screen capture)
 #   - BOARD_USE_NTFS_3G := false
 #                               will not include ntfs-3g binary to format and mount NTFS partitions.
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
@@ -152,7 +152,6 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 Epic 4G Touch - SPH-D710 (d710)
@@ -165,7 +164,6 @@ else ifeq ($(TARGET_PRODUCT), cm_d710)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 - i9100g
@@ -178,7 +176,6 @@ else ifeq ($(TARGET_PRODUCT), cm_i9100g)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note - n7000
@@ -190,7 +187,6 @@ else ifeq ($(TARGET_PRODUCT), cm_n7000)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 800
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S2 HD LTE (SGH-I757M) - celoxhd
@@ -201,7 +197,6 @@ else ifeq ($(TARGET_PRODUCT), cm_celoxhd)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung Exhilarate SGH-I577 (exhilarate)
@@ -214,7 +209,6 @@ else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Core Duos (i8262)
@@ -237,7 +231,6 @@ else ifeq ($(TARGET_PRODUCT), cm_skyrocket)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy S3 International - i9300 - i9305
@@ -249,7 +242,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_i9300 cm_i9305),)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung S3 Unified d2lte: d2att d2cri d2mtr d2spr d2tmo d2usc d2vzw
@@ -261,7 +253,6 @@ else ifeq ($(TARGET_PRODUCT), cm_d2lte)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 # Galaxy S Relay 4G - SGH-T699 (apexqtmo) // Galaxy Express AT&T (expressatt)
@@ -275,7 +266,6 @@ else ifneq ($(filter $(TARGET_PRODUCT), cm_apexqtmo cm_expressatt),)
     TARGET_SCREEN_HEIGHT := 800
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 2 - n7100
@@ -287,7 +277,6 @@ else ifeq ($(TARGET_PRODUCT), cm_n7100)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 2 LTE - t0lte (n7105), t0lteatt (i317 / i317M canada bell), t0ltetmo (T889), l900 (sprint), i605 (verizon)
@@ -299,7 +288,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_t0lte cm_t0lteatt cm_t0ltetmo cm_l900 
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 3 LTE - N9005 Unified (hlte): hltexx, hltespr, hltetmo, hltecan, hltevzw
@@ -325,7 +313,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n5100 cm_n5110 cm_n5120),)
     # swap and flip are needed unless we fix things at kernel level
     #RECOVERY_TOUCHSCREEN_SWAP_XY := true
     #RECOVERY_TOUCHSCREEN_FLIP_Y := true
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 10.1 GSM (n8000), Wifi (n8013), LTE (n8020)
@@ -337,7 +324,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013 cm_n8020),)
     TARGET_SCREEN_HEIGHT := 800
     TARGET_SCREEN_WIDTH := 1280
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 10.1 2014 LTE (lt03ltexx)
@@ -393,7 +379,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p3100 cm_p3110),)
     TARGET_SCREEN_HEIGHT := 600
     TARGET_SCREEN_WIDTH := 1024
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     #RECOVERY_TOUCHSCREEN_SWAP_XY := true
     #RECOVERY_TOUCHSCREEN_FLIP_Y := true
     BOARD_USE_B_SLOT_PROTOCOL := true
@@ -407,7 +392,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_p5100 cm_p5110),)
     TARGET_SCREEN_HEIGHT := 800
     TARGET_SCREEN_WIDTH := 1280
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Premier I9260 - superior
@@ -452,7 +436,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi),)
     TARGET_SCREEN_HEIGHT := 600
     TARGET_SCREEN_WIDTH := 1024
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
-    BOARD_USE_FB2PNG := true
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Samsung Galaxy Tab 3 8.0: SM-T310 (lt01wifi), SM-T311 (lt013g), SM-T315 (lt01lte)
@@ -472,7 +455,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s6e8aa0/brightness"
-    BOARD_USE_FB2PNG := true
 
 #Google Nexus S (Samsung) - crespo / crespo4g
 else ifneq ($(filter $(TARGET_PRODUCT),cm_crespo cm_crespo4g),)
@@ -481,7 +463,6 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_crespo cm_crespo4g),)
     TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/s5p_bl/brightness"
-    BOARD_USE_FB2PNG := true
 
 #Google Nexus 4 (LGE) - mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
@@ -489,7 +470,6 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 768
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_FB2PNG := true
 
 #Google Nexus 5 (LGE) - hammerhead
 else ifeq ($(TARGET_PRODUCT), cm_hammerhead)

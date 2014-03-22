@@ -296,7 +296,7 @@ include $(commands_recovery_local_path)/libtouch_gui/Android.mk
 endif
 endif
 
-ifneq ($(BOARD_USE_FB2PNG),)
+ifneq ($(BOARD_USE_FB2PNG),false)
     include $(commands_recovery_local_path)/fb2png/Android.mk
 endif
 
