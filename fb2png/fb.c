@@ -27,16 +27,17 @@
 #include "fb.h"
 #include "img_process.h"
 
+// log fb info
 void fb_dump(const struct fb* fb)
 {
-    D("%12s : %d", "bpp", fb->bpp);
-    D("%12s : %d", "size", fb->size);
-    D("%12s : %d", "width", fb->width);
-    D("%12s : %d", "height", fb->height);
-    D("%12s : %d %d %d %d", "ARGB offset",
+    D("%13s : %d", "bpp", fb->bpp);
+    D("%13s : %d", "size", fb->size);
+    D("%13s : %d", "width", fb->width);
+    D("%13s : %d", "height", fb->height);
+    D("%13s : %d %d %d %d", "ARGB offset",
             fb->alpha_offset, fb->red_offset,
             fb->green_offset, fb->blue_offset);
-    D("%12s : %d %d %d %d", "ARGB length",
+    D("%13s : %d %d %d %d", "ARGB length",
             fb->alpha_length, fb->red_length,
             fb->green_length, fb->blue_length);
 }
@@ -57,6 +58,7 @@ static int fb_get_format(const struct fb *fb)
 #define FB_FORMAT_RGBA8888  3
 #define FB_FORMAT_ABGR8888  4
 #define FB_FORMAT_BGRA8888  5
+#define FB_FORMAT_RGBX8888  FB_FORMAT_RGBA8888
 
     /* TODO: use offset */
     if (fb->bpp == 16)
@@ -65,6 +67,22 @@ static int fb_get_format(const struct fb *fb)
     /* TODO: validate */
     if (ao == 0 && ro == 8)
         return FB_FORMAT_ARGB8888;
+
+    /*
+    CWM: support devices with TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
+    if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_RGBX_8888) {
+             vi.red.offset     = 24;
+             vi.red.length     = 8;
+             vi.green.offset   = 16;
+             vi.green.length   = 8;
+             vi.blue.offset    = 8;
+             vi.blue.length    = 8;
+             vi.transp.offset  = 0;
+             vi.transp.length  = 8;
+    }
+    */
+    if (ao == 0 && ro == 24 && go == 16 && bo == 8)
+        return FB_FORMAT_RGBX8888;
 
     if (ao == 0 && bo == 8)
         return FB_FORMAT_ABGR8888;
@@ -87,7 +105,7 @@ int fb_save_png(const struct fb *fb, const char *path)
     /* Allocate RGB Matrix. */
     rgb_matrix = malloc(fb->width * fb->height * 3);
     if(!rgb_matrix) {
-        free(rgb_matrix);
+        D("rgb_matrix: memory error");
         return -1;
     }
 
@@ -128,5 +146,6 @@ int fb_save_png(const struct fb *fb, const char *path)
         D("Failed to save in PNG format.");
 
     free(rgb_matrix);
+    free(fb->data);
     return ret;
 }

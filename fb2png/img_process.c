@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <png.h>
 
+#include "fb.h"
 #include "img_process.h"
 #include "log.h"
 
@@ -32,7 +33,7 @@ int rgb565_to_rgb888(const char* src, char* dst, size_t pixel)
     from = (struct rgb565 *) src;
     to = (struct rgb888 *) dst;
 
-    int i = 0;
+    size_t i = 0;
     /* traverse pixel of the row */
     while(i++ < pixel) {
 
@@ -53,7 +54,7 @@ int rgb565_to_rgb888(const char* src, char* dst, size_t pixel)
 
 int argb8888_to_rgb888(const char* src, char* dst, size_t pixel)
 {
-    int i;
+    size_t i;
     struct argb8888  *from;
     struct rgb888  *to;
 
@@ -77,7 +78,7 @@ int argb8888_to_rgb888(const char* src, char* dst, size_t pixel)
 
 int abgr8888_to_rgb888(const char* src, char* dst, size_t pixel)
 {
-    int i;
+    size_t i;
     struct abgr8888  *from;
     struct rgb888  *to;
 
@@ -101,7 +102,7 @@ int abgr8888_to_rgb888(const char* src, char* dst, size_t pixel)
 
 int bgra8888_to_rgb888(const char* src, char* dst, size_t pixel)
 {
-    int i;
+    size_t i;
     struct bgra8888  *from;
     struct rgb888  *to;
 
@@ -125,7 +126,7 @@ int bgra8888_to_rgb888(const char* src, char* dst, size_t pixel)
 
 int rgba8888_to_rgb888(const char* src, char* dst, size_t pixel)
 {
-    int i;
+    size_t i;
     struct rgba8888  *from;
     struct rgb888  *to;
 
@@ -134,8 +135,7 @@ int rgba8888_to_rgb888(const char* src, char* dst, size_t pixel)
 
     i = 0;
     /* traverse pixel of the row */
-    while(i++ < pixel) {
-
+    while (i++ < pixel) {
         to->r = from->r;
         to->g = from->g;
         to->b = from->b;
@@ -155,10 +155,10 @@ stdio_write_func (png_structp png, png_bytep data, png_size_t size)
 
     fp = png_get_io_ptr (png);
     while (size) {
-        ret = fwrite (data, 1, size, fp);
+        ret = fwrite(data, 1, size, fp);
         size -= ret;
         data += ret;
-      if (size && ferror (fp))
+      if (size && ferror(fp))
          E("write: %m\n");
    }
 }

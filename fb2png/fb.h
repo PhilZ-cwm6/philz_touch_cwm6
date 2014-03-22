@@ -39,4 +39,6 @@ struct fb {
 
 int fb_save_png(const struct fb *fb, const char *path);
 
+void fb_dump(const struct fb* fb);
+
 #endif
