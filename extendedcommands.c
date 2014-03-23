@@ -51,8 +51,6 @@
 #include "libtouch_gui/gui_settings.h"
 #endif
 
-int check_update_binary_version = 1;
-
 int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
     int offset = 0;
@@ -209,7 +207,7 @@ int install_zip(const char* packagefilepath) {
 // top fixed menu items, those before extra storage volumes
 #define FIXED_TOP_INSTALL_ZIP_MENUS 1
 // bottom fixed menu items, those after extra storage volumes
-#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 8
+#define FIXED_BOTTOM_INSTALL_ZIP_MENUS 7
 #define FIXED_INSTALL_ZIP_MENUS (FIXED_TOP_INSTALL_ZIP_MENUS + FIXED_BOTTOM_INSTALL_ZIP_MENUS)
 
 int show_install_update_menu() {
@@ -238,15 +236,13 @@ int show_install_update_menu() {
     // FIXED_BOTTOM_INSTALL_ZIP_MENUS
     char item_toggle_signature_check[MENU_MAX_COLS] = "";
     char item_install_zip_verify_md5[MENU_MAX_COLS] = "";
-    char item_check_update_binary_version[MENU_MAX_COLS] = "";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes]     = "Choose zip Using Free Browse Mode";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1] = "Choose zip from Last Install Folder";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2] = "Install zip from sideload";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3] = "Install Multiple zip Files";
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4] = item_toggle_signature_check;
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5] = item_install_zip_verify_md5;
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 6] = item_check_update_binary_version;
-    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 7] = "Setup Free Browse Mode";
+    install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 6] = "Setup Free Browse Mode";
 
     // extra NULL for GO_BACK
     install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + FIXED_BOTTOM_INSTALL_ZIP_MENUS] = NULL;
@@ -259,10 +255,6 @@ int show_install_update_menu() {
         if (install_zip_verify_md5.value)
             ui_format_gui_menu(item_install_zip_verify_md5, "Verify zip md5sum", "(x)");
         else ui_format_gui_menu(item_install_zip_verify_md5, "Verify zip md5sum", "( )");
-
-        if (check_update_binary_version)
-            ui_format_gui_menu(item_check_update_binary_version, "Allow Old update-binary", "( )");
-        else ui_format_gui_menu(item_check_update_binary_version, "Allow Old update-binary", "(x)");
 
         chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
         if (chosen_item == 0) {
@@ -287,12 +279,6 @@ int show_install_update_menu() {
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 5) {
             toggle_install_zip_verify_md5();
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 6) {
-            check_update_binary_version ^= 1;
-            if (!check_update_binary_version) {
-                ui_print("Try fixing some assert errors\n");
-                ui_print("Setting will be reset on reboot\n");
-            }
-        } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 7) {
             set_custom_zip_path();
         } else {
             // GO_BACK or REFRESH (chosen_item < 0)
