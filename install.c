@@ -267,6 +267,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
         /* Found set_perm and !set_metadata; use legacy properties */
         if (foundsetperm && !foundsetmeta) {
             LOGW("Using legacy property environment for update-binary...\n");
+            LOGW("You should upgrade to latest update-binary.\n");
             set_legacy_props();
         }
         setenv("UPDATE_PACKAGE", path, 1);
