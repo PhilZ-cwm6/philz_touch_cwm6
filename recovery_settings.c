@@ -101,7 +101,7 @@ struct CWMSettingsCharValues user_zip_folder = { "user_zip_folder", "" };
 #define board_use_b_slot_protocol       0
 #endif
 
-#ifdef BOARD_USE_FB2PNG
+#ifndef BOARD_HAS_NO_FB2PNG
 #define board_use_fb2png                1
 #else
 #define board_use_fb2png                0

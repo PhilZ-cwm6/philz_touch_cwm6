@@ -42,9 +42,9 @@
 #                               will force using ro.product.model as device id if available
 #                               you still need to enable a LOCAL_CFLAGS if defined
 #   - BOARD_HAS_SLOW_STORAGE := true
-#                               default setting will disable size progress info during backup/restore
-#   - BOARD_USE_FB2PNG := false
-#                               define this to false to spare some space (do not use screen capture)
+#                               when defined, size progress info during backup/restore will be disabled on default settings
+#   - BOARD_HAS_NO_FB2PNG := true
+#                               define this to disable fb2png support and spare some space (do not use screen capture)
 #   - BOARD_USE_NTFS_3G := false
 #                               will not include ntfs-3g binary to format and mount NTFS partitions.
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
@@ -351,7 +351,6 @@ else ifeq ($(TARGET_PRODUCT), cm_i9500)
 else ifeq ($(TARGET_PRODUCT), cm_jflte)
     TARGET_COMMON_NAME := i9505 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
-    #BOARD_HAS_SLOW_STORAGE := true
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     KERNEL_NTFS_MODULE_NAME := "ntfs"
     TARGET_SCREEN_HEIGHT := 1920
