@@ -59,7 +59,7 @@ static int init_workspace(workspace *w, size_t size)
         goto out;
 
     data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if(data == MAP_FAILED)
+    if (data == MAP_FAILED)
         goto out;
 
     close(fd);
@@ -96,10 +96,10 @@ static int init_property_area(void)
 {
     prop_area *pa;
 
-    if(pa_info_array)
+    if (pa_info_array)
         return -1;
 
-    if(init_workspace(&pa_workspace, PA_SIZE))
+    if (init_workspace(&pa_workspace, PA_SIZE))
         return -1;
 
     fcntl(pa_workspace.fd, F_SETFD, FD_CLOEXEC);
@@ -133,12 +133,12 @@ static const prop_info *__legacy_property_find(const char *name)
     unsigned len = strlen(name);
     prop_info *pi;
 
-    while(count--) {
+    while (count--) {
         unsigned entry = *toc++;
-        if(TOC_NAME_LEN(entry) != len) continue;
+        if (TOC_NAME_LEN(entry) != len) continue;
 
         pi = TOC_TO_INFO(pa, entry);
-        if(memcmp(name, pi->name, len)) continue;
+        if (memcmp(name, pi->name, len)) continue;
 
         return pi;
     }
@@ -154,16 +154,20 @@ static int legacy_property_set(const char *name, const char *value)
     int namelen = strlen(name);
     int valuelen = strlen(value);
 
-    if(namelen >= PROP_NAME_MAX) return -1;
-    if(valuelen >= PROP_VALUE_MAX) return -1;
-    if(namelen < 1) return -1;
+    if (namelen >= PROP_NAME_MAX)
+        return -1;
+    if (valuelen >= PROP_VALUE_MAX)
+        return -1;
+    if (namelen < 1)
+        return -1;
 
     pi = (prop_info*) __legacy_property_find(name);
 
 
-    if(pi != 0) {
+    if (pi != 0) {
         /* ro.* properties may NEVER be modified once set */
-        if(!strncmp(name, "ro.", 3)) return -1;
+        if (!strncmp(name, "ro.", 3))
+            return -1;
 
         pa = __legacy_property_area__;
         update_prop_info(pi, value, valuelen);
@@ -171,7 +175,8 @@ static int legacy_property_set(const char *name, const char *value)
         __futex_wake(&pa->serial, INT32_MAX);
     } else {
         pa = __legacy_property_area__;
-        if(pa->count == PA_COUNT_MAX) return -1;
+        if (pa->count == PA_COUNT_MAX)
+            return -1;
 
         pi = pa_info_array + pa->count;
         pi->serial = (valuelen << 24);
