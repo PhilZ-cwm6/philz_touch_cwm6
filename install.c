@@ -108,30 +108,35 @@ handle_firmware_update(char* type, char* filename, ZipArchive* zip) {
 static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
 static const char *DEV_PROP_PATH = "/dev/__properties__";
 static const char *DEV_PROP_BACKUP_PATH = "/dev/__properties_backup__";
+static bool legacy_props_initd = false;
 
-static void set_legacy_props() {
+static int set_legacy_props() {
     char tmp[32];
     int propfd, propsz;
-    legacy_properties_init();
+
+    if (legacy_properties_init() != 0)
+        return -1;
+
     legacy_get_property_workspace(&propfd, &propsz);
     sprintf(tmp, "%d,%d", dup(propfd), propsz);
     setenv("ANDROID_PROPERTY_WORKSPACE", tmp, 1);
-
-    if (rename(DEV_PROP_PATH, DEV_PROP_BACKUP_PATH) == -1) {
+    if (rename(DEV_PROP_PATH, DEV_PROP_BACKUP_PATH) != 0) {
         LOGE("Could not rename properties path: %s\n", DEV_PROP_PATH);
-        LOGE("Legacy properties may not be detected\n");
-    } else {
-        LOGW("Legacy property environment set\n");
+        return -1;
     }
+
+    legacy_props_initd = true;
+    return 0;
 }
 
-static void unset_legacy_props() {
-    if (rename(DEV_PROP_BACKUP_PATH, DEV_PROP_PATH) == -1) {
+static int unset_legacy_props() {
+    if (rename(DEV_PROP_BACKUP_PATH, DEV_PROP_PATH) != 0) {
         LOGE("Could not rename properties path: %s\n", DEV_PROP_BACKUP_PATH);
-        LOGE("Legacy properties may not be detected\n");
-    } else {
-        LOGW("Legacy property environment unset\n");
+        return -1;
     }
+
+    legacy_props_initd = false;
+    return 0;
 }
 
 // If the package contains an update binary, extract it and run it.
@@ -217,6 +222,16 @@ try_update_binary(const char *path, ZipArchive *zip) {
     }
     fclose(updaterfile);
 
+    /* Set legacy properties */
+    if (foundsetperm && !foundsetmeta) {
+        LOGI("Using legacy property environment for update-binary...\n");
+        if (set_legacy_props() != 0) {
+            LOGE("Legacy property environment did not init successfully. Properties may not be detected.\n");
+        } else {
+            LOGI("Legacy property environment initialized.\n");
+        }
+    }
+
     int pipefd[2];
     pipe(pipefd);
 
@@ -264,12 +279,6 @@ try_update_binary(const char *path, ZipArchive *zip) {
 
     pid_t pid = fork();
     if (pid == 0) {
-        /* Found set_perm and !set_metadata; use legacy properties */
-        if (foundsetperm && !foundsetmeta) {
-            LOGW("Using legacy property environment for update-binary...\n");
-            LOGW("You should upgrade to latest update-binary.\n");
-            set_legacy_props();
-        }
         setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
         execve(binary, args, environ);
@@ -328,10 +337,13 @@ try_update_binary(const char *path, ZipArchive *zip) {
     int status;
     waitpid(pid, &status, 0);
 
-    /* Found set_perm and !set_metadata; unset legacy properties */
-    if (foundsetperm && !foundsetmeta) {
-        LOGW("Unsetting legacy property environment...\n");
-        unset_legacy_props();
+    /* Unset legacy properties */
+    if (legacy_props_initd) {
+        if (unset_legacy_props() != 0) {
+            LOGE("Legacy property environment did not disable successfully. Legacy properties may still be in use.\n");
+        } else {
+            LOGI("Legacy property environment disabled.\n");
+        }
     }
 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
