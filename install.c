@@ -224,7 +224,8 @@ try_update_binary(const char *path, ZipArchive *zip) {
 
     /* Set legacy properties */
     if (foundsetperm && !foundsetmeta) {
-        LOGI("Using legacy property environment for update-binary...\n");
+        ui_print("Using legacy property environment for update-binary...\n");
+        ui_print("Please upgrade to latest binary...\n");
         if (set_legacy_props() != 0) {
             LOGE("Legacy property environment did not init successfully. Properties may not be detected.\n");
         } else {
