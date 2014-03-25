@@ -517,7 +517,8 @@ void show_choose_zip_menu(const char *mount_point) {
 
     if (yes_confirm) {
         install_zip(file);
-        write_last_install_path(DirName(file));
+        sprintf(tmp, "%s", DirName(file));
+        write_last_install_path(tmp);
     }
 
     free(file);

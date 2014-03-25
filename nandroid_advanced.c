@@ -367,10 +367,12 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
     }
 
     // make sure we  have a valid image file name
-    char tmp[PATH_MAX];
     int i = 0;
+    char tmp[PATH_MAX];
+    char filename[PATH_MAX];
     const char *raw_image_format[] = { ".img", ".bin", NULL };
-    char* filename = BaseName(backup_file_image);
+
+    sprintf(filename, "%s", BaseName(backup_file_image));
     while (raw_image_format[i] != NULL) {
         if (strlen(filename) > strlen(raw_image_format[i]) &&
                     strcmp(filename + strlen(filename) - strlen(raw_image_format[i]), raw_image_format[i]) == 0 &&

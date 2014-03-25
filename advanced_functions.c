@@ -357,7 +357,9 @@ int copy_a_file(const char* file_in, const char* file_out) {
     }
 
     // this will chmod folder to 775
-    ensure_directory(DirName(file_out));
+    char tmp[PATH_MAX];
+    sprintf(tmp, "%s", DirName(file_out));
+    ensure_directory(tmp);
     FILE *fp = fopen(file_in, "rb");
     if (fp == NULL) {
         LOGE("copy: source file not found (%s)\n", file_in);
@@ -371,11 +373,10 @@ int copy_a_file(const char* file_in, const char* file_out) {
     }
 
     // start copy
-    char buf[PATH_MAX];
     size_t size;
     // unsigned int size;
-    while ((size = fread(buf, 1, sizeof(buf), fp))) {
-        fwrite(buf, 1, size, fp_out);
+    while ((size = fread(tmp, 1, sizeof(tmp), fp))) {
+        fwrite(tmp, 1, size, fp_out);
     }
     fclose(fp);
     fclose(fp_out);
@@ -891,8 +892,10 @@ int write_config_file(const char* config_file, const char* key, const char* valu
     }
 
     char config_file_tmp[PATH_MAX];
+    char tmp[PATH_MAX];
     sprintf(config_file_tmp, "%s.tmp", config_file);
-    ensure_directory(DirName(config_file_tmp));
+    sprintf(tmp, "%s", DirName(config_file_tmp));
+    ensure_directory(tmp);
     delete_a_file(config_file_tmp);
 
     FILE *f_tmp = fopen(config_file_tmp, "wb");
@@ -1769,7 +1772,8 @@ static void regenerate_md5_sum_menu() {
     if (file == NULL)
         goto out;
 
-    char *backup_source = DirName(file);
+    char backup_source[PATH_MAX];
+    sprintf(backup_source, "%s", DirName(file));
     sprintf(tmp, "Process %s", BaseName(backup_source));
     if (confirm_selection("Regenerate md5 sum ?", tmp)) {
         ui_print("Generating md5 sum...\n");
@@ -2084,7 +2088,6 @@ void set_custom_zip_path() {
     }
 
     char custom_path2[PATH_MAX];
-    char *up_folder;
     sprintf(custom_path2, "%s", custom_path);
     vold_mount_all();
     for (;;) {
@@ -2092,7 +2095,7 @@ void set_custom_zip_path() {
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
         if (chosen_item == 0) {
-            up_folder = DirName(custom_path);
+            const char *up_folder = DirName(custom_path);
             if (strcmp(up_folder, "/") == 0 || strcmp(up_folder, ".") == 0)
                 sprintf(custom_path2, "/" );
             else
@@ -2213,7 +2216,6 @@ int show_custom_zip_menu() {
     }
 
     int chosen_item;
-    char *up_folder;
     char custom_path2[PATH_MAX];
     sprintf(custom_path2, "%s", custom_path);
     vold_mount_all();
@@ -2235,7 +2237,7 @@ int show_custom_zip_menu() {
         }
         if (chosen_item < numDirs+1 && chosen_item >= 0) {
             if (chosen_item == 0) {
-                up_folder = DirName(custom_path2);
+                const char *up_folder = DirName(custom_path2);
                 sprintf(custom_path2, "%s", up_folder);
                 if (strcmp(custom_path2, "/") != 0)
                     strcat(custom_path2, "/");
@@ -2489,7 +2491,8 @@ void show_twrp_restore_menu(const char* backup_volume) {
     }
 
     char confirm[PATH_MAX];
-    char *backup_source = DirName(file);
+    char backup_source[PATH_MAX];
+    sprintf(backup_source, "%s", DirName(file));
     ui_print("%s will be restored to selected partitions!\n", backup_source);
     sprintf(confirm, "Yes - Restore %s", BaseName(backup_source));
     if (confirm_selection("Restore from this backup ?", confirm))
@@ -2501,7 +2504,7 @@ void show_twrp_restore_menu(const char* backup_volume) {
 static void custom_restore_handler(const char* backup_volume, const char* backup_folder) {
     char backup_path[PATH_MAX];
     char tmp[PATH_MAX];
-    char *backup_source;
+    char backup_source[PATH_MAX];
     char* file = NULL;
     char* confirm_install = "Restore from this backup?";
     static const char* headers[] = {"Choose a backup to restore", NULL};
@@ -2526,7 +2529,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
         }
 
         // restore efs raw image
-        backup_source = BaseName(file);
+        sprintf(backup_source, "%s", BaseName(file));
         ui_print("%s will be flashed to /efs!\n", backup_source);
         sprintf(tmp, "Yes - Restore %s", backup_source);
         if (confirm_selection(confirm_install, tmp))
@@ -2566,7 +2569,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
         }
 
         // restore modem.bin raw image
-        backup_source = BaseName(file);
+        sprintf(backup_source, "%s", BaseName(file));
         Volume *vol = volume_for_path("/modem");
         if (vol != NULL) {
             ui_print("%s will be flashed to /modem!\n", backup_source);
@@ -2584,7 +2587,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
         }
 
         // restore radio.bin raw image
-        backup_source = BaseName(file);
+        sprintf(backup_source, "%s", BaseName(file));
         Volume *vol = volume_for_path("/radio");
         if (vol != NULL) {
             ui_print("%s will be flashed to /radio!\n", backup_source);
@@ -2602,7 +2605,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
             return;
         }
 
-        backup_source = DirName(file);
+        sprintf(backup_source, "%s", DirName(file));
         ui_print("%s will be restored to selected partitions!\n", backup_source);
         sprintf(tmp, "Yes - Restore %s", BaseName(backup_source));
         if (confirm_selection(confirm_install, tmp)) {
@@ -2776,9 +2779,11 @@ void custom_restore_menu(const char* backup_volume) {
         else ui_format_gui_menu(item_data, "Restore data", "( )");
         list[LIST_ITEM_DATA] = item_data;
 
+        char dirtmp[PATH_MAX];
         set_android_secure_path(tmp);
+        sprintf(dirtmp, "%s", DirName(tmp));
         if (backup_data && android_secure_ext)
-            ui_format_gui_menu(item_andsec, "Restore and-sec", DirName(tmp));
+            ui_format_gui_menu(item_andsec, "Restore and-sec", dirtmp);
         else ui_format_gui_menu(item_andsec, "Restore and-sec", "( )");
         list[LIST_ITEM_ANDSEC] = item_andsec;
 
@@ -3036,9 +3041,11 @@ void custom_backup_menu(const char* backup_volume)
         else ui_format_gui_menu(item_data, "Backup data", "( )");
         list[LIST_ITEM_DATA] = item_data;
 
+        char dirtmp[PATH_MAX];
         set_android_secure_path(tmp);
+        sprintf(dirtmp, "%s", DirName(tmp));
         if (backup_data && android_secure_ext)
-            ui_format_gui_menu(item_andsec, "Backup and-sec", DirName(tmp));
+            ui_format_gui_menu(item_andsec, "Backup and-sec", dirtmp);
         else ui_format_gui_menu(item_andsec, "Backup and-sec", "( )");
         list[LIST_ITEM_ANDSEC] = item_andsec;
 
