@@ -297,6 +297,42 @@ char* DirName(const char* path) {
     return (ret < 0) ? NULL : bname;
 }
 
+// thread safe dirname (free by caller)
+char* t_DirName(const char* path) {
+    int ret;
+    char* bname = (char *)malloc(PATH_MAX);
+    if (bname == NULL) {
+        LOGE("t_DirName: memory error\n");
+        return NULL;
+    }
+
+    ret = DirName_r(path, bname, PATH_MAX);
+    if (ret < 0) {
+        LOGE("t_DirName: error\n");
+        return NULL;
+    }
+    
+    return bname;
+}
+
+// thread safe basename (free by caller)
+char* t_BaseName(const char* path) {
+    int ret;
+    char* bname = (char *)malloc(PATH_MAX);
+    if (bname == NULL) {
+        LOGE("t_BaseName: memory error\n");
+        return NULL;
+    }
+
+    ret = BaseName_r(path, bname, PATH_MAX);
+    if (ret < 0) {
+        LOGE("t_BaseName: error\n");
+        return NULL;
+    }
+    
+    return bname;
+}
+
 // delete a file
 void delete_a_file(const char* filename) {
     ensure_path_mounted(filename);
@@ -747,7 +783,9 @@ int verify_md5digest(const char* filepath, const char* md5file) {
             strcat(md5sum, hex);
         }
 
-        sprintf(md5file2, "%s", BaseName(filepath));
+        char* b = t_BaseName(filepath);
+        sprintf(md5file2, "%s", b);
+        free(b);
         strcat(md5sum, "  ");
         strcat(md5sum, md5file2);
         strcat(md5sum, "\n");
