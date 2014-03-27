@@ -311,7 +311,7 @@ void free_string_array(char** array) {
     free(array);
 }
 
-char** gather_files(const char* directory, const char* fileExtensionOrDirectory, int* numFiles) {
+char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles) {
     char path[PATH_MAX] = "";
     DIR *dir;
     struct dirent *de;
@@ -320,7 +320,15 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
     char** files = NULL;
     int pass;
     *numFiles = 0;
-    int dirLen = strlen(directory);
+    int dirLen = strlen(basedir);
+    char directory[PATH_MAX];
+
+    // Append a trailing slash if necessary
+    strcpy(directory, basedir);
+    if (directory[dirLen - 1] != '/') {
+        strcat(directory, "/");
+        ++dirLen;
+    }
 
     dir = opendir(directory);
     if (dir == NULL) {
