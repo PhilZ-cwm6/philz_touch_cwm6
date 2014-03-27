@@ -728,6 +728,14 @@ else ifeq ($(TARGET_PRODUCT), cm_mint)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight_1/brightness"
 
+#Sony Xperia ZL (odin)
+else ifeq ($(TARGET_PRODUCT), cm_odin)
+    TARGET_COMMON_NAME := Xperia ZL
+    KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lm3533-lcd-bl-1/brightness"
+
 #ZTE Warp Sequent - N861 (warp2)
 else ifeq ($(TARGET_PRODUCT), cm_warp2)
     TARGET_COMMON_NAME := ZTE Warp Sequent - N861
