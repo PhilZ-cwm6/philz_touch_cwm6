@@ -84,17 +84,21 @@ int get_filtered_menu_selection(const char** headers, char** items, int menu_onl
     return ret;
 }
 
-void write_string_to_file(const char* filename, const char* string) {
-    ensure_path_mounted(filename);
+int write_string_to_file(const char* filename, const char* string) {
     char tmp[PATH_MAX];
+    int ret = -1;
+
+    ensure_path_mounted(filename);
     sprintf(tmp, "mkdir -p $(dirname %s)", filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
     if (file != NULL) {
-        fprintf(file, "%s", string);
+        ret = fprintf(file, "%s", string);
         fclose(file);
     } else
         LOGE("Cannot write to %s\n", filename);
+
+    return ret;
 }
 
 void write_recovery_version() {

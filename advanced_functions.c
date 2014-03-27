@@ -707,22 +707,22 @@ char* read_file_to_buffer(const char* filepath, unsigned long *len) {
 /*    bigbiff/Dees_Troy TeamWin   */
 /**********************************/
 static int cancel_md5digest = 0;
-unsigned char md5sum_array[MD5LENGTH];
-
-static int computeMD5(const char* filepath) {
+static int computeMD5(const char* filepath, char *md5sum) {
     struct MD5Context md5c;
+    unsigned char md5sum_array[MD5LENGTH];
     unsigned char buf[1024];
+    char hex[3];
     unsigned long size_total;
     unsigned long size_progress;
     unsigned len;
-    FILE *file;
+    int i;
 
     if (!file_found(filepath)) {
         LOGE("computeMD5: '%s' not found\n", filepath);
         return -1;
     }
 
-    file = fopen(filepath, "rb");
+    FILE *file = fopen(filepath, "rb");
     if (file == NULL) {
         LOGE("computeMD5: can't open %s\n", filepath);
         return -1;
@@ -730,8 +730,6 @@ static int computeMD5(const char* filepath) {
 
     size_total = Get_File_Size(filepath);
     size_progress = 0;
-    ui_reset_progress();
-    ui_show_progress(1, 0);
     is_time_interval_passed(0);
     cancel_md5digest = 0;
     MD5Init(&md5c);
@@ -742,28 +740,42 @@ static int computeMD5(const char* filepath) {
             ui_set_progress((float)size_progress / (float)size_total);
     }
 
-    ui_reset_progress();
-    fclose(file);
-    if (!cancel_md5digest)
+    if (!cancel_md5digest) {
         MD5Final(md5sum_array ,&md5c);
+        strcpy(md5sum, "");
+        for (i = 0; i < 16; ++i) {
+            snprintf(hex, 3 ,"%02x", md5sum_array[i]);
+            strcat(md5sum, hex);
+        }
+    }
+
+    fclose(file);
     return cancel_md5digest;
 }
 
-int write_md5digest(const char* md5file) {
-    int i;
-    char hex[3];
-    char md5sum[PATH_MAX] = "";
+int write_md5digest(const char* filepath, const char* md5file, int append) {
+    int ret;
+    char md5sum[PATH_MAX];
 
-    for (i = 0; i < 16; ++i) {
-        snprintf(hex, 3 ,"%02x", md5sum_array[i]);
-        strcat(md5sum, hex);
+    ret = computeMD5(filepath, md5sum);
+    if (ret != 0)
+        return ret;
+
+    if (md5file == NULL) {
+        ui_print("%s\n", md5sum);
+    } else {
+        char* b = t_BaseName(filepath);
+        strcat(md5sum, "  ");
+        strcat(md5sum, b);
+        strcat(md5sum, "\n");
+        free(b);
+        if (append)
+            ret = append_string_to_file(md5file, md5sum);
+        else
+            ret = write_string_to_file(md5file, md5sum);
     }
 
-    if (md5file == NULL)
-        ui_print("%s\n", md5sum);
-    else
-        write_string_to_file(md5file, md5sum);
-    return 0;
+    return ret;
 }
 
 int verify_md5digest(const char* filepath, const char* md5file) {
@@ -781,28 +793,20 @@ int verify_md5digest(const char* filepath, const char* md5file) {
         sprintf(md5file2, "%s.md5", filepath);
     }
 
-    // read md5 sum from md5file
+    // read md5 sum from md5file2
     unsigned long len = 0;
     char* md5read = read_file_to_buffer(md5file2, &len);
     if (md5read == NULL)
         return ret;
     md5read[len] = '\0';
 
-    int i;
-    char hex[3];
-    char md5sum[PATH_MAX] = "";
-    if (0 == (ret = computeMD5(filepath))) {
-        for (i = 0; i < 16; ++i) {
-            snprintf(hex, 3 ,"%02x", md5sum_array[i]);
-            strcat(md5sum, hex);
-        }
-
+    char md5sum[PATH_MAX];
+    if (0 == (ret = computeMD5(filepath, md5sum))) {
         char* b = t_BaseName(filepath);
-        sprintf(md5file2, "%s", b);
-        free(b);
         strcat(md5sum, "  ");
-        strcat(md5sum, md5file2);
+        strcat(md5sum, b);
         strcat(md5sum, "\n");
+        free(b);
         if (strcmp(md5read, md5sum) != 0) {
             LOGE("MD5 calc: %s\n", md5sum);
             LOGE("Expected: %s\n", md5read);
@@ -818,10 +822,11 @@ pthread_t tmd5_display;
 pthread_t tmd5_verify;
 static void *md5_display_thread(void *arg) {
     char filepath[PATH_MAX];
+    ui_reset_progress();
+    ui_show_progress(1, 0);
     sprintf(filepath, "%s", (char*)arg);
-    if (computeMD5(filepath) == 0)
-        write_md5digest(NULL);
-
+    write_md5digest(filepath, NULL, 0);
+    ui_reset_progress();
     return NULL;
 }
 
@@ -830,7 +835,11 @@ static void *md5_verify_thread(void *arg) {
     char filepath[PATH_MAX];
 
     sprintf(filepath, "%s", (char*)arg);
+    ui_reset_progress();
+    ui_show_progress(1, 0);
     ret = verify_md5digest(filepath, NULL);
+    ui_reset_progress();
+
     if (ret < 0) {
 #ifdef PHILZ_TOUCH_RECOVERY
         ui_print_preset_colors(1, "red");
