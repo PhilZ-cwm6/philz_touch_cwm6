@@ -563,18 +563,20 @@ void show_nandroid_delete_menu(const char* volume_path) {
     }
 
     static const char* headers[] = { "Choose a backup to delete", NULL };
+    char path[PATH_MAX];
     char tmp[PATH_MAX];
+    char* file;
 
     if (twrp_backup_mode.value) {
         char device_id[PROPERTY_VALUE_MAX];
         get_device_id(device_id);
-        sprintf(tmp, "%s/%s/%s", volume_path, TWRP_BACKUP_PATH, device_id);
+        sprintf(path, "%s/%s/%s", volume_path, TWRP_BACKUP_PATH, device_id);
     } else {
-        sprintf(tmp, "%s/%s", volume_path, CWM_BACKUP_PATH);    
+        sprintf(path, "%s/%s", volume_path, CWM_BACKUP_PATH);    
     }
 
     for(;;) {
-        char* file = choose_file_menu(tmp, NULL, headers);
+        file = choose_file_menu(path, NULL, headers);
         if (file == NULL)
             return;
 
