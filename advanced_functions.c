@@ -419,6 +419,24 @@ int copy_a_file(const char* file_in, const char* file_out) {
     return 0;
 }
 
+// append a string to text file, create the directories and file if it doesn't exist
+int append_string_to_file(const char* filename, const char* string) {
+    char tmp[PATH_MAX];
+    int ret = -1;
+
+    ensure_path_mounted(filename);
+    mkdir(DirName(filename), S_IRWXU | S_IRWXG | S_IRWXO);
+
+    FILE *file = fopen(filename, "a");
+    if (file != NULL) {
+        ret = fprintf(file, "%s", string);
+        fclose(file);
+    } else
+        LOGE("Cannot append to %s\n", filename);
+
+    return ret;
+}
+
 // get file size (by Dees_Troy - TWRP)
 unsigned long Get_File_Size(const char* Path) {
     struct stat st;
