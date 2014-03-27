@@ -549,8 +549,7 @@ int Find_Partition_Size(const char* Path) {
 */
     fp = fopen("/proc/dumchar_info", "rt");
     if (fp != NULL) {
-        while (fgets(line, sizeof(line), fp) != NULL)
-        {
+        while (fgets(line, sizeof(line), fp) != NULL) {
             char label[32], device[32];
             unsigned long size = 0;
 
@@ -594,8 +593,7 @@ int Find_Partition_Size(const char* Path) {
     if (fp != NULL) {
         // try to read blk_device link target for devices not using /dev/block/xxx in recovery.fstab
         char* mmcblk_from_link = readlink_device_blk(Path);
-        while (fgets(line, sizeof(line), fp) != NULL)
-        {
+        while (fgets(line, sizeof(line), fp) != NULL) {
             unsigned long major, minor, blocks;
             char device[512];
 
@@ -610,12 +608,10 @@ int Find_Partition_Size(const char* Path) {
                 Total_Size = blocks * 1024ULL;
                 //LOGI("%s(%s)=%llu\n", Path, volume->blk_device, Total_Size); // debug
                 ret = 0;
-            }
-            else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
+            } else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
                 Total_Size = blocks * 1024ULL;
                 ret = 0;
-            }
-            else if (mmcblk_from_link != NULL && strcmp(tmpdevice, mmcblk_from_link) == 0) {
+            } else if (mmcblk_from_link != NULL && strcmp(tmpdevice, mmcblk_from_link) == 0) {
                 // get size from blk_device symlink to /dev/block/xxx
                 free(mmcblk_from_link);
                 Total_Size = blocks * 1024ULL;
@@ -3395,8 +3391,7 @@ void get_device_id(char *device_id) {
 
     // Try the cmdline to see if the serial number was supplied
     fp = fopen("/proc/cmdline", "rt");
-    if (fp != NULL)
-    {
+    if (fp != NULL) {
         // First step, read the line. For cmdline, it's one long line
         LOGI("Checking cmdline for serialno...\n");
         fgets(line, sizeof(line), fp);
@@ -3408,11 +3403,9 @@ void get_device_id(char *device_id) {
             token[PROPERTY_VALUE_MAX] = 0;
 
         // Let's walk through the line, looking for the CMDLINE_SERIALNO token
-        while (token)
-        {
+        while (token) {
             // We don't need to verify the length of token, because if it's too short, it will mismatch CMDLINE_SERIALNO at the NULL
-            if (memcmp(token, CMDLINE_SERIALNO, CMDLINE_SERIALNO_LEN) == 0)
-            {
+            if (memcmp(token, CMDLINE_SERIALNO, CMDLINE_SERIALNO_LEN) == 0) {
                 // We found the serial number!
                 strcpy(device_id, token + CMDLINE_SERIALNO_LEN);
                 sanitize_device_id(device_id);
@@ -3425,18 +3418,23 @@ void get_device_id(char *device_id) {
 
     // Now we'll try cpuinfo for a serial number (we shouldn't reach here as it gives wired output)
     fp = fopen("/proc/cpuinfo", "rt");
-    if (fp != NULL)
-    {
+    if (fp != NULL) {
         LOGI("Checking cpuinfo...\n");
-        while (fgets(line, sizeof(line), fp) != NULL) { // First step, read the line.
-            if (memcmp(line, CPUINFO_SERIALNO, CPUINFO_SERIALNO_LEN) == 0)  // check the beginning of the line for "Serial"
-            {
+        // First step, read the line.
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            if (memcmp(line, CPUINFO_SERIALNO, CPUINFO_SERIALNO_LEN) == 0) {
+                // check the beginning of the line for "Serial"
                 // We found the serial number!
                 token = line + CPUINFO_SERIALNO_LEN; // skip past "Serial"
-                while ((*token > 0 && *token <= 32 ) || *token == ':') token++; // skip over all spaces and the colon
+                while ((*token > 0 && *token <= 32 ) || *token == ':') {
+                    // skip over all spaces and the colon
+                    token++;
+                }
+
                 if (*token != 0) {
                     token[30] = 0;
-                    if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
+                    if (token[strlen(token)-1] == 10) {
+                        // checking for endline chars and dropping them from the end of the string if needed
                         char tmp[PROPERTY_VALUE_MAX];
                         memset(tmp, 0, sizeof(tmp));
                         strncpy(tmp, token, strlen(token) - 1);
@@ -3453,7 +3451,11 @@ void get_device_id(char *device_id) {
                 // We're also going to look for the hardware line in cpuinfo and save it for later in case we don't find the device ID
                 // We found the hardware ID
                 token = line + CPUINFO_HARDWARE_LEN; // skip past "Hardware"
-                while ((*token > 0 && *token <= 32 ) || *token == ':')  token++; // skip over all spaces and the colon
+                while ((*token > 0 && *token <= 32 ) || *token == ':') {
+                    // skip over all spaces and the colon
+                    token++;
+                }
+
                 if (*token != 0) {
                     token[30] = 0;
                     if (token[strlen(token)-1] == 10) { // checking for endline chars and dropping them from the end of the string if needed
