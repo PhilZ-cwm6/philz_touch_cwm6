@@ -1066,3 +1066,126 @@ int nandroid_restore_datamedia(const char* backup_path) {
     ui_print("Restore of /data/media completed.\n");
     return 0;
 }
+
+int gen_nandroid_md5sum(const char* backup_path) {
+    char md5file[PATH_MAX];
+    int ret = -1;
+    int numFiles = 0;
+
+    ui_print("\n>> Generating md5 sum...\n");
+    ensure_path_mounted(backup_path);
+    ui_reset_progress();
+    ui_show_progress(1, 0);
+
+    // this will exclude subfolders!
+    char** files = gather_files(backup_path, "", &numFiles);
+    if (numFiles == 0) {
+        LOGE("No files found in backup path %s\n", backup_path);
+        goto out;
+    }
+
+    // create empty md5file, overwrite existing one if we're regenerating the md5 for the backup
+    sprintf(md5file, "%s/nandroid.md5", backup_path);
+    write_string_to_file(md5file, "");
+
+    int i = 0;
+    for(i = 0; i < numFiles; i++) {
+        // exclude md5 and log files
+        if (strcmp(BaseName(files[i]), "nandroid.md5") == 0 || strcmp(BaseName(files[i]), "recovery.log") == 0)
+            continue;
+        ui_print("  > %s\n", BaseName(files[i]));
+        if (write_md5digest(files[i], md5file, 1) < 0)
+            goto out;
+    }
+
+    ret = 0;
+
+out:
+    ui_reset_progress();
+    free_string_array(files);
+    if (ret != 0)
+        LOGE("Error while generating md5 sum!\n");
+
+    return ret;
+}
+
+int verify_nandroid_md5sum(const char* backup_path) {
+    char* backupfile;
+    char line[PATH_MAX];
+    char md5file[PATH_MAX];
+
+    ui_print("\n>> Checking MD5 sums...\n");
+    ensure_path_mounted(backup_path);
+    sprintf(md5file, "%s/nandroid.md5", backup_path);
+    FILE *fp = fopen(md5file, "r");
+    if (fp == NULL) {
+        LOGE("cannot open md5file\n");
+        return -1;
+    }
+
+    // unlike original cwm, an empty md5 file will fail check
+    // also, if a file doesn't have and md5sum entry, it will fail
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        backupfile = strstr(line, "  ");
+        // skip empty new lines, but non other bad formatted lines
+        if (backupfile == NULL && strcmp(line, "\n") != 0) {
+            fclose(fp);
+            return -1;
+        }
+
+        // mis-formatted line (backupfile must be at least one char as it includes the two spaces)
+        if (strlen(backupfile) < 3 || strcmp(backupfile, "  \n") == 0) {
+            fclose(fp);
+            return -1;
+        }
+
+        // save the line before we modify it
+        char *md5sum = strdup(line);
+        if (md5sum == NULL) {
+            LOGE("memory error\n");
+            fclose(fp);
+            return -1;
+        }
+
+        // remove leading two spaces and end new line
+        backupfile += 2; // 2 == strlen("  ")
+        if (strcmp(backupfile + strlen(backupfile) - 1, "\n") == 0)
+            backupfile[strlen(backupfile) - 1] = '\0';
+
+        // create a temporary md5file for each backup file
+        sprintf(md5file, "/tmp/%s.md5", backupfile);
+        write_string_to_file(md5file, md5sum);
+        free(md5sum);
+    }
+
+    fclose(fp);
+
+    // verify backup integrity for each backupfile to the md5sum we saved in temporary md5file
+    int i = 0;
+    int numFiles = 0;
+    char** files = gather_files(backup_path, "", &numFiles);
+    if (numFiles == 0) {
+        free_string_array(files);
+        return -1;
+    }
+
+    ui_reset_progress();
+    ui_show_progress(1, 0);
+    for(i = 0; i < numFiles; i++) {
+        // exclude md5 and log files
+        if (strcmp(BaseName(files[i]), "nandroid.md5") == 0 || strcmp(BaseName(files[i]), "recovery.log") == 0)
+            continue;
+        sprintf(md5file, "/tmp/%s.md5", BaseName(files[i]));
+        ui_print("  > %s\n", BaseName(files[i]));
+        if (verify_md5digest(files[i], md5file) != 0) {
+            free_string_array(files);
+            ui_reset_progress();
+            return -1;
+        }
+        delete_a_file(md5file);
+    }
+
+    ui_reset_progress();
+    free_string_array(files);
+    return 0;
+}

@@ -1825,7 +1825,7 @@ static void regenerate_md5_sum_menu() {
         goto out;
 
     // select backup set and regenerate md5 sum
-    sprintf(tmp, "%s/clockworkmod/backup/", list[chosen_item] + strlen(list_prefix));
+    sprintf(tmp, "%s/%s/", list[chosen_item] + strlen(list_prefix), CWM_BACKUP_PATH);
     if (ensure_path_mounted(tmp) != 0)
         goto out;
 
@@ -1837,12 +1837,8 @@ static void regenerate_md5_sum_menu() {
     sprintf(backup_source, "%s", DirName(file));
     sprintf(tmp, "Process %s", BaseName(backup_source));
     if (confirm_selection("Regenerate md5 sum ?", tmp)) {
-        ui_print("Generating md5 sum...\n");
-        // to do (optional): remove recovery.log from md5 sum, but no real need to extra code for this!
-        sprintf(tmp, "rm -f '%s/nandroid.md5'; nandroid-md5.sh %s", backup_source, backup_source);
-        if (0 != __system(tmp))
-            ui_print("Error while generating md5 sum!\n");
-        else ui_print("Done generating md5 sum.\n");
+        if (0 == gen_nandroid_md5sum(backup_source))
+            ui_print("Done generating md5 sum.\n");
     }
 
     free(file);
@@ -3270,62 +3266,75 @@ void custom_backup_menu(const char* backup_volume)
 /*         (dees_troy at yahoo)          */
 /*****************************************/
 int check_twrp_md5sum(const char* backup_path) {
-    char tmp[PATH_MAX];
+    char md5file[PATH_MAX];
+    char** files;
     int numFiles = 0;
-    ensure_path_mounted(backup_path);
-    strcpy(tmp, backup_path);
-    if (strcmp(tmp + strlen(tmp) - 1, "/") != 0)
-        strcat(tmp, "/");
 
     ui_print("\n>> Checking MD5 sums...\n");
-    char** files = gather_files(tmp, ".md5", &numFiles);
+    ensure_path_mounted(backup_path);
+    files = gather_files(backup_path, "", &numFiles);
     if (numFiles == 0) {
-        ui_print("No md5 checksum files found in %s\n", tmp);
+        LOGE("No files found in %s\n", backup_path);
         free_string_array(files);
         return -1;
     }
 
     int i = 0;
-    for(i=0; i < numFiles; i++) {
-        sprintf(tmp, "cd '%s' && md5sum -c '%s'", backup_path, BaseName(files[i]));
-        if (0 != __system(tmp)) {
-            ui_print("md5sum error in %s!\n", BaseName(files[i]));
+    ui_reset_progress();
+    ui_show_progress(1, 0);
+    for(i = 0; i < numFiles; i++) {
+        // exclude md5 files
+        char *str = strstr(files[i], ".md5");
+        if (str != NULL && strcmp(str, ".md5") == 0)
+            continue;
+
+        ui_print("   - %s\n", BaseName(files[i]));
+        sprintf(md5file, "%s.md5", files[i]);
+        if (verify_md5digest(files[i], md5file) != 0) {
+            LOGE("md5sum error!\n");
+            ui_reset_progress();
             free_string_array(files);
             return -1;
         }
     }
 
     ui_print("MD5 sum ok.\n");
+    ui_reset_progress();
     free_string_array(files);
     return 0;
 }
 
 int gen_twrp_md5sum(const char* backup_path) {
-    char tmp[PATH_MAX];
+    char md5file[PATH_MAX];
     int numFiles = 0;
 
     ui_print("\n>> Generating md5 sum...\n");
     ensure_path_mounted(backup_path);
-    sprintf(tmp, "%s/", backup_path);
+
     // this will exclude subfolders!
-    char** files = gather_files(tmp, "", &numFiles);
+    char** files = gather_files(backup_path, "", &numFiles);
     if (numFiles == 0) {
-        ui_print("No files found in backup path %s\n", tmp);
+        LOGE("No files found in backup path %s\n", backup_path);
         free_string_array(files);
         return -1;
     }
 
     int i = 0;
-    for(i=0; i < numFiles; i++) {
-        sprintf(tmp, "cd '%s'; md5sum '%s' > '%s.md5'", backup_path, BaseName(files[i]), BaseName(files[i]));
-        if (0 != __system(tmp)) {
-            ui_print("Error while generating md5 sum for %s!\n", files[i]);
+    ui_reset_progress();
+    ui_show_progress(1, 0);
+    for(i = 0; i < numFiles; i++) {
+        ui_print("   - %s\n", BaseName(files[i]));
+        sprintf(md5file, "%s.md5", files[i]);
+        if (write_md5digest(files[i], md5file, 0) < 0) {
+            LOGE("Error while generating md5sum!\n");
+            ui_reset_progress();
             free_string_array(files);
             return -1;
         }
     }
 
     ui_print("MD5 sum created.\n");
+    ui_reset_progress();
     free_string_array(files);
     return 0;
 }
@@ -3356,7 +3365,6 @@ static void sanitize_device_id(char *device_id) {
 #define CPUINFO_HARDWARE_LEN    (strlen(CPUINFO_HARDWARE))
 
 void get_device_id(char *device_id) {
-
 #ifdef TW_USE_MODEL_HARDWARE_ID_FOR_DEVICE_ID
     // Now we'll use product_model_hardwareid as device id
     char model_id[PROPERTY_VALUE_MAX];
