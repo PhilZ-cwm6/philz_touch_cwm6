@@ -78,4 +78,3 @@ int touch_handle_key(int key_code, int visible);
 #endif
 
 #endif // __UI_H
-
