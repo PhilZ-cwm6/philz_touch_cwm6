@@ -87,6 +87,26 @@ else ifeq ($(TARGET_PRODUCT), cm_codinalte)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy X Cover 2 - skomer
+else ifeq ($(TARGET_PRODUCT), cm_skomer)
+    TARGET_COMMON_NAME := GT-S7710
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy S3 Mini - golden
+else ifeq ($(TARGET_PRODUCT), cm_golden)
+    TARGET_COMMON_NAME := GT-I8190
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy Grand Duos (i9082)
 else ifeq ($(TARGET_PRODUCT), cm_i9082)
     TARGET_COMMON_NAME := Galaxy i9082
