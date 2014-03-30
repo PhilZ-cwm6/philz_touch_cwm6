@@ -57,6 +57,9 @@ char* read_file_to_buffer(const char* filepath, unsigned long *len);
 char* BaseName(const char* path);
 char* DirName(const char* path);
 
+// case insensitive C-string compare (adapted from titanic-fanatic)
+int strcmpi(const char *str1, const char *str2);
+
 // calculate md5sum when installing zip files from menu
 void start_md5_display_thread(char* filepath);
 void stop_md5_display_thread();

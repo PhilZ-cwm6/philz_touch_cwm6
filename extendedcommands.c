@@ -411,7 +411,7 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
             int curMax = -1;
             int j;
             for (j = 0; j < total - i; j++) {
-                if (curMax == -1 || strcmp(files[curMax], files[j]) < 0)
+                if (curMax == -1 || strcmpi(files[curMax], files[j]) < 0)
                     curMax = j;
             }
             char* temp = files[curMax];

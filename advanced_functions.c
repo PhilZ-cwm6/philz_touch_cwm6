@@ -333,6 +333,19 @@ char* t_BaseName(const char* path) {
     return bname;
 }
 
+// case insensitive C-string compare (adapted from titanic-fanatic)
+int strcmpi(const char *str1, const char *str2) {
+    int i = 0;
+    int ret = 0;
+
+    while (ret == 0 && str1[i] && str2[i]) {
+        ret = tolower(str1[i]) - tolower(str2[i]);
+        ++i;
+    }
+
+    return ret;
+}
+
 // delete a file
 void delete_a_file(const char* filename) {
     ensure_path_mounted(filename);
