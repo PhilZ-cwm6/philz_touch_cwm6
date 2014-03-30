@@ -732,6 +732,14 @@ else ifeq ($(TARGET_PRODUCT), cm_togari)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
 
+#Sony Xperia S (nozomi)
+else ifeq ($(TARGET_PRODUCT), cm_nozomi)
+    TARGET_COMMON_NAME := Xperia S
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Sony Xperia SP (huashan)
 else ifeq ($(TARGET_PRODUCT), cm_huashan)
     TARGET_COMMON_NAME := Xperia SP
