@@ -139,6 +139,26 @@ else ifeq ($(TARGET_PRODUCT), cm_ariesve)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy S Advance - janice
+else ifeq ($(TARGET_PRODUCT), cm_janice)
+    TARGET_COMMON_NAME := GT-I9070
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy Ace 2 - codina
+else ifeq ($(TARGET_PRODUCT), cm_codina)
+    TARGET_COMMON_NAME := GT-I8160
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy W I8150 (ancora)
 else ifeq ($(TARGET_PRODUCT), cm_ancora)
     TARGET_COMMON_NAME := Galaxy W I8150
