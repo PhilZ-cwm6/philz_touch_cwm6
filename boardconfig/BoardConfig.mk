@@ -700,6 +700,13 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
+#Motorola - unified moto_msm8960 (mb886, xt925, xt926)
+else ifeq ($(TARGET_PRODUCT), moto_msm8960)
+    TARGET_COMMON_NAME := Droid msm8960
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
+
 #Motorola Moto X: TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1053 cm_xt1055 cm_xt1056 cm_xt1058 cm_xt1060),)
     TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
