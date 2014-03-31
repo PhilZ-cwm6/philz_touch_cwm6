@@ -312,7 +312,6 @@ void free_string_array(char** array) {
 }
 
 char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles) {
-    char path[PATH_MAX] = "";
     DIR *dir;
     struct dirent *de;
     int total = 0;
@@ -340,7 +339,6 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
     if (fileExtensionOrDirectory != NULL)
         extension_length = strlen(fileExtensionOrDirectory);
 
-    int isCounting = 1;
     i = 0;
     for (pass = 0; pass < 2; pass++) {
         while ((de = readdir(dir)) != NULL) {
@@ -413,7 +411,7 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
             int curMax = -1;
             int j;
             for (j = 0; j < total - i; j++) {
-                if (curMax == -1 || strcmp(files[curMax], files[j]) < 0)
+                if (curMax == -1 || strcmpi(files[curMax], files[j]) < 0)
                     curMax = j;
             }
             char* temp = files[curMax];
