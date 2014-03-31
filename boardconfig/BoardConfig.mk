@@ -421,8 +421,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_melius3gxx),)
     BRIGHTNESS_SYS_FILE := "/sys/class/lcd/panel/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Samsung Galaxy Tab 3 7.0: SM-T210 WiFi (lt02wifi)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi),)
+#Samsung Galaxy Tab 3 7.0: SM-T210 (lt02wifi), SM-T211 (lt023g)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_lt02wifi cm_lt023g),)
     TARGET_COMMON_NAME := Galaxy Tab 3 7.0 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
