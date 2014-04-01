@@ -701,7 +701,7 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
 #Motorola - unified moto_msm8960 (mb886, xt925, xt926)
-else ifeq ($(TARGET_PRODUCT), moto_msm8960)
+else ifeq ($(TARGET_PRODUCT), cm_moto_msm8960)
     TARGET_COMMON_NAME := Droid msm8960
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
