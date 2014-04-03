@@ -612,6 +612,14 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#HTC One M8 (m8)
+else ifeq ($(TARGET_PRODUCT), cm_m8)
+    TARGET_COMMON_NAME := HTC One M8
+    KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Huawei Acsend P1 U9200 - viva (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_viva)
     TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
