@@ -358,6 +358,16 @@ else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Note 10.1 2014 Wifi (lt03wifi)
+else ifeq ($(TARGET_PRODUCT), cm_lt03wifi)
+    TARGET_COMMON_NAME := Note 10.1 2014 Wifi
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1600
+    TARGET_SCREEN_WIDTH := 2560
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy S4 Exynos - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
     TARGET_COMMON_NAME := i9500
@@ -386,6 +396,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx cm_serrano
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 960
     TARGET_SCREEN_WIDTH := 540
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy S5 i9605 Qualcomm variants (klte): kltecan kltespr kltetmo kltevzw kltexx
+else ifeq ($(TARGET_PRODUCT), cm_klte)
+    TARGET_COMMON_NAME := Galaxy S5 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
@@ -613,8 +633,8 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One M8 (m8)
-else ifeq ($(TARGET_PRODUCT), cm_m8)
-    TARGET_COMMON_NAME := HTC One M8
+else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8att),)
+    TARGET_COMMON_NAME := HTC One M8 ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
