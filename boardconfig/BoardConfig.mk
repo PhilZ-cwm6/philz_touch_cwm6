@@ -379,9 +379,9 @@ else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy Note 10.1 2014 Wifi (lt03wifi)
-else ifeq ($(TARGET_PRODUCT), cm_lt03wifi)
-    TARGET_COMMON_NAME := Note 10.1 2014 Wifi
+#Galaxy Note 10.1 2014 Wifi (lt03wifi), 3G (lt03wifiue)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_lt03wifi cm_lt03wifiue),)
+    TARGET_COMMON_NAME := Note 10.1 2014 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1600
