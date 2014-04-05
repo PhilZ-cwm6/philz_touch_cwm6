@@ -857,6 +857,35 @@ else ifeq ($(TARGET_PRODUCT), cm_nex)
     TARGET_SCREEN_WIDTH := 480
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Galaxy Core Duos - i8262
+else ifeq ($(TARGET_PRODUCT), cm_i8262)
+    TARGET_COMMON_NAME := Galaxy i8262
+    BOARD_UMS_LUNFILE := "/sys/class/android_usb/android0/f_mass_storage/lun/file"
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#LG Optimus L7 P700 (p700)
+else ifeq ($(TARGET_PRODUCT), cm_p700)
+    TARGET_COMMON_NAME := Optimus L7 P700
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Galaxy Grand Quatro (i8552)
+else ifeq ($(TARGET_PRODUCT), cm_delos3geur)
+    TARGET_COMMON_NAME := Galaxy i8552
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+    
 endif
 #---- end device specific config
 
@@ -875,4 +904,3 @@ LOCAL_CFLAGS += -DTARGET_COMMON_NAME="$(TARGET_COMMON_NAME)"
 ifndef BATTERY_LEVEL_PATH
     BATTERY_LEVEL_PATH := "/sys/class/power_supply/battery/capacity"
 endif
-
