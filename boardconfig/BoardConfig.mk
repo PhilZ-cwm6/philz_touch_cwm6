@@ -180,6 +180,27 @@ else ifeq ($(TARGET_PRODUCT), cm_t769)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Core Duos - i8262
+else ifeq ($(TARGET_PRODUCT), cm_i8262)
+    TARGET_COMMON_NAME := Galaxy i8262
+    BOARD_UMS_LUNFILE := "/sys/class/android_usb/android0/f_mass_storage/lun/file"
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy Grand Quatro (i8552)
+else ifeq ($(TARGET_PRODUCT), cm_delos3geur)
+    TARGET_COMMON_NAME := Galaxy i8552
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+    
 #Galaxy S2 International - i9100
 else ifeq ($(TARGET_PRODUCT), cm_i9100)
     TARGET_COMMON_NAME := i9100
@@ -697,6 +718,14 @@ else ifeq ($(TARGET_PRODUCT), cm_p880)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#LG Optimus L7 P700 (p700)
+else ifeq ($(TARGET_PRODUCT), cm_p700)
+    TARGET_COMMON_NAME := Optimus L7 P700
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Micromax A57 - a57 (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_a57)
     TARGET_COMMON_NAME := Micromax_A57
@@ -857,35 +886,6 @@ else ifeq ($(TARGET_PRODUCT), cm_nex)
     TARGET_SCREEN_WIDTH := 480
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#Galaxy Core Duos - i8262
-else ifeq ($(TARGET_PRODUCT), cm_i8262)
-    TARGET_COMMON_NAME := Galaxy i8262
-    BOARD_UMS_LUNFILE := "/sys/class/android_usb/android0/f_mass_storage/lun/file"
-    BOOTLOADER_CMD_ARG := "download"
-    TARGET_SCREEN_HEIGHT := 800
-    TARGET_SCREEN_WIDTH := 480
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_B_SLOT_PROTOCOL := true
-
-#LG Optimus L7 P700 (p700)
-else ifeq ($(TARGET_PRODUCT), cm_p700)
-    TARGET_COMMON_NAME := Optimus L7 P700
-    TARGET_SCREEN_HEIGHT := 800
-    TARGET_SCREEN_WIDTH := 480
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-
-#Galaxy Grand Quatro (i8552)
-else ifeq ($(TARGET_PRODUCT), cm_delos3geur)
-    TARGET_COMMON_NAME := Galaxy i8552
-    BOOTLOADER_CMD_ARG := "download"
-    TARGET_SCREEN_HEIGHT := 800
-    TARGET_SCREEN_WIDTH := 480
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-    BOARD_USE_B_SLOT_PROTOCOL := true
-    
 endif
 #---- end device specific config
 
