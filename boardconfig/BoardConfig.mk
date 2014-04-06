@@ -715,6 +715,14 @@ else ifeq ($(TARGET_PRODUCT), cm_p700)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#LG Optimus L7 P705 (p705)
+else ifeq ($(TARGET_PRODUCT), cm_p705)
+    TARGET_COMMON_NAME := Optimus L7 P705
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Micromax A57 - a57 (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_a57)
     TARGET_COMMON_NAME := Micromax_A57
