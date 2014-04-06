@@ -362,7 +362,7 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_n8000 cm_n8013 cm_n8020),)
 
 #Galaxy Note 10.1 2014 LTE (lt03ltexx)
 else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
-    TARGET_COMMON_NAME := Note 10.1 2014 ($(TARGET_PRODUCT))
+    TARGET_COMMON_NAME := Note 10.1 2014 LTE
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -648,6 +648,13 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8att),)
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#HTC One Mini (m4)
+else ifeq ($(TARGET_PRODUCT), cm_m4)
+    TARGET_COMMON_NAME := HTC One Mini
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Huawei Acsend P1 U9200 - viva (no cm tree)
