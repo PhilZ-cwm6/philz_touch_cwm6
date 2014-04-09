@@ -797,17 +797,17 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
                 0 == strcmp(mount_point, "/system") ||
                 0 == strcmp(mount_point, "/cache"))
     {
-        ui_print("Restoring selinux context...\n");
         name = basename(mount_point);
         sprintf(tmp, "%s/%s.context", backup_path, name);
+        ui_print("Restoring selinux context...\n");
         if ((ret = restorecon_from_file(tmp)) < 0) {
             ui_print("Restorecon from %s.context error, trying regular restorecon.\n", name);
             if ((ret = restorecon_recursive(mount_point, "/data/media/")) < 0) {
                 LOGE("Restorecon %s error!\n", mount_point);
                 return ret;
             }
+            ui_print("Restore selinux context completed.\n");
         }
-        ui_print("Restore selinux context completed.\n");
     }
 #endif
 
@@ -1177,8 +1177,8 @@ int restorecon_recursive(const char *pathname, const char *exclude)
         if (strncmp(pathname, exclude, strlen(exclude)) == 0)
             return 0;
     }
-    if (selinux_android_restorecon(pathname) < 0) {
-    //if (restorecon(pathname, &sb) < 0) {
+    //if (selinux_android_restorecon(pathname, 0) < 0) {
+    if (restorecon(pathname, &sb) < 0) {
         LOGW("restorecon: error restoring %s context\n", pathname);
         ret = 1;
     }
@@ -1207,7 +1207,7 @@ int restorecon_recursive(const char *pathname, const char *exclude)
     closedir(dir);
     return ret;
 }
-/*
+
 extern struct selabel_handle *sehandle;
 int restorecon(const char *pathname, const struct stat *sb)
 {
@@ -1240,7 +1240,7 @@ int restorecon(const char *pathname, const struct stat *sb)
     freecon(newcontext);
     return 0;
 }
-
+/*
 int restorecon_main(int argc, char **argv)
 {
     int ch, recurse = 0;

@@ -465,7 +465,7 @@ int format_volume(const char* volume) {
             ensure_path_mounted(volume);
             char tmp[PATH_MAX];
             sprintf(tmp, "%s/lost+found", volume);
-            if (selinux_android_restorecon(tmp) < 0 || selinux_android_restorecon(volume) < 0) {
+            if (selinux_android_restorecon(tmp, 0) < 0 || selinux_android_restorecon(volume, 0) < 0) {
                 LOGW("restorecon: error restoring %s context\n",volume);
                 //return -1;
             }

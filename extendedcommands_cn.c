@@ -424,11 +424,10 @@ void show_choose_zip_menu(const char *mount_point) {
     char* file = choose_file_menu(mount_point, ".zip", headers);
     if (file == NULL)
         return;
-    static char* confirm_install  = "确认要安装?";
-    static char confirm[PATH_MAX];
+    char confirm[PATH_MAX];
     sprintf(confirm, "是的,安装%s", basename(file));
 
-    if (confirm_selection(confirm_install, confirm)) {
+    if (confirm_selection("确认要安装?", confirm)) {
         install_zip(file);
         write_last_install_path(dirname(file));
     }
@@ -663,7 +662,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
             ensure_path_mounted(v->mount_point);
             char tmp[PATH_MAX];
             sprintf(tmp, "%s/lost+found", v->mount_point);
-            if (selinux_android_restorecon(tmp) < 0 || selinux_android_restorecon(v->mount_point) < 0) {
+            if (selinux_android_restorecon(tmp, 0) < 0 || selinux_android_restorecon(v->mount_point, 0) < 0) {
                 LOGW("restorecon: error restoring %s context\n",v->mount_point);
                 //return -1;
             }

@@ -662,7 +662,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
             ensure_path_mounted(v->mount_point);
             char tmp[PATH_MAX];
             sprintf(tmp, "%s/lost+found", v->mount_point);
-            if (selinux_android_restorecon(tmp) < 0 || selinux_android_restorecon(v->mount_point) < 0) {
+            if (selinux_android_restorecon(tmp, 0) < 0 || selinux_android_restorecon(v->mount_point, 0) < 0) {
                 LOGW("restorecon: error restoring %s context\n",v->mount_point);
                 //return -1;
             }

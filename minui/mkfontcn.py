@@ -62,19 +62,16 @@ text = ImageDraw.Draw(im_en)
 size = ""
 for i in range(len(s)):
 	text.text((0, i*height_en+top_margin_en), s[i], 255, font_en)
-im_en.save("data_en_%dx%d.png"%(width_en,height_en))
-print "generating png file data_en_%dx%d.png" %(width_en,height_en)
+im_en.save("data_en_%d_%dx%d.png"%(fontsize_en,width_en,height_en))
+print "generating png file data_en_%d_%dx%d.png"%(fontsize_en,width_en,height_en)
 #print "painting GB2312"
 im_cn = Image.new('P', (width_cn, height_cn*count), 0)
 text = ImageDraw.Draw(im_cn)
 for i in range(0,count):
 	ch = c[i*2:i*2+2].decode("gb2312")
-	im_text = Image.new('P', (width_cn, height_cn), 0)
-	text = ImageDraw.Draw(im_text)
-	text.text((0,top_margin_cn), ch, 255, font_cn)
-	im_cn.paste(im_text,(0,i*height_cn))
-im_cn.save("data_cn_%dx%d.png"%(width_cn,height_cn))
-print "generating png file data_cn_%dx%d.png" %(width_cn,height_cn)
+	text.text((0, i*height_cn+top_margin_cn), ch, 255, font_cn)
+im_cn.save("data_cn_%d_%dx%d.png"%(fontsize_cn,width_cn,height_cn))
+print "generating png file data_cn_%d_%dx%d.png" %(fontsize_en,width_cn,height_cn)
 
 pixs_en = im_en.load()
 pixels = [ ]
