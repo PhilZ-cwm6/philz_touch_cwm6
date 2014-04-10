@@ -148,7 +148,7 @@ int get_device_fb(const char* path, struct fb *fb)
     lseek(fd, active_buffer_offset, SEEK_SET);
     ssize_t read_size = read(fd, raw, raw_size);
     if (read_size < 0 || (unsigned)read_size != raw_size) {
-        D("read buffer error");
+        D("read buffer error: %s", strerror(errno));
         goto oops;
     }
 

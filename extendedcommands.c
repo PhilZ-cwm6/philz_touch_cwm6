@@ -159,16 +159,16 @@ static void toggle_loki_support() {
 // this is called when we load recovery settings
 // it is needed when after recovery is booted, user wipes /data, then he installs a ROM: we can still return the user setting 
 int loki_support_enabled() {
-    char device_supports_loki[PROPERTY_VALUE_MAX];
+    char no_loki_variant[PROPERTY_VALUE_MAX];
     int ret = -1;
 
-    property_get("ro.loki_enabled", device_supports_loki, "0");
-    if (strcmp(device_supports_loki, "1") == 0) {
+    property_get("ro.loki_disabled", no_loki_variant, "0");
+    if (strcmp(no_loki_variant, "0") == 0) {
         // device variant supports loki: check if user enabled it
         // if there is no settings file (read_config_file() < 0), it could be we have wiped /data before installing zip
         // in that case, return current value (we last loaded on start or when user last set it) and not default
-        if (read_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, device_supports_loki, "1") >= 0) {
-            if (strcmp(device_supports_loki, "false") == 0 || strcmp(device_supports_loki, "0") == 0)
+        if (read_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, no_loki_variant, "0") >= 0) {
+            if (strcmp(no_loki_variant, "true") == 0 || strcmp(no_loki_variant, "1") == 0)
                 apply_loki_patch.value = 0;
             else
                 apply_loki_patch.value = 1;
