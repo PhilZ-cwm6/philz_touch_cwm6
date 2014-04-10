@@ -107,6 +107,8 @@ static int get_framebuffer(GGLSurface *fb)
         return -1;
     }
 
+    fprintf(stderr, "Pixel format: %dx%d @ %dbpp\n", vi.xres, vi.yres, vi.bits_per_pixel);
+
     if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
         perror("failed to get fb0 info");
         close(fd);
@@ -148,6 +150,8 @@ static int get_framebuffer(GGLSurface *fb)
          vi.transp.offset  = 0;
          vi.transp.length  = 0;
        }
+       vi.vmode = FB_VMODE_NONINTERLACED;
+       vi.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
        if (ioctl(fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
            perror("failed to put fb0 info");
            close(fd);

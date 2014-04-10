@@ -267,10 +267,14 @@ static void draw_text_line(int row, const char* t, int align) {
     }
 }
 
-//#define MENU_TEXT_COLOR 255, 160, 49, 255
-#define MENU_TEXT_COLOR 0, 191, 255, 255
-#define NORMAL_TEXT_COLOR 200, 200, 200, 255
-#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+static int menuTextColor[4] = {MENU_TEXT_COLOR};
+
+void ui_setMenuTextColor(int r, int g, int b, int a) {
+    menuTextColor[0] = r;
+    menuTextColor[1] = g;
+    menuTextColor[2] = b;
+    menuTextColor[3] = a;
+}
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
@@ -329,14 +333,14 @@ static void draw_screen_locked(void)
             else
                 j = menu_items - menu_show_start;
 
-            gr_color(MENU_TEXT_COLOR);
+            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
                     draw_text_line(i - menu_show_start , menu[i], LEFT_ALIGN);
-                    gr_color(MENU_TEXT_COLOR);
+                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                 } else {
-                    gr_color(MENU_TEXT_COLOR);
+                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
                     draw_text_line(i - menu_show_start, menu[i], LEFT_ALIGN);
                 }
                 row++;
