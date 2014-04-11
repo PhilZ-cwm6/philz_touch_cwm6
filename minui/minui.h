@@ -78,4 +78,5 @@ static inline int res_create_display_surface(const char* name, gr_surface* pSurf
 }
 void res_free_surface(gr_surface surface);
 
+int vibrate(int timeout_ms);
 #endif

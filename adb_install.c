@@ -38,7 +38,7 @@ static void
 set_usb_driver(int enabled) {
     int fd = open("/sys/class/android_usb/android0/enable", O_WRONLY);
     if (fd < 0) {
-        ui_print("failed to open driver control: %s\n", strerror(errno));
+        printf("failed to open driver control: %s\n", strerror(errno));
         return;
     }
 
@@ -50,11 +50,11 @@ set_usb_driver(int enabled) {
     }
 
     if (status < 0) {
-        ui_print("failed to set driver control: %s\n", strerror(errno));
+        printf("failed to set driver control: %s\n", strerror(errno));
     }
 
     if (close(fd) < 0) {
-        ui_print("failed to close driver control: %s\n", strerror(errno));
+        printf("failed to close driver control: %s\n", strerror(errno));
     }
 }
 
@@ -69,11 +69,11 @@ static void
 maybe_restart_adbd() {
     char value[PROPERTY_VALUE_MAX+1];
     int len = property_get("ro.debuggable", value, NULL);
-    if (len == 1 && value[0] == '1') {
+//    if (len == 1 && value[0] == '1') {
         ui_print("Restarting adbd...\n");
         set_usb_driver(1);
         property_set("ctl.start", "adbd");
-    }
+//    }
 }
 
 struct sideload_waiter_data {

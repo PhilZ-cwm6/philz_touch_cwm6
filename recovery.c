@@ -771,7 +771,7 @@ wipe_data(int confirm) {
     if (has_datadata()) {
         erase_volume("/datadata");
     }
-    erase_volume("/sd-ext");
+    if (volume_for_path("/sd-ext") != NULL) erase_volume("/sd-ext");
     erase_volume(get_android_secure_path());
     ui_print("Data wipe complete.\n");
 }
@@ -889,9 +889,9 @@ setup_adbd() {
             check_and_fclose(file_src, key_src);
         }
     }
-    ignore_data_media_workaround(1);
-    ensure_path_unmounted("/data");
-    ignore_data_media_workaround(0);
+    //ignore_data_media_workaround(1);
+    //ensure_path_unmounted("/data");
+    //ignore_data_media_workaround(0);
 
     // Trigger (re)start of adb daemon
     property_set("service.adb.root", "1");
@@ -996,7 +996,7 @@ main(int argc, char **argv) {
         }
         return busybox_driver(argc, argv);
     }
-    __system("/sbin/postrecoveryboot.sh");
+    //__system("/sbin/postrecoveryboot.sh");
 
     int is_user_initiated_recovery = 0;
     time_t start = time(NULL);
@@ -1009,15 +1009,17 @@ main(int argc, char **argv) {
     device_ui_init(&ui_parameters);
     ui_init();
     ui_print(EXPAND(RECOVERY_VERSION)"\n");
+	ui_print("Compiled by Xiaolu("EXPAND(RECOVERY_BUILD_DATE)")\n");
+	__system("/sbin/postrecoveryboot.sh");
 
-#ifdef BOARD_RECOVERY_SWIPE
-#ifndef BOARD_TOUCH_RECOVERY
+//#ifdef BOARD_RECOVERY_SWIPE
+//#ifndef BOARD_TOUCH_RECOVERY
     //display directions for swipe controls
     ui_print("Swipe up/down to change selections.\n");
     ui_print("Swipe to the right for enter.\n");
     ui_print("Swipe to the left for back.\n");
-#endif
-#endif
+//#endif
+//#endif
 
     load_volume_table();
     process_volumes();
@@ -1070,7 +1072,7 @@ main(int argc, char **argv) {
 
     if (!sehandle) {
         fprintf(stderr, "Warning: No file_contexts\n");
-        ui_print("Warning:  No file_contexts\n");
+        //ui_print("Warning:  No file_contexts\n");
     }
 
     LOGI("device_recovery_start()\n");
@@ -1111,7 +1113,7 @@ main(int argc, char **argv) {
         }
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
-        ignore_data_media_workaround(1);
+        ignore_data_media_workaround(0);
         if (erase_volume("/data")) status = INSTALL_ERROR;
         ignore_data_media_workaround(0);
         if (has_datadata() && erase_volume("/datadata")) status = INSTALL_ERROR;
@@ -1192,5 +1194,7 @@ int get_allow_toggle_display() {
 
 void set_perf_mode(int on) {
     property_set("recovery.perf.mode", on ? "1" : "0");
+    if (on)
+        usleep(900000);
 }
 

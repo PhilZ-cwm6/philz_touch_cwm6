@@ -6,22 +6,27 @@ include $(CLEAR_VARS)
 commands_recovery_local_path := $(LOCAL_PATH)
 # LOCAL_CPP_EXTENSION := .c
 
+ifeq ($(findstring fontcn,$(BOARD_USE_CUSTOM_RECOVERY_FONT)),fontcn)
+  LOCAL_CFLAGS += -DUSE_CHINESE_FONT
+  src_suffix := _cn
+endif
+
 LOCAL_SRC_FILES := \
-    recovery.c \
+    recovery$(src_suffix).c \
     bootloader.c \
-    install.c \
+    install$(src_suffix).c \
     roots.c \
-    ui.c \
+    ui_touch.c \
     mounts.c \
-    extendedcommands.c \
-    nandroid.c \
+    extendedcommands$(src_suffix).c \
+    nandroid$(src_suffix).c \
     reboot.c \
     ../../system/core/toolbox/dynarray.c \
     ../../system/core/toolbox/newfs_msdos.c \
     firmware.c \
-    edifyscripting.c \
+    edifyscripting$(src_suffix).c \
     prop.c \
-    adb_install.c \
+    adb_install$(src_suffix).c \
     verifier.c \
     ../../system/vold/vdc.c \
     propsrvc/legacy_property_service.c
@@ -60,10 +65,23 @@ ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
   BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 endif
 
+#BOARD_USE_MKE2FS_FORMAT := true
+ifeq ($(BOARD_USE_MKE2FS_FORMAT),true)
+  LOCAL_CFLAGS += -DUSE_MKE2FS_FORMAT
+endif
+
+ifeq ($(RECOVERY_USE_MIGRATED_STORAGE),true)
+  LOCAL_CFLAGS += -DUSE_MIGRATED_STORAGE
+endif
+
+ifeq ($(RECOVERY_NEED_SELINUX_FIX),true)
+  LOCAL_CFLAGS += -DNEED_SELINUX_FIX
+endif
+
 BOARD_RECOVERY_CHAR_WIDTH := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 1)
 BOARD_RECOVERY_CHAR_HEIGHT := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 2)
-
-LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT)
+RECOVERY_BUILD_DATE := $(shell date +"%Y%m%d")
+LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT) -DRECOVERY_BUILD_DATE="$(RECOVERY_BUILD_DATE)"
 
 BOARD_RECOVERY_DEFINES := BOARD_RECOVERY_SWIPE BOARD_HAS_NO_SELECT_BUTTON BOARD_UMS_LUNFILE BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT BOARD_TOUCH_RECOVERY RECOVERY_EXTEND_NANDROID_MENU TARGET_USE_CUSTOM_LUN_FILE_PATH TARGET_DEVICE TARGET_RECOVERY_FSTAB BOARD_NATIVE_DUALBOOT BOARD_NATIVE_DUALBOOT_SINGLEDATA
 
@@ -72,12 +90,12 @@ $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
     $(eval LOCAL_CFLAGS += -D$(board_define)=\"$($(board_define))\") \
   ) \
   )
-
+#LOCAL_CFLAGS += -DTARGET_DEVICE=flte
 LOCAL_STATIC_LIBRARIES :=
 
 LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
 LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include external/fsck_msdos
-LOCAL_C_INCLUDES += system/vold
+LOCAL_C_INCLUDES += system/vold external/libselinux/include
 
 LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
 
@@ -209,7 +227,7 @@ include $(commands_recovery_local_path)/edify/Android.mk
 include $(commands_recovery_local_path)/updater/Android.mk
 include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/utilities/Android.mk
-include $(commands_recovery_local_path)/su/Android.mk
+include $(commands_recovery_local_path)/su/supersu/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/loki/Android.mk
 commands_recovery_local_path :=

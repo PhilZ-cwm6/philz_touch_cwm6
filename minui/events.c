@@ -46,6 +46,28 @@ static unsigned ev_count = 0;
 static unsigned ev_dev_count = 0;
 static unsigned ev_misc_count = 0;
 
+#define VIBRATOR_TIMEOUT_FILE	"/sys/class/timed_output/vibrator/enable"
+
+int vibrate(int timeout_ms) {
+    char str[20];
+    int fd;
+    int ret;
+
+    property_set("ctl.start", "vibrator");
+    fd = open(VIBRATOR_TIMEOUT_FILE, O_WRONLY);
+    if(fd < 0)
+        return -1;
+        
+    ret = snprintf(str, sizeof(str), "%d", timeout_ms);
+    ret = write(fd, str, ret);
+    close(fd);
+
+    if (ret < 0)
+       return -1;
+
+    return 0;
+}
+
 int ev_init(ev_callback input_cb, void *data)
 {
     DIR *dir;

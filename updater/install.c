@@ -269,7 +269,13 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
         result = location;
 #ifdef USE_EXT4
     } else if (strcmp(fs_type, "ext4") == 0) {
+#ifdef USE_MKE2FS_FORMAT
+		char ext4_cmd[PATH_MAX];
+		sprintf(ext4_cmd, "/sbin/mke2fs -T ext4 -b 4096 -m 0 -F %s", location);
+        int status = __system(ext4_cmd);
+#else
         int status = make_ext4fs(location, atoll(fs_size), mount_point, sehandle);
+#endif
         if (status != 0) {
             fprintf(stderr, "%s: make_ext4fs failed (%d) on %s",
                     name, status, location);
