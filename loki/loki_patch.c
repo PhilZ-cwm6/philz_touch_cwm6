@@ -78,6 +78,14 @@ struct target targets[] = {
 		.lg = 1,
 	},
 	{
+		.vendor = "DoCoMo",
+		.device = "LG Optimus G Pro",
+		.build = "L04E10f",
+		.check_sigs = 0x88f1102c,
+		.hdr = 0x88f54418,
+		.lg = 1,
+	},
+	{
 		.vendor = "AT&T or HK",
 		.device = "LG Optimus G Pro",
 		.build = "E98010g or E98810b",
@@ -359,36 +367,7 @@ struct target targets[] = {
 	},
 };
 
-unsigned char patch[] =
-"\xfe\xb5"
-"\x0d\x4d"
-"\xd5\xf8"
-"\x88\x04"
-"\xab\x68"
-"\x98\x42"
-"\x12\xd0"
-"\xd5\xf8"
-"\x90\x64"
-"\x0a\x4c"
-"\xd5\xf8"
-"\x8c\x74"
-"\x07\xf5\x80\x57"
-"\x0f\xce"
-"\x0f\xc4"
-"\x10\x3f"
-"\xfb\xdc"
-"\xd5\xf8"
-"\x88\x04"
-"\x04\x49"
-"\xd5\xf8"
-"\x8c\x24"
-"\xa8\x60"
-"\x69\x61"
-"\x2a\x61"
-"\x00\x20"
-"\xfe\xbd"
-"\xff\xff\xff\xff"
-"\xee\xee\xee\xee";
+static unsigned char patch[] = PATCH;
 
 int patch_shellcode(unsigned int header, unsigned int ramdisk)
 {
