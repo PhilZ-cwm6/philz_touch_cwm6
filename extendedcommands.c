@@ -1913,7 +1913,7 @@ int verify_root_and_recovery() {
 
     int exists = 0;
     if (0 == lstat("/system/bin/su", &st)) {
-        exists = 1;
+        exists += 1;
         if (needs_suid && S_ISREG(st.st_mode)) {
             if ((st.st_mode & (S_ISUID | S_ISGID)) != (S_ISUID | S_ISGID)) {
                 ui_show_text(1);
@@ -1926,7 +1926,7 @@ int verify_root_and_recovery() {
     }
 
     if (0 == lstat("/system/xbin/su", &st)) {
-        exists = 1;
+        exists += 1;
         if (needs_suid && S_ISREG(st.st_mode)) {
             if ((st.st_mode & (S_ISUID | S_ISGID)) != (S_ISUID | S_ISGID)) {
                 ui_show_text(1);
@@ -1938,9 +1938,10 @@ int verify_root_and_recovery() {
         }
     }
 
-    if (!exists) {
+    // If we have no root (exists == 0) or we have two su instances (exists == 2), prompt to properly root the device
+    if (exists != 1) {
         ui_show_text(1);
-        if (confirm_selection("Root access is missing. Root device?", "Yes - Root device (/system/xbin/su)")) {
+        if (confirm_selection("Root access is missing/broken. Root device?", "Yes - Apply root (/system/xbin/su)")) {
             __system("/sbin/install-su.sh");
             ret = 2;
         }
