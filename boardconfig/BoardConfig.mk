@@ -575,7 +575,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#HTC One - m7 / m7spr / m7vzw
+#HTC One - m7 (m7ul, m7tmo, m7att) / m7spr / m7vzw
 else ifneq ($(filter $(TARGET_PRODUCT), cm_m7 cm_m7spr cm_m7vzw),)
     TARGET_COMMON_NAME := HTC One ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "texfat"
