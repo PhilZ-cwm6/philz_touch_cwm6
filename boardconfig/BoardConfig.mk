@@ -714,20 +714,20 @@ else ifeq ($(TARGET_PRODUCT), cm_p880)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#LG Optimus L7 P700 (p700)
-else ifeq ($(TARGET_PRODUCT), cm_p700)
-    TARGET_COMMON_NAME := Optimus L7 P700
-    TARGET_SCREEN_HEIGHT := 800
-    TARGET_SCREEN_WIDTH := 480
-    BOARD_HAS_LOW_RESOLUTION := true
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
-
 #LG Optimus L5 E610 (e610)
 else ifeq ($(TARGET_PRODUCT), cm_e610)
     TARGET_COMMON_NAME := Optimus L5 E610
     BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
     TARGET_SCREEN_HEIGHT := 480
     TARGET_SCREEN_WIDTH := 320
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#LG Optimus L7 P700 (p700)
+else ifeq ($(TARGET_PRODUCT), cm_p700)
+    TARGET_COMMON_NAME := Optimus L7 P700
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
