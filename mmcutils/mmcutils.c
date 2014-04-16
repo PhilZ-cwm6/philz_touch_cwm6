@@ -629,21 +629,21 @@ int cmd_mmc_backup_raw_partition(const char *partition, const char *filename)
 #ifdef BOARD_USE_MTK_LAYOUT
         // adapted from https://github.com/PhilZ-cwm6/mtk6589_bootable_recovery
         // take boot and recovery partition sizes into account
-        if (strcmp(partition, BOOT_PARTITION_MOUNT_POINT) == 0) {
+        if (strstr(partition, BOOT_PARTITION_MOUNT_POINT) != NULL) {
             if (Find_Partition_Size(BOOT_PARTITION_MOUNT_POINT) != 0)
                 return -1;
             sz = (unsigned)Total_Size;
             printf("mtk boot: %s (%u)\n", partition, sz);
         }
 
-        if (strcmp(partition, "/recovery") == 0) {
+        if (strstr(partition, "/recovery") != NULL) {
             if (Find_Partition_Size("/recovery") != 0)
                 return -1;
             sz = (unsigned)Total_Size;
             printf("mtk recovery: %s (%u)\n", partition, sz);
         }
 
-        if (strcmp(partition, "/uboot") == 0) {
+        if (strstr(partition, "/uboot") != NULL) {
             if (Find_Partition_Size("/uboot") != 0)
                 return -1;
             sz = (unsigned)Total_Size;
