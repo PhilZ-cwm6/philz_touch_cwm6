@@ -2817,7 +2817,7 @@ void custom_restore_menu(const char* backup_volume) {
         else ui_format_gui_menu(item_reboot, ">> Reboot once done", "( )");
         list[LIST_ITEM_REBOOT] = item_reboot;
 
-        if (volume_for_path("/boot") != NULL) {
+        if (volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL) {
             if (backup_boot) ui_format_gui_menu(item_boot, "Restore boot", "(x)");
             else ui_format_gui_menu(item_boot, "Restore boot", "( )");
             list[LIST_ITEM_BOOT] = item_boot;
@@ -3079,7 +3079,7 @@ void custom_backup_menu(const char* backup_volume)
         else ui_format_gui_menu(item_reboot, ">> Reboot once done", "( )");
         list[LIST_ITEM_REBOOT] = item_reboot;
 
-        if (volume_for_path("/boot") != NULL) {
+        if (volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL) {
             if (backup_boot) ui_format_gui_menu(item_boot, "Backup boot", "(x)");
             else ui_format_gui_menu(item_boot, "Backup boot", "( )");
             list[LIST_ITEM_BOOT] = item_boot;
