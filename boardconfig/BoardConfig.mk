@@ -50,9 +50,26 @@
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
 
 
+#Amazon Kindle Fire HD 8.9 (jem)
+ifeq ($(TARGET_PRODUCT), cm_jem)
+    TARGET_COMMON_NAME := Kindle Fire HD 8.9
+    TARGET_SCREEN_HEIGHT := 1200
+    TARGET_SCREEN_WIDTH := 1920
+    RECOVERY_TOUCHSCREEN_SWAP_XY := true
+    RECOVERY_TOUCHSCREEN_FLIP_X := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/bowser/brightness"
+    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541"
+
+#Amazon Kindle Fire HD 7 (tate)
+else ifeq ($(TARGET_PRODUCT), cm_tate)
+    TARGET_COMMON_NAME := Kindle Fire HD 7
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 1280
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
+    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541"
 
 #Asus Transformer Pad TF300T (tf300t)
-ifeq ($(TARGET_PRODUCT), cm_tf300t)
+else ifeq ($(TARGET_PRODUCT), cm_tf300t)
     TARGET_COMMON_NAME := Asus Transformer TF300T
     BOARD_USE_NTFS_3G := false
     TARGET_SCREEN_HEIGHT := 1280
@@ -409,9 +426,19 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_serranoltexx cm_serrano3gxx cm_serrano
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
-#Galaxy S5 i9605 Qualcomm variants (klte): kltecan kltespr kltetmo kltevzw kltexx
+#Galaxy S5 SM-G900F Qualcomm variants (klte): kltecan kltespr kltetmo kltevzw kltexx
 else ifeq ($(TARGET_PRODUCT), cm_klte)
     TARGET_COMMON_NAME := Galaxy S5 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
+#Galaxy S5 SM-G900H Exynos variant (k3gxx)
+else ifeq ($(TARGET_PRODUCT), cm_k3gxx)
+    TARGET_COMMON_NAME := Galaxy S5 SM-G900H
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1920
