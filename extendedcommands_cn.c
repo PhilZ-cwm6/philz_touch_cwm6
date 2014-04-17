@@ -739,7 +739,9 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
 
     char tmp[PATH_MAX];
     if (strcmp(path, "/data") == 0) {
-        sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
+        sprintf(tmp, "cd /data ; for f in $(ls -A | grep -v ^media$); do rm -rf $f; done");
+        __system(tmp);
+        sprintf(tmp, "cd /data ; for f in $(ls -A | grep -v ^media$); do chattr -R -i $f; rm -rf $f; done");
         __system(tmp);
         // if the /data/media sdcard has already been migrated for android 4.2,
         // prevent the migration from happening again by writing the .layout_version
@@ -757,6 +759,8 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
             LOGI("/data/media/0 not found. migration may occur.\n");
         }
     } else {
+        sprintf(tmp, "chattr -R -i %s", path);
+        __system(tmp);
         sprintf(tmp, "rm -rf %s/*", path);
         __system(tmp);
         sprintf(tmp, "rm -rf %s/.*", path);
@@ -1776,7 +1780,7 @@ int verify_root_and_recovery() {
             if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
                 ui_show_text(1);
                 ret = 1;
-                if (confirm_selection("固件可能会刷回原版recovery,是否修复?", "是的,禁用install-recovery.sh脚本")) {
+                if (confirm_selection("固件可能会自动刷回原版recovery,是否修复?", "是的,禁用install-recovery.sh脚本")) {
                     __system("chmod -x /system/etc/install-recovery.sh");
                 }
             }
