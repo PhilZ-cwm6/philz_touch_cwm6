@@ -25,6 +25,9 @@ int ui_menu_touch_select();
 // gesture action support
 void handle_gesture_actions(const char** headers, char** items, int initial_selection);
 
+// vibrator function
+int vibrate_device(int timeout_ms);
+
 // display and log the libtouch_gui version
 void print_libtouch_version(int onscreen);
 
