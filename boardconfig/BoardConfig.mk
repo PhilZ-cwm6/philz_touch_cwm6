@@ -58,15 +58,15 @@ ifeq ($(TARGET_PRODUCT), cm_jem)
     RECOVERY_TOUCHSCREEN_SWAP_XY := true
     RECOVERY_TOUCHSCREEN_FLIP_X := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/bowser/brightness"
-    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541"
+    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541/capacity"
 
 #Amazon Kindle Fire HD 7 (tate)
 else ifeq ($(TARGET_PRODUCT), cm_tate)
     TARGET_COMMON_NAME := Kindle Fire HD 7
-    TARGET_SCREEN_HEIGHT := 800
-    TARGET_SCREEN_WIDTH := 1280
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 800
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
-    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541"
+    BATTERY_LEVEL_PATH := "/sys/class/power_supply/bq27541/capacity"
 
 #Asus Transformer Pad TF300T (tf300t)
 else ifeq ($(TARGET_PRODUCT), cm_tf300t)
