@@ -670,7 +670,7 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC One M8 (m8)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8att),)
+else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8vzw cm_m8att),)
     TARGET_COMMON_NAME := HTC One M8 ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     TARGET_SCREEN_HEIGHT := 1920
