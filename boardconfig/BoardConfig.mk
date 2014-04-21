@@ -691,6 +691,15 @@ else ifeq ($(TARGET_PRODUCT), cm_viva)
     TARGET_SCREEN_WIDTH := 540
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd/brightness"
 
+#LG Optimus One P500 (p500) - armv6
+else ifeq ($(TARGET_PRODUCT), cm_p500)
+    TARGET_COMMON_NAME := Optimus One P500
+    BOARD_USE_NTFS_3G := false
+    TARGET_SCREEN_HEIGHT := 480
+    TARGET_SCREEN_WIDTH := 320
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #LG Optimus G ATT (e970) - Canada (e973) - Sprint (ls970) - Intl (e975)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_e970 cm_e973 cm_ls970 cm_e975),)
     TARGET_COMMON_NAME := Optimus G ($(TARGET_PRODUCT))
