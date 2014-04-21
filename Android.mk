@@ -10,7 +10,11 @@ ifdef PHILZ_TOUCH_RECOVERY
 ifdef USE_PREBUILT_LIBTOUCH_GUI
 include $(CLEAR_VARS)
 MY_LOCAL_PATH := $(LOCAL_PATH)
-LOCAL_PREBUILT_LIBS := libtouch_gui/libtouch_gui.a
+ifeq ($(TARGET_CPU_VARIANT),arm11)
+    LOCAL_PREBUILT_LIBS := libtouch_gui/armv6/libtouch_gui.a
+else
+    LOCAL_PREBUILT_LIBS := libtouch_gui/libtouch_gui.a
+endif
 include $(BUILD_MULTI_PREBUILT)
 LOCAL_PATH := $(MY_LOCAL_PATH)
 endif
