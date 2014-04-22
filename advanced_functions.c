@@ -934,7 +934,7 @@ int read_config_file(const char* config_file, const char *key, char *value, cons
     ensure_path_mounted(config_file);
     FILE *fp = fopen(config_file, "rb");
     if (fp != NULL) {
-        while(fgets(line, sizeof(line), fp) != NULL) {
+        while (fgets(line, sizeof(line), fp) != NULL) {
             if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=') {
                 strcpy(value, strstr(line, "=") + 1);
                 if (value[strlen(value)-1] == '\n')
@@ -992,18 +992,18 @@ int write_config_file(const char* config_file, const char* key, const char* valu
         };
 
         int i;
-        for(i=0; header[i] != NULL; i++) {
+        for(i = 0; header[i] != NULL; i++) {
             fwrite(header[i], 1, strlen(header[i]), f_tmp);
         }
     } else {
         // parse existing config file and write new temporary file.
         char line[PROPERTY_VALUE_MAX];
-        while(fgets(line, sizeof(line), fp) != NULL) {
+        while (fgets(line, sizeof(line), fp) != NULL) {
             // ignore any existing line with key we want to set
             if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=')
                 continue;
             // ensure trailing \n, in case some one got a bad editor...
-            if (line[strlen(line)-1] != '\n')
+            if (line[strlen(line) - 1] != '\n')
                 strcat(line, "\n");
             fwrite(line, 1, strlen(line), f_tmp);
         }
@@ -1016,7 +1016,7 @@ int write_config_file(const char* config_file, const char* key, const char* valu
     fwrite(new_entry, 1, strlen(new_entry), f_tmp);
     fclose(f_tmp);
 
-    if (rename(config_file_tmp, config_file) !=0) {
+    if (rename(config_file_tmp, config_file) != 0) {
         LOGE("failed to rename temporary settings file!\n");
         return -1;
     }
@@ -2150,11 +2150,11 @@ void set_custom_zip_path() {
     char** list = (char**) malloc((numDirs + 3) * sizeof(char*));
     list[0] = strdup("../");
     list[1] = strdup(">> Set current folder as default <<");
-    list[numDirs+2] = NULL; // Go Back Menu
+    list[numDirs + 2] = NULL; // Go Back Menu
 
     // populate list with current folders. Reserved list[0] for ../ to browse backward
-    for(i=2; i < numDirs+2; i++) {
-        list[i] = strdup(dirs[i-2] + dir_len);
+    for(i = 2; i < numDirs + 2; i++) {
+        list[i] = strdup(dirs[i - 2] + dir_len);
     }
 
     char custom_path2[PATH_MAX];
@@ -2270,18 +2270,18 @@ int show_custom_zip_menu() {
     total = numFiles + numDirs;
     char** list = (char**) malloc((total + 2) * sizeof(char*));
     list[0] = strdup("../");
-    list[total+1] = NULL;
+    list[total + 1] = NULL;
 
     // populate menu list with current folders and zip files. Reserved list[0] for ../ to browse backward
     //LOGE(">> Dirs (num=%d):\n", numDirs);
     int i;
-    for(i=1; i < numDirs+1; i++) {
-        list[i] = strdup(dirs[i-1] + dir_len);
+    for(i = 1; i < numDirs + 1; i++) {
+        list[i] = strdup(dirs[i - 1] + dir_len);
         //LOGE("list[%d]=%s\n", i, list[i]);
     }
     //LOGE("\n>> Files (num=%d):\n", numFiles);
-    for(i=1; i < numFiles+1; i++) {
-        list[numDirs+i] = strdup(files[i-1] + dir_len);
+    for(i = 1; i < numFiles + 1; i++) {
+        list[numDirs + i] = strdup(files[i - 1] + dir_len);
         //LOGE("list[%d]=%s\n", numDirs+i, list[numDirs+i]);
     }
 
@@ -2545,8 +2545,8 @@ void show_twrp_restore_menu(const char* backup_volume) {
     }
 
     static const char* headers[] = {
-            "Choose a backup to restore",
-            NULL
+        "Choose a backup to restore",
+        NULL
     };
 
     char device_id[PROPERTY_VALUE_MAX];
