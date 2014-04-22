@@ -650,6 +650,8 @@ int confirm_selection(const char* title, const char* confirm) {
     int many_confirm;
     char* confirm_str = strdup(confirm);
     const char* confirm_headers[] = { title, "  THIS CAN NOT BE UNDONE.", "", NULL };
+    int old_val = ui_is_showing_back_button();
+    ui_set_showing_back_button(0);
 
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_MANY_CONFIRM_FILE);
     // ensure_path_mounted(path);
@@ -679,6 +681,7 @@ int confirm_selection(const char* title, const char* confirm) {
         ret = (chosen_item == 1);
     }
     free(confirm_str);
+    ui_set_showing_back_button(old_val);
     return ret;
 }
 
