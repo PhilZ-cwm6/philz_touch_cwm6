@@ -136,13 +136,10 @@ void verify_settings_file() {
     char backup_file[PATH_MAX];
     sprintf(backup_file, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_BAK);
     if (!file_found(PHILZ_SETTINGS_FILE) && file_found(backup_file)) {
-        if (auto_restore_settings.value && copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
+        if (!auto_restore_settings.value && !confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard"))
+            return;
+        if (copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0)
             ui_print("Settings restored.\n");
-        }
-        else if (confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard") &&
-                    copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0) {
-            ui_print("Settings restored.\n");
-        }
     }
 }
 
