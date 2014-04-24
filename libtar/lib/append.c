@@ -106,16 +106,14 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		}
 
 		security_context_t selinux_context = NULL;
-		if(getfilecon(realname, &selinux_context) >= 0)
+		if(lgetfilecon(realname, &selinux_context) >= 0)
 		{
 			t->th_buf.selinux_context = strdup(selinux_context);
 			freecon(selinux_context);
 		}
 		else
 		{
-#ifdef DEBUG
 			perror("Failed to get selinux context");
-#endif
 		}
 	}
 #endif
