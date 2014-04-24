@@ -280,7 +280,24 @@ list(char *tarfile)
     TAR *t;
     int i;
 
-    if (tar_open(&t, tarfile,
+    if (strnlen(tarfile,2) == 1 && !strncmp(tarfile,"-",1))
+    {
+        if (tar_fdopen(&t, fileno(stdin), tarfile,
+#ifdef HAVE_LIBZ
+             (use_zlib ? &gztype : NULL),
+#else
+             NULL,
+#endif
+             O_RDONLY, 0,
+             (verbose == 1 ? TAR_VERBOSE : 0)
+             | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_gnu ? TAR_GNU : 0)) == -1)
+        {
+            fprintf(stderr, "tar_open(): %s\n", strerror(errno));
+            return -1;
+        }
+    }
+    else if (tar_open(&t, tarfile,
 #ifdef HAVE_LIBZ
              (use_zlib ? &gztype : NULL),
 #else
@@ -457,13 +474,15 @@ extract(char *tarfile, char *rootdir)
 
 
 void
-usage(void *rootdir)
+usage(const char* rootdir)
 {
     printf("Usage: %s [-C rootdir] [-g] [-z] -x|-t filename.tar\n",
            progname);
     printf("       %s [-C rootdir] [-g] [-z] -c filename.tar ...\n",
            progname);
-    free(rootdir);
+
+    if (rootdir != NULL)
+        free(rootdir);
     exit(-1);
 }
 
@@ -490,6 +509,7 @@ main(int argc, char **argv)
         {"verbose", no_argument, 0, 'v'},
         {"listed-incremental", no_argument, 0, 'g'},
         {"create", no_argument, 0, 'c'},
+        {"file", required_argument, 0, 'f'},
         {"extract", no_argument, 0, 'x'},
         {"list", no_argument, 0, 't'},
         {"selinux", no_argument, 0, 's'},
@@ -501,15 +521,13 @@ main(int argc, char **argv)
     };
 
     int option_index = 0;
-    while ((c = getopt_long(argc, argv, "cC:gtvVxzsX:", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "cf:C:gtvVxzsX:", long_options, &option_index)) != -1) {
         switch (c) {
             case 'V':
                 printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n",
                        libtar_version);
                 break;
             case 'C':
-                if (optarg == NULL)
-                    usage(rootdir);
                 rootdir = strdup(optarg);
                 break;
             case 'v':
@@ -522,6 +540,9 @@ main(int argc, char **argv)
                 if (mode)
                     usage(rootdir);
                 mode = MODE_CREATE;
+                break;
+            case 'f':
+                tarfile = strdup(optarg);
                 break;
             case 'x':
                 if (mode)
@@ -554,11 +575,10 @@ main(int argc, char **argv)
         }
     }
 
-    if (!mode || ((argc - optind) < (mode == MODE_CREATE ? 2 : 1)))
+    if (!mode || (optind < argc && mode != MODE_CREATE))
     {
 #ifdef DEBUG
-        printf("argc - optind == %d\tmode == %d\n", argc - optind,
-               mode);
+        printf("Non used options while in non create mode!\n");
 #endif
         usage(rootdir);
     }
@@ -570,24 +590,32 @@ main(int argc, char **argv)
     switch (mode)
     {
     case MODE_EXTRACT:
-        return_code = extract(argv[optind], rootdir);
+        if (tarfile == NULL)
+            tarfile = strdup("-");
+        return_code = extract(tarfile, rootdir);
         break;
     case MODE_CREATE:
-        tarfile = argv[optind];
+        if (tarfile == NULL)
+            tarfile = strdup("-");
         l = libtar_list_new(LIST_QUEUE, NULL);
-        for (c = optind + 1; c < argc; c++)
+        for (c = optind; c < argc; c++)
             libtar_list_add(l, argv[c]);
         return_code =  create(tarfile, rootdir, l);
         libtar_list_free (l, NULL);
         break;
     case MODE_LIST:
-        return_code = list(argv[optind]);
+        if (tarfile == NULL)
+            tarfile = strdup("-");
+        return_code = list(tarfile);
         break;
     default:
         break;
     }
 
-    free(rootdir);
+    if (rootdir != NULL)
+        free(rootdir);
+    if (tarfile != NULL)
+        free(tarfile);
     while (exclusions) {
         free(exclude_list[--exclusions]);
     }
