@@ -40,6 +40,8 @@
 
 #include <fnmatch.h>
 
+#include <getopt.h>
+
 char *progname;
 int verbose = 0;
 int use_gnu = 0;
@@ -471,7 +473,7 @@ usage(void *rootdir)
 #define MODE_EXTRACT	3
 
 int
-main(int argc, char *argv[])
+main(int argc, char **argv)
 {
 	char *tarfile = NULL;
 	char *rootdir = NULL;
@@ -482,14 +484,32 @@ main(int argc, char *argv[])
 
 	progname = basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "cC:gtvVxzsX:")) != -1)
-		switch (c)
-		{
+    static struct option long_options[] =    {
+        {"version", no_argument, 0, 'V'},
+        {"directory", required_argument, 0, 'C'},
+        {"verbose", no_argument, 0, 'v'},
+        {"listed-incremental", no_argument, 0, 'g'},
+        {"create", no_argument, 0, 'c'},
+        {"extract", no_argument, 0, 'x'},
+        {"list", no_argument, 0, 't'},
+        {"selinux", no_argument, 0, 's'},
+        {"exclude", required_argument, 0, 'X'},
+#ifdef HAVE_LIBZ
+        {"gzip", no_argument, 0, 'z'},
+#endif
+        {0, 0, 0, 0}
+    };
+
+    int option_index = 0;
+    while ((c = getopt_long(argc, argv, "cC:gtvVxzsX:", long_options, &option_index)) != -1) {
+        switch (c) {
 		case 'V':
 			printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n",
 			       libtar_version);
 			break;
 		case 'C':
+                if (optarg == NULL)
+                    usage(rootdir);
 			rootdir = strdup(optarg);
 			break;
 		case 'v':
@@ -532,6 +552,7 @@ main(int argc, char *argv[])
 		default:
 			usage(rootdir);
 		}
+    }
 
 	if (!mode || ((argc - optind) < (mode == MODE_CREATE ? 2 : 1)))
 	{
