@@ -1,0 +1,75 @@
+# @configure_input@
+
+### Path settings
+srcdir		= @srcdir@
+top_srcdir	= @top_srcdir@
+top_builddir    = @top_builddir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+includedir	= @includedir@
+
+PACKAGE_NAME	= @PACKAGE_NAME@
+PACKAGE_VERSION	= @PACKAGE_VERSION@
+
+@ENCAP_DEFS@
+
+### Installation programs and flags
+INSTALL		= @INSTALL@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@ -s
+INSTALL_DATA	= @INSTALL_DATA@
+LN_S		= @LN_S@
+MKDIR		= @MKDIR@
+
+### Compiler and link options
+CC		= @CC@
+LIBTOOL         = @LIBTOOL@
+CPPFLAGS	= -I.. \
+		  -I../lib \
+		  -I../listhash \
+		  -I${top_srcdir}/lib \
+		  -I${top_srcdir}/compat \
+		  @CPPFLAGS@
+CFLAGS		= @CFLAGS@
+LDFLAGS		= @LDFLAGS@
+LIBS		= @LIBS@ -ltar
+LIBOBJS		= @LIBOBJS@
+RANLIB		= @RANLIB@
+@SET_MAKE@
+VPATH		= @srcdir@
+
+
+### Makefile rules - no user-servicable parts below
+
+LIBTAR_OBJS	= libtar.lo
+LIBTAR_HDRS	= ../config.h \
+		  ${top_srcdir}/compat/compat.h \
+		  ${top_srcdir}/lib/libtar.h \
+		  ../listhash/libtar_listhash.h
+LIBTAR_LIBS	= $(top_builddir)/lib
+ALL		= libtar
+
+
+all: ${ALL}
+
+.PHONY: clean distclean install
+
+libtar: ${LIBTAR_OBJS} ${LIBTAR_LIBS} ${LIBTAR_HDRS}
+	$(LIBTOOL) --mode=link ${CC} ${CFLAGS} ${LDFLAGS} -o libtar $(LIBTAR_OBJS) -L${LIBTAR_LIBS} ${LIBS}
+
+${LIBTAR_OBJS}: ${LIBTAR_HDRS}
+
+%.lo: %.c
+	$(LIBTOOL) --mode=compile ${CC} ${CFLAGS} ${CPPFLAGS} -c -o $@ $<
+
+clean:
+	rm -rf *~ *.o ${ALL} $(LIBTAR_OBJS) core .libs
+
+distclean: clean
+	rm -f Makefile
+
+install: ${ALL}
+	${MKDIR} ${DESTDIR}${bindir}
+	$(LIBTOOL) --mode=install ${INSTALL_PROGRAM} libtar ${DESTDIR}${bindir}
+

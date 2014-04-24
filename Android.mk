@@ -220,6 +220,9 @@ ALL_DEFAULT_INSTALLED_MODULES += $(RECOVERY_SYMLINKS)
 # Now let's do recovery symlinks
 BUSYBOX_LINKS := $(shell cat external/busybox/busybox-minimal.links)
 exclude := tune2fs mke2fs
+ifneq ($(BOARD_RECOVERY_USE_LIBTAR),false)
+exclude += tar
+endif
 RECOVERY_BUSYBOX_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
 $(RECOVERY_BUSYBOX_SYMLINKS): BUSYBOX_BINARY := busybox
 $(RECOVERY_BUSYBOX_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
@@ -304,6 +307,10 @@ endif
 
 ifneq ($(BOARD_USE_NTFS_3G),false)
     include $(commands_recovery_local_path)/ntfs-3g/Android.mk
+endif
+
+ifneq ($(BOARD_RECOVERY_USE_LIBTAR),false)
+    include $(commands_recovery_local_path)/libtar/Android.mk
 endif
 
 ifeq ($(NO_AROMA_FILE_MANAGER),)
