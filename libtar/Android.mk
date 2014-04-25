@@ -35,7 +35,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := tar
 LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
 LOCAL_MODULE_TAGS = eng
-LOCAL_SRC_FILES := minitar/libtar.c
+LOCAL_SRC_FILES := minitar/minitar.c
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/lib \
