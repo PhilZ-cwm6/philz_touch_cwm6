@@ -607,10 +607,17 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     {
         compute_twrp_backup_stats(index);
         if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
+#ifdef BOARD_RECOVERY_USE_BBTAR
+            sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
+#else
             sprintf(tmp, "(tar -cvsf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
+#endif
         else
+#ifdef BOARD_RECOVERY_USE_BBTAR
+            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
+#else
             sprintf(tmp, "(tar -cvs -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
-
+#endif
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
         FILE *fp = __popen(tmp, "r");
         if (fp == NULL) {
@@ -818,16 +825,24 @@ int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path,
 int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char path[PATH_MAX];
     char cmd[PATH_MAX];
-    char tar_args[6];
+    char tar_args[10];
     int ret;
 
     // tar vs tar.gz format?
     if ((ret = is_gzip_file(backup_file_image)) < 0)
         return ret;
     if (ret == 0)
+#ifdef BOARD_RECOVERY_USE_BBTAR
+        sprintf(tar_args, "-xvf");
+#else
         sprintf(tar_args, "-xvsf");
+#endif
     else
+#ifdef BOARD_RECOVERY_USE_BBTAR
+        sprintf(tar_args, "-xzvf");
+#else
         sprintf(tar_args, "-xzvsf");
+#endif
 
     check_restore_size(backup_file_image, backup_path);
     if (strlen(backup_file_image) > strlen("win000") && strcmp(backup_file_image + strlen(backup_file_image) - strlen("win000"), "win000") == 0) {
@@ -988,11 +1003,21 @@ int nandroid_backup_datamedia(const char* backup_path) {
     int fmt;
     fmt = nandroid_get_default_backup_format();
     if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
+#ifdef BOARD_RECOVERY_USE_BBTAR
+        sprintf(tmp, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+                backup_file_image, backup_file_image);
+#else
         sprintf(tmp, "cd / ; touch %s.tar ; (tar -csv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
+#endif
     } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
+#ifdef BOARD_RECOVERY_USE_BBTAR
+        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+                backup_file_image, compression_value.value, backup_file_image);
+#else
         sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar -csv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value.value, backup_file_image);
+#endif
     } else {
         // non fatal failure
         LOGE("  - backup format must be tar(.gz), skipping...\n");
@@ -1038,13 +1063,21 @@ int nandroid_restore_datamedia(const char* backup_path) {
         sprintf(backup_file_image, "%s/datamedia.%s.tar", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_extract_wrapper;
+#ifdef BOARD_RECOVERY_USE_BBTAR
+            sprintf(tmp, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
+#else
             sprintf(tmp, "cd / ; cat %s* | tar -xsv ; exit $?", backup_file_image);
+#endif
             break;
         }
         sprintf(backup_file_image, "%s/datamedia.%s.tar.gz", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_gzip_extract_wrapper;
+#ifdef BOARD_RECOVERY_USE_BBTAR
+            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
+#else
             sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_file_image);
+#endif
             break;
         }
         i++;
