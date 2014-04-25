@@ -1132,8 +1132,8 @@ void show_multi_flash_menu() {
         list[numFiles+2] = NULL; // Go Back Menu
 
         int i;
-        for(i=2; i < numFiles+2; i++) {
-            list[i] = strdup(files[i-2] + dir_len - 4);
+        for(i = 2; i < numFiles + 2; i++) {
+            list[i] = strdup(files[i - 2] + dir_len - 4);
             strncpy(list[i], "(x) ", 4);
         }
 
@@ -1148,7 +1148,7 @@ void show_multi_flash_menu() {
             if (chosen_item == 0) {
                 // select / unselect all
                 select_all ^= 1;
-                for(i=2; i < numFiles+2; i++) {
+                for(i = 2; i < numFiles + 2; i++) {
                     if (select_all) strncpy(list[i], "(x)", 3);
                     else strncpy(list[i], "( )", 3);
                 }
@@ -1164,12 +1164,12 @@ void show_multi_flash_menu() {
             char confirm[PATH_MAX];
             sprintf(confirm, "Yes - Install from %s", BaseName(zip_folder));
             if (confirm_selection("Install selected files?", confirm)) {
-                for(i=2; i < numFiles+2; i++) {
+                for(i = 2; i < numFiles + 2; i++) {
                     if (strncmp(list[i], "(x)", 3) == 0) {
 #ifdef PHILZ_TOUCH_RECOVERY
                         force_wait = -1;
 #endif
-                        if (install_zip(files[i-2]) != 0)
+                        if (install_zip(files[i - 2]) != 0)
                             break;
                     }
                 }
