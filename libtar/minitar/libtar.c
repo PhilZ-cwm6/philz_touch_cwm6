@@ -655,22 +655,23 @@ int main(int argc, char **argv)
                     ++file_list_count;
                 }
 
-                // malloc list items (needed as libtar_list_add() is just pointing to 2nd argument)
-                if (file_list_count)
+                if (file_list_count != 0) {
+                    // malloc list items (needed as libtar_list_add() is just pointing to 2nd argument)
                     file_list_entries = (char**)malloc(file_list_count * sizeof(*file_list_entries));
 
-                // read again through files in list and add them to libtar queue
-                rewind(fp);
-                while (fgets(line, sizeof(line), fp) != NULL && i < file_list_count) {
-                    // skip empty lines (no support for file names with new line in GNU unless we use --null option
-                    if (line[0] == '\n')
-                        continue;
-                    size_t len = strlen(line);
-                    if (line[len - 1] == '\n')
-                        line[len - 1] = '\0';
-                    file_list_entries[i] = strdup(line);
-                    libtar_list_add(l, file_list_entries[i]);
-                    ++i;
+                    // read again through files in list and add them to libtar queue
+                    rewind(fp);
+                    while (fgets(line, sizeof(line), fp) != NULL && i < file_list_count) {
+                        // skip empty lines (no support for file names with new line in GNU unless we use --null option
+                        if (line[0] == '\n')
+                            continue;
+                        size_t len = strlen(line);
+                        if (line[len - 1] == '\n')
+                            line[len - 1] = '\0';
+                        file_list_entries[i] = strdup(line);
+                        libtar_list_add(l, file_list_entries[i]);
+                        ++i;
+                    }
                 }
 
                 fclose(fp);
