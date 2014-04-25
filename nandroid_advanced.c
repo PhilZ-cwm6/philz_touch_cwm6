@@ -607,9 +607,9 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     {
         compute_twrp_backup_stats(index);
         if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
-            sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
+            sprintf(tmp, "(tar -cvsf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
         else
-            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
+            sprintf(tmp, "(tar -cvs -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
 
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
         FILE *fp = __popen(tmp, "r");
@@ -825,9 +825,9 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
     if ((ret = is_gzip_file(backup_file_image)) < 0)
         return ret;
     if (ret == 0)
-        sprintf(tar_args, "-xvf");
+        sprintf(tar_args, "-xvsf");
     else
-        sprintf(tar_args, "-xzvf");
+        sprintf(tar_args, "-xzvsf");
 
     check_restore_size(backup_file_image, backup_path);
     if (strlen(backup_file_image) > strlen("win000") && strcmp(backup_file_image + strlen(backup_file_image) - strlen("win000"), "win000") == 0) {
@@ -988,10 +988,10 @@ int nandroid_backup_datamedia(const char* backup_path) {
     int fmt;
     fmt = nandroid_get_default_backup_format();
     if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
-        sprintf(tmp, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar ; (tar -csv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
     } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
-        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar -csv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value.value, backup_file_image);
     } else {
         // non fatal failure
@@ -1038,13 +1038,13 @@ int nandroid_restore_datamedia(const char* backup_path) {
         sprintf(backup_file_image, "%s/datamedia.%s.tar", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_extract_wrapper;
-            sprintf(tmp, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; cat %s* | tar -xsv ; exit $?", backup_file_image);
             break;
         }
         sprintf(backup_file_image, "%s/datamedia.%s.tar.gz", backup_path, filesystem);
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_gzip_extract_wrapper;
-            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_file_image);
             break;
         }
         i++;
