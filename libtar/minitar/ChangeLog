@@ -1,0 +1,12 @@
+minitar 1.0 - 26/04/2014 (phytowardt@gmail.com)
+- support long options
+- fix getting and setting symlinks context (from TeamWin)
+- default to stdout/stdin like GNU tar
+- force use of -f option like GNU tar for all 3 mode operations (create, extract, list)
+- enable use of stdin for list mode
+- add -T (--files-from) option
+- clean up code and fix all leak memory issues on exit
+- return codes match GNU tar
+- fix all compiler warnings
+- rename sources to match minitar binary building
+- always error on failure to get secontext when --selinux option is used

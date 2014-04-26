@@ -516,7 +516,7 @@ static void free_string_array(char** array, int num) {
 #define MODE_CREATE     2
 #define MODE_EXTRACT    3
 
-int main(int argc, char **argv)
+int minitar_main(int argc, char **argv)
 {
     char *tarfile = NULL;
     char *rootdir = NULL;
