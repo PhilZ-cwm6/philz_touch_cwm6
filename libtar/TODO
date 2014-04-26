@@ -1,21 +1,10 @@
-Functionality:
---------------
-
-* add list mode to allow nodes to be inserted in any arbitrary location
-* add "*_hash_iterate()" function
-* add flags argument to *_list_del() that allows the listptr to be set
-  to the previous or next element
-* add a generic pointer type to replace *_listptr_t and *_hashptr_t ???
-
-
-Code Cleanup:
--------------
-
-* rename functions:
-	*_list_next	=> *_listptr_next()
-	*_list_prev	=> *_listptr_prev()
-	*_hash_next	=> *_hashptr_next()
-* start using "*_list_t" and "*_hash_t" instead of "*_list_t *" and
-  "*_hash_t *" ?
-* add prefixes to structure member field names
-
+* library API:
+  - revamp API (make analogs for Unix fs access calls)
+  - add dircache list to tar handle
+  - support star format(s)?
+  - add support for POSIX.1-2001 pax format
+  - large file support?
+  - support reading from tape devices with different block sizes?
+* libtar program:
+  - make the libtar program a much more fully-featured tar
+  - move output.c and wrapper.c from lib directory to libtar directory

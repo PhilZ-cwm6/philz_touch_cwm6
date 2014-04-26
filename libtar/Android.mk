@@ -1,41 +1,51 @@
 LOCAL_PATH := $(call my-dir)
 
-# Build shared library
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := libtar
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULES_TAGS = optional
-LOCAL_CFLAGS = 
-LOCAL_SRC_FILES = append.c block.c decode.c encode.c extract.c handle.c output.c util.c wrapper.c basename.c strmode.c libtar_hash.c libtar_list.c dirname.c
-LOCAL_C_INCLUDES += $(LOCAL_PATH) \
-					external/zlib
-LOCAL_SHARED_LIBRARIES += libz libc
+LOCAL_MODULE := libtar_recovery
+LOCAL_MODULE_TAGS = optional
+LOCAL_SRC_FILES := lib/append.c \
+			lib/block.c \
+			lib/decode.c \
+			lib/encode.c \
+			lib/extract.c \
+			lib/handle.c \
+			listhash/libtar_hash.c \
+			listhash/libtar_list.c \
+			lib/output.c \
+			lib/util.c \
+			lib/wrapper.c \
+			compat/strlcpy.c \
+			compat/basename.c \
+			compat/dirname.c \
+			compat/strmode.c
 
-#ifeq ($(TWHAVE_SELINUX), true)
-	LOCAL_C_INCLUDES += external/libselinux/include
-	LOCAL_SHARED_LIBRARIES += libselinux
-	LOCAL_CFLAGS += -DHAVE_SELINUX
-#endif
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/lib \
+    $(LOCAL_PATH)/compat \
+    $(LOCAL_PATH)/listhash
 
-include $(BUILD_SHARED_LIBRARY)
-
-# Build static library
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := libtar_static
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULES_TAGS = optional
-LOCAL_CFLAGS = 
-LOCAL_SRC_FILES = append.c block.c decode.c encode.c extract.c handle.c output.c util.c wrapper.c basename.c strmode.c libtar_hash.c libtar_list.c dirname.c
-LOCAL_C_INCLUDES += $(LOCAL_PATH) \
-					external/zlib
-LOCAL_STATIC_LIBRARIES += libz libc
-
-#ifeq ($(TWHAVE_SELINUX), true)
-	LOCAL_C_INCLUDES += external/libselinux/include
-	LOCAL_STATIC_LIBRARIES += libselinux
-	LOCAL_CFLAGS += -DHAVE_SELINUX
-#endif
+LOCAL_CFLAGS += -DHAVE_SELINUX
 
 include $(BUILD_STATIC_LIBRARY)
+
+# minitar recovery binary
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := tar
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_TAGS = eng
+LOCAL_SRC_FILES := minitar/minitar.c
+
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/lib \
+    $(LOCAL_PATH)/compat \
+    $(LOCAL_PATH)/listhash \
+    external/zlib
+
+LOCAL_STATIC_LIBRARIES := libc libtar_recovery libz libselinux
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+
+include $(BUILD_EXECUTABLE)
