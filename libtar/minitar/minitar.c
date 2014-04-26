@@ -473,8 +473,30 @@ extract(char *tarfile, char *rootdir)
 }
 
 static void usage() {
-    printf("Usage: %s [-C rootdir] [-g] [-z] -x|-t filename.tar\n", progname);
-    printf("       %s [-C rootdir] [-g] [-z] -c filename.tar ...\n", progname);
+    printf("Usage: %s [OPTION...] [FILE]...\n", progname);
+    printf("Examples:\n"
+           "   tar -cf archive.tar foo bar  # Create archive.tar from files foo and bar.\n"
+           "   tar -tvf archive.tar         # List all files in archive.tar verbosely.\n"
+           "   tar -xf archive.tar          # Extract all files from archive.tar.\n"
+    );
+    printf("\n");
+    printf("Main operation mode:\n"
+           "   -c, --create     create a new archive\n"
+           "   -t, --list       list the contents of an archive\n"
+           "   -x, --extract    extract files from an archive\n"
+    );
+    printf("\n");
+    printf("Valid Options:\n"
+           "   -V, --version\n"
+           "   -f, --file\n"
+           "   -z, --gzip\n"
+           "   -C, --directory\n"
+           "   -v, --verbose\n"
+           "   -g, --listed-incremental\n"
+           "   -T, --files-from\n"
+           "   -s, --selinux\n"
+           "   -X, --exclude\n"
+    );
 }
 
 static void free_string_array(char** array, int num) {
@@ -529,6 +551,7 @@ int main(int argc, char **argv)
         switch (c) {
             case 'V':
                 printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n", libtar_version);
+                printf("minitar 1.0 <2014>\n");
                 break;
             case 'C':
                 rootdir = strdup(optarg);
