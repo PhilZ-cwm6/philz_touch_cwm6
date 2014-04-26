@@ -398,6 +398,7 @@ int run_and_remove_extendedcommand()
     sprintf(tmp, "cp %s /tmp/%s", EXTENDEDCOMMAND_SCRIPT, basename(EXTENDEDCOMMAND_SCRIPT));
     __system(tmp);
     remove(EXTENDEDCOMMAND_SCRIPT);
+    sleep(2); // wait for postrecoveryboot.sh umount system
     int i = 0;
     for (i = 20; i > 0; i--) {
         ui_print("Waiting for SD Card to mount (%ds)\n", i);

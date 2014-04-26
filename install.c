@@ -187,7 +187,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
         mzCloseZipArchive(zip);
         return 1;
     }
-
+if (0) {
     /* Make sure the update binary is compatible with this recovery
      *
      * We're building this against 4.4's (or above) bionic, which
@@ -243,7 +243,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
             LOGI("Legacy property environment initialized.\n");
         }
     }
-
+}
     int pipefd[2];
     pipe(pipefd);
 

@@ -28,13 +28,17 @@ LOCAL_STATIC_LIBRARIES += \
     libz
 endif
 
+ifeq ($(BOARD_USE_MKE2FS_FORMAT),true)
+  LOCAL_CFLAGS += -DUSE_MKE2FS_FORMAT
+endif
+
 LOCAL_STATIC_LIBRARIES += libflashutils libmtdutils libmmcutils libbmlutils
 LOCAL_STATIC_LIBRARIES += $(TARGET_RECOVERY_UPDATER_LIBS) $(TARGET_RECOVERY_UPDATER_EXTRA_LIBS)
 LOCAL_STATIC_LIBRARIES += libapplypatch libedify libmtdutils libminzip libz
 LOCAL_STATIC_LIBRARIES += libmincrypt libbz
 LOCAL_STATIC_LIBRARIES += libminelf
 LOCAL_STATIC_LIBRARIES += libcutils libstdc++ libc
-LOCAL_STATIC_LIBRARIES += libselinux
+LOCAL_STATIC_LIBRARIES += libselinux libcrecovery
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/..
 
 # Each library in TARGET_RECOVERY_UPDATER_LIBS should have a function

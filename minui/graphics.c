@@ -107,6 +107,8 @@ static int get_framebuffer(GGLSurface *fb)
         return -1;
     }
 
+    fprintf(stderr, "Pixel format: %dx%d @ %dbpp\n", vi.xres, vi.yres, vi.bits_per_pixel);
+
     if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
         perror("failed to get fb0 info");
         close(fd);
@@ -148,6 +150,8 @@ static int get_framebuffer(GGLSurface *fb)
          vi.transp.offset  = 0;
          vi.transp.length  = 0;
        }
+       vi.vmode = FB_VMODE_NONINTERLACED;
+       vi.activate = FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
        if (ioctl(fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
            perror("failed to put fb0 info");
            close(fd);
@@ -293,6 +297,16 @@ void gr_flip(void)
         /* swap front and back buffers */
         if (double_buffering)
             gr_active_fb = (gr_active_fb + 1) & 1;
+
+#ifdef BOARD_HAS_FLIPPED_SCREEN
+        /* flip buffer 180 degrees for devices with physicaly inverted screens */
+        unsigned int i;
+        for (i = 1; i < (vi.xres * vi.yres); i++) {
+            unsigned short tmp = gr_mem_surface.data[i];
+            gr_mem_surface.data[i] = gr_mem_surface.data[(vi.xres * vi.yres *2) - i];
+            gr_mem_surface.data[(vi.xres * vi.yres *2) - i] = tmp;
+        }
+#endif
 
         /* copy data from the in-memory surface to the buffer we're about
          * to make active. */
