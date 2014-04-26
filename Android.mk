@@ -173,6 +173,10 @@ endif
 LOCAL_STATIC_LIBRARIES += libvoldclient libsdcard libminipigz libfsck_msdos
 LOCAL_STATIC_LIBRARIES += libmake_ext4fs libext4_utils_static libz libsparse_static
 
+ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+LOCAL_STATIC_LIBRARIES += libtar_recovery
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
 LOCAL_CFLAGS += -DUSE_F2FS
 LOCAL_STATIC_LIBRARIES += libmake_f2fs libfsck_f2fs libfibmap_f2fs
@@ -201,6 +205,10 @@ endif
 include $(BUILD_EXECUTABLE)
 
 RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop getprop start stop dedupe minizip setup_adbd fsck_msdos newfs_msdos vdc sdcard pigz
+
+ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+RECOVERY_LINKS += tar
+endif
 
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
 RECOVERY_LINKS += mkfs.f2fs fsck.f2fs fibmap.f2fs
