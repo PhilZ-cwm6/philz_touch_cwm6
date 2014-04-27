@@ -614,9 +614,9 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 #endif
         else
 #ifdef BOARD_RECOVERY_USE_BBTAR
-            sprintf(tmp, "(tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
+            sprintf(tmp, "set -o pipefail ; (tar -cv -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
 #else
-            sprintf(tmp, "(tar -cvs -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
+            sprintf(tmp, "(set -o pipefail ; tar -cvs -T /tmp/list/filelist%03i | pigz -c -%d >'%s%03i') 2> /proc/self/fd/1 ; exit $?", index, compression_value.value, backup_file_image, index);
 #endif
         ui_print("  * Backing up archive %i/%i\n", (index + 1), backup_count);
         FILE *fp = __popen(tmp, "r");
@@ -1004,18 +1004,18 @@ int nandroid_backup_datamedia(const char* backup_path) {
     fmt = nandroid_get_default_backup_format();
     if (fmt == NANDROID_BACKUP_FORMAT_TAR) {
 #ifdef BOARD_RECOVERY_USE_BBTAR
-        sprintf(tmp, "cd / ; touch %s.tar ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar ; set -o pipefail ; (tar cv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
 #else
-        sprintf(tmp, "cd / ; touch %s.tar ; (tar -csv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar ; set -o pipefail ; (tar -csv data/media | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, backup_file_image);
 #endif
     } else if (fmt == NANDROID_BACKUP_FORMAT_TGZ) {
 #ifdef BOARD_RECOVERY_USE_BBTAR
-        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar.gz ; set -o pipefail ; (tar cv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value.value, backup_file_image);
 #else
-        sprintf(tmp, "cd / ; touch %s.tar.gz ; (tar -csv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
+        sprintf(tmp, "cd / ; touch %s.tar.gz ; set -o pipefail ; (tar -csv data/media | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?",
                 backup_file_image, compression_value.value, backup_file_image);
 #endif
     } else {
@@ -1064,9 +1064,9 @@ int nandroid_restore_datamedia(const char* backup_path) {
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_extract_wrapper;
 #ifdef BOARD_RECOVERY_USE_BBTAR
-            sprintf(tmp, "cd / ; cat %s* | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; set -o pipefail ; cat %s* | tar xv ; exit $?", backup_file_image);
 #else
-            sprintf(tmp, "cd / ; cat %s* | tar -xsv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; set -o pipefail ; cat %s* | tar -xsv ; exit $?", backup_file_image);
 #endif
             break;
         }
@@ -1074,9 +1074,9 @@ int nandroid_restore_datamedia(const char* backup_path) {
         if (0 == stat(backup_file_image, &s)) {
             restore_handler = tar_gzip_extract_wrapper;
 #ifdef BOARD_RECOVERY_USE_BBTAR
-            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; set -o pipefail ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_file_image);
 #else
-            sprintf(tmp, "cd / ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_file_image);
+            sprintf(tmp, "cd / ; set -o pipefail ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_file_image);
 #endif
             break;
         }

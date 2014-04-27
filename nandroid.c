@@ -237,9 +237,9 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
 static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; set -o pipefail ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
 #else
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; set -o pipefail ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
 #endif
 
     return do_tar_compress(tmp, callback, backup_file_image);
@@ -248,9 +248,9 @@ static int tar_compress_wrapper(const char* backup_path, const char* backup_file
 static int tar_gzip_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; set -o pipefail ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
 #else
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; set -o pipefail ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
 #endif
 
     return do_tar_compress(tmp, callback, backup_file_image);
@@ -259,9 +259,9 @@ static int tar_gzip_compress_wrapper(const char* backup_path, const char* backup
 static int tar_dump_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s); tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
+    sprintf(tmp, "cd $(dirname %s); set -o pipefail ; tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
 #else
-    sprintf(tmp, "cd $(dirname %s); tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
+    sprintf(tmp, "cd $(dirname %s); set -o pipefail ; tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
 #endif
 
     return __system(tmp);
@@ -696,7 +696,7 @@ int nandroid_dump(const char* partition) {
     }
 
     if (strcmp(partition, "recovery") == 0) {
-        return __system("dump_image recovery /proc/self/fd/1 | cat");
+        return __system("set -o pipefail ; dump_image recovery /proc/self/fd/1 | cat");
     }
 
     if (strcmp(partition, "data") == 0) {
@@ -774,9 +774,9 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
 static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_path, backup_file_image);
 #else
-    sprintf(tmp, "cd $(dirname %s) ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_path, backup_file_image);
 #endif
 
     return do_tar_extract(tmp, backup_file_image, backup_path, callback);
@@ -785,9 +785,9 @@ static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* b
 static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; cat %s* | tar xv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | tar xv ; exit $?", backup_path, backup_file_image);
 #else
-    sprintf(tmp, "cd $(dirname %s) ; cat %s* | tar -xsv ; exit $?", backup_path, backup_file_image);
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | tar -xsv ; exit $?", backup_path, backup_file_image);
 #endif
 
     return do_tar_extract(tmp, backup_file_image, backup_path, callback);
