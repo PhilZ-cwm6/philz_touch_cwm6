@@ -241,9 +241,6 @@ include $(commands_recovery_local_path)/utilities/Android.mk
 include $(commands_recovery_local_path)/su/supersu/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/loki/Android.mk
-ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
-    include $(commands_recovery_local_path)/libtar/Android.mk
-endif
 commands_recovery_local_path :=
 
 endif
