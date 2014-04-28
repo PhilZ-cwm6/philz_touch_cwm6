@@ -44,7 +44,7 @@
 
 char *progname;
 int verbose = 0;
-int use_gnu = 0;
+int use_gnu = 1;
 
 #ifdef DEBUG
 void
@@ -492,7 +492,7 @@ static void usage() {
            "   -z, --gzip\n"
            "   -C, --directory\n"
            "   -v, --verbose\n"
-           "   -g, --listed-incremental\n"
+           "   -H, --format [posix][gnu](default)\n"
            "   -T, --files-from\n"
            "   -s, --selinux\n"
            "   -X, --exclude\n"
@@ -532,7 +532,7 @@ int minitar_main(int argc, char **argv)
         {"version", no_argument, 0, 'V'},
         {"directory", required_argument, 0, 'C'},
         {"verbose", no_argument, 0, 'v'},
-        {"listed-incremental", no_argument, 0, 'g'},
+        {"format", required_argument, 0, 'H'},
         {"create", no_argument, 0, 'c'},
         {"files-from", required_argument, 0, 'T'},
         {"file", required_argument, 0, 'f'},
@@ -559,8 +559,13 @@ int minitar_main(int argc, char **argv)
             case 'v':
                 verbose = 1;
                 break;
-            case 'g':
-                use_gnu = 1;
+            case 'H':
+                if (strcmp(optarg, "gnu") == 0)
+                    use_gnu = 1; // default format
+                else if (strcmp(optarg, "posix") == 0)
+                    use_gnu = 0;
+                else
+                    ret = 2;
                 break;
             case 'c':
                 if (mode)
