@@ -4,7 +4,7 @@
 # By PhilZ for PhilZ Touch recovery        #
 ############################################
 #
-# Info on some tags
+# Info on some tagsc
 #   - KERNEL_EXFAT_MODULE_NAME: This will force minivold to use much faster kernel modules instead of slow fuse
 #                               it will only work if you have modified vold sources (contact me for info)
 #                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
@@ -276,7 +276,7 @@ else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Core Duos (i8262)
-else ifeq ($(TARGET_PRODUCT), cm_i8262)
+else ifeq ($(TARGET_PRODUCT), cm_arubaslim)
     TARGET_COMMON_NAME := Galaxy i8262
     BOOTLOADER_CMD_ARG := "download"
     TARGET_SCREEN_HEIGHT := 800
