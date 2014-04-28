@@ -4,7 +4,7 @@
 # By PhilZ for PhilZ Touch recovery        #
 ############################################
 #
-# Info on some tagsc
+# Info on some tags
 #   - KERNEL_EXFAT_MODULE_NAME: This will force minivold to use much faster kernel modules instead of slow fuse
 #                               it will only work if you have modified vold sources (contact me for info)
 #                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
