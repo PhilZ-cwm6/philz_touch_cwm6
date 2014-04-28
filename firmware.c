@@ -100,12 +100,19 @@ int maybe_install_firmware_update(const char *send_intent) {
         BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
     char *fail_image = ui_copy_image(
         BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
-
+#ifdef USE_CHINESE_FONT
+    ui_print("正在写入%s镜像...\n", update_type);
+#else
     ui_print("Writing %s image...\n", update_type);
+#endif
     if (write_update_for_bootloader(
             update_data, update_length,
             width, height, bpp, busy_image, fail_image)) {
+#ifdef USE_CHINESE_FONT
+        LOGE("不能写入%s镜像\n(%s)\n", update_type, strerror(errno));
+#else
         LOGE("Can't write %s image\n(%s)\n", update_type, strerror(errno));
+#endif
         format_volume("/cache");  // Attempt to clean cache up, at least.
         return -1;
     }

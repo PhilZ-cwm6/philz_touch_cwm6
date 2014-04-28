@@ -6,22 +6,27 @@ include $(CLEAR_VARS)
 commands_recovery_local_path := $(LOCAL_PATH)
 # LOCAL_CPP_EXTENSION := .c
 
+ifeq ($(findstring fontcn,$(BOARD_USE_CUSTOM_RECOVERY_FONT)),fontcn)
+  LOCAL_CFLAGS += -DUSE_CHINESE_FONT
+  src_suffix := _cn
+endif
+
 LOCAL_SRC_FILES := \
-    recovery.c \
+    recovery$(src_suffix).c \
     bootloader.c \
-    install.c \
+    install$(src_suffix).c \
     roots.c \
-    ui.c \
+    ui_touch.c \
     mounts.c \
-    extendedcommands.c \
-    nandroid.c \
+    extendedcommands$(src_suffix).c \
+    nandroid$(src_suffix).c \
     reboot.c \
     ../../system/core/toolbox/dynarray.c \
     ../../system/core/toolbox/newfs_msdos.c \
     firmware.c \
-    edifyscripting.c \
+    edifyscripting$(src_suffix).c \
     prop.c \
-    adb_install.c \
+    adb_install$(src_suffix).c \
     verifier.c \
     ../../system/vold/vdc.c \
     propsrvc/legacy_property_service.c
@@ -60,24 +65,38 @@ ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
   BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_10x18.h\"
 endif
 
+#BOARD_USE_MKE2FS_FORMAT := true
+ifeq ($(BOARD_USE_MKE2FS_FORMAT),true)
+  LOCAL_CFLAGS += -DUSE_MKE2FS_FORMAT
+endif
+
+ifeq ($(RECOVERY_USE_MIGRATED_STORAGE),true)
+  LOCAL_CFLAGS += -DUSE_MIGRATED_STORAGE
+endif
+
+ifeq ($(RECOVERY_NEED_SELINUX_FIX),true)
+  LOCAL_CFLAGS += -DNEED_SELINUX_FIX
+  BOARD_RECOVERY_USE_BBTAR := true
+endif
+
 BOARD_RECOVERY_CHAR_WIDTH := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 1)
 BOARD_RECOVERY_CHAR_HEIGHT := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 2)
+RECOVERY_BUILD_DATE := $(shell date +"%Y%m%d")
+LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT) -DRECOVERY_BUILD_DATE="$(RECOVERY_BUILD_DATE)"
 
-LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT)
-
-BOARD_RECOVERY_DEFINES := BOARD_RECOVERY_SWIPE BOARD_HAS_NO_SELECT_BUTTON BOARD_UMS_LUNFILE BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT BOARD_TOUCH_RECOVERY RECOVERY_EXTEND_NANDROID_MENU TARGET_USE_CUSTOM_LUN_FILE_PATH TARGET_DEVICE TARGET_RECOVERY_FSTAB BOARD_NATIVE_DUALBOOT BOARD_NATIVE_DUALBOOT_SINGLEDATA BOARD_RECOVERY_SWIPE_SWAPXY
+BOARD_RECOVERY_DEFINES := BOARD_RECOVERY_SWIPE BOARD_HAS_NO_SELECT_BUTTON BOARD_UMS_LUNFILE BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT BOARD_TOUCH_RECOVERY RECOVERY_EXTEND_NANDROID_MENU TARGET_USE_CUSTOM_LUN_FILE_PATH TARGET_DEVICE TARGET_RECOVERY_FSTAB BOARD_NATIVE_DUALBOOT BOARD_NATIVE_DUALBOOT_SINGLEDATA BOARD_RECOVERY_SWIPE_SWAPXY BOARD_RECOVERY_USE_BBTAR
 
 $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
   $(if $($(board_define)), \
     $(eval LOCAL_CFLAGS += -D$(board_define)=\"$($(board_define))\") \
   ) \
   )
-
+#LOCAL_CFLAGS += -DTARGET_DEVICE=flte
 LOCAL_STATIC_LIBRARIES :=
 
 LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
 LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include external/fsck_msdos
-LOCAL_C_INCLUDES += system/vold
+LOCAL_C_INCLUDES += system/vold external/libselinux/include
 
 LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
 
@@ -109,6 +128,10 @@ endif
 LOCAL_STATIC_LIBRARIES += libvoldclient libsdcard libminipigz libfsck_msdos
 LOCAL_STATIC_LIBRARIES += libmake_ext4fs libext4_utils_static libz libsparse_static
 
+ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+LOCAL_STATIC_LIBRARIES += libtar
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
 LOCAL_CFLAGS += -DUSE_F2FS
 LOCAL_STATIC_LIBRARIES += libmake_f2fs libfsck_f2fs libfibmap_f2fs
@@ -134,6 +157,10 @@ include $(BUILD_EXECUTABLE)
 
 RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop getprop start stop dedupe minizip setup_adbd fsck_msdos newfs_msdos vdc sdcard pigz
 
+ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+RECOVERY_LINKS += tar
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
 RECOVERY_LINKS += mkfs.f2fs fsck.f2fs fibmap.f2fs
 endif
@@ -152,6 +179,9 @@ ALL_DEFAULT_INSTALLED_MODULES += $(RECOVERY_SYMLINKS)
 # Now let's do recovery symlinks
 BUSYBOX_LINKS := $(shell cat external/busybox/busybox-minimal.links)
 exclude := tune2fs mke2fs
+ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+exclude += tar
+endif
 RECOVERY_BUSYBOX_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
 $(RECOVERY_BUSYBOX_SYMLINKS): BUSYBOX_BINARY := busybox
 $(RECOVERY_BUSYBOX_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
@@ -209,7 +239,7 @@ include $(commands_recovery_local_path)/edify/Android.mk
 include $(commands_recovery_local_path)/updater/Android.mk
 include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/utilities/Android.mk
-include $(commands_recovery_local_path)/su/Android.mk
+include $(commands_recovery_local_path)/su/supersu/Android.mk
 include $(commands_recovery_local_path)/voldclient/Android.mk
 include $(commands_recovery_local_path)/loki/Android.mk
 commands_recovery_local_path :=
