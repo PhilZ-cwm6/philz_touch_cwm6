@@ -76,6 +76,7 @@ endif
 
 ifeq ($(RECOVERY_NEED_SELINUX_FIX),true)
   LOCAL_CFLAGS += -DNEED_SELINUX_FIX
+  BOARD_RECOVERY_USE_BBTAR := true
 endif
 
 BOARD_RECOVERY_CHAR_WIDTH := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | cut -d _  -f 2 | cut -d . -f 1 | cut -d x -f 1)
