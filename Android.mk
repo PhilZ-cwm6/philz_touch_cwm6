@@ -6,9 +6,6 @@ LOCAL_PATH := $(call my-dir)
 PHILZ_TOUCH_RECOVERY := true
 USE_PREBUILT_LIBTOUCH_GUI := true
 
-# temporary disable libtar
-BOARD_RECOVERY_USE_BBTAR := true
-
 ifdef PHILZ_TOUCH_RECOVERY
 ifdef USE_PREBUILT_LIBTOUCH_GUI
 include $(CLEAR_VARS)
