@@ -56,18 +56,16 @@ th_read_internal(TAR *t)
 		if (BIT_ISSET(t->options, TAR_CHECK_MAGIC)
 		    && strncmp(t->th_buf.magic, TMAGIC, TMAGLEN - 1) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown magic value in tar header");
-#endif
+			printf("!!! unknown magic value in tar header\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
 		if (BIT_ISSET(t->options, TAR_CHECK_VERSION)
 		    && strncmp(t->th_buf.version, TVERSION, TVERSLEN) != 0)
 		{
-#ifdef DEBUG
-			puts("!!! unknown version value in tar header");
-#endif
+			printf("!!! unknown version value in tar header\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
@@ -75,9 +73,8 @@ th_read_internal(TAR *t)
 		if (!BIT_ISSET(t->options, TAR_IGNORE_CRC)
 		    && !th_crc_ok(t))
 		{
-#ifdef DEBUG
-			puts("!!! tar header checksum error");
-#endif
+			printf("!!! tar header checksum error\n");
+            printf("==> th_read_internal(TAR=\"%s\")\n", t->pathname);
 			return -2;
 		}
 
