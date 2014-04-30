@@ -21,6 +21,8 @@
 #include <paths.h>
 #include <sys/wait.h>
 
+#include <selinux/selinux.h>
+
 #define DEDUPE_VERSION 2
 #define ARRAY_CAPACITY 1000
 
@@ -96,8 +98,8 @@ static int do_sha256sum_file(const char* filename, unsigned char *rptr) {
 
 static int store_st(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* s);
 
-void print_stat(struct DEDUPE_STORE_CONTEXT *context, char type, struct stat st, const char *f) {
-    fprintf(context->output_manifest, "%c\t%o\t%d\t%d\t%lu\t%lu\t%lu\t%s\t", type, st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID), st.st_uid, st.st_gid, st.st_atime, st.st_mtime, st.st_ctime, f);
+void print_stat(struct DEDUPE_STORE_CONTEXT *context, char type, struct stat st, char *selabel, const char *f) {
+    fprintf(context->output_manifest, "%c\t%o\t%d\t%d\t%s\t%lu\t%lu\t%lu\t%s\t", type, st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID), st.st_uid, st.st_gid, selabel, st.st_atime, st.st_mtime, st.st_ctime, f);
 }
 
 static int store_file(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* f) {
@@ -215,17 +217,21 @@ static int store_link(struct DEDUPE_STORE_CONTEXT *context, struct stat st, cons
 }
 
 static int store_st(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* s) {
+    char* selabel = "<<none>>";
+    if (lgetfilecon(s, &selabel) < 0) {
+        fprintf(stderr, "Can't get %s context\n", s);
+    }
     if (S_ISREG(st.st_mode)) {
-        print_stat(context, 'f', st, s);
+        print_stat(context, 'f', st, selabel, s);
         return store_file(context, st, s);
     }
     else if (S_ISDIR(st.st_mode)) {
-        print_stat(context, 'd', st, s);
+        print_stat(context, 'd', st, selabel, s);
         fprintf(context->output_manifest, "\n");
         return store_dir(context, st, s);
     }
     else if (S_ISLNK(st.st_mode)) {
-        print_stat(context, 'l', st, s);
+        print_stat(context, 'l', st, selabel, s);
         return store_link(context, st, s);
     }
     else {
@@ -421,6 +427,7 @@ int dedupe_main(int argc, char** argv) {
             char mode[8];
             char uid[32];
             char gid[32];
+            char selabel[PATH_MAX];
             char at[32];
             char mt[32];
             char ct[32];
@@ -431,6 +438,7 @@ int dedupe_main(int argc, char** argv) {
             token = tokenize(mode, token, '\t');
             token = tokenize(uid, token, '\t');
             token = tokenize(gid, token, '\t');
+            token = tokenize(selabel, token, '\t');
             if (version >= 2) {
                 token = tokenize(at, token, '\t');
                 token = tokenize(mt, token, '\t');
@@ -442,7 +450,7 @@ int dedupe_main(int argc, char** argv) {
             int uid_int = atoi(uid);
             int gid_int = atoi(gid);
             int ret;
-            //printf("%s\t%s\t%s\t%s\t%s\t", type, mode, uid, gid, filename);
+            //printf("%s\t%s\t%s\t%s\t%s\t%s\t", type, mode, uid, gid, selabel, filename);
             printf("%s\n", filename);
             if (strcmp(type, "f") == 0) {
                 char sha256[128];
@@ -486,6 +494,9 @@ int dedupe_main(int argc, char** argv) {
                 fprintf(stderr, "Unknown type %s\n", type);
                 fclose(input_manifest);
                 return 1;
+            }
+            if (lsetfilecon(filename, selabel) < 0) {
+                fprintf(stderr, "Can't setfilecon %s\n", filename);
             }
             if (version >= 2) {
                 struct timeval times[2];
@@ -544,6 +555,7 @@ int dedupe_main(int argc, char** argv) {
                 char mode[8];
                 char uid[32];
                 char gid[32];
+                char selabel[PATH_MAX];
                 char at[32];
                 char mt[32];
                 char ct[32];
@@ -554,6 +566,7 @@ int dedupe_main(int argc, char** argv) {
                 token = tokenize(mode, token, '\t');
                 token = tokenize(uid, token, '\t');
                 token = tokenize(gid, token, '\t');
+                token = tokenize(selabel, token, '\t');
                 if (version >= 2) {
                     token = tokenize(at, token, '\t');
                     token = tokenize(mt, token, '\t');
