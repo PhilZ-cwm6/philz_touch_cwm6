@@ -375,6 +375,8 @@ else ifeq ($(TARGET_PRODUCT), cm_lt03ltexx)
     TARGET_COMMON_NAME := Note 10.1 2014 LTE
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1600
+    TARGET_SCREEN_WIDTH := 2560
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Note 10.1 2014 Wifi (lt03wifi), 3G (lt03wifiue)
