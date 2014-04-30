@@ -276,7 +276,7 @@ else ifeq ($(TARGET_PRODUCT), cm_exhilarate)
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Core Duos (i8262)
-else ifeq ($(TARGET_PRODUCT), cm_i8262)
+else ifeq ($(TARGET_PRODUCT), cm_arubaslim)
     TARGET_COMMON_NAME := Galaxy i8262
     BOOTLOADER_CMD_ARG := "download"
     TARGET_SCREEN_HEIGHT := 800
