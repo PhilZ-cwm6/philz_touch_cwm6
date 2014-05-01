@@ -101,7 +101,7 @@ th_get_mode(TAR *t)
 			mode |= S_IFIFO;
 			break;
 		case AREGTYPE:
-			if (t->th_buf.name[strlen(t->th_buf.name) - 1] == '/')
+			if (t->th_buf.name[strnlen(t->th_buf.name, T_NAMELEN) - 1] == '/')
 			{
 				mode |= S_IFDIR;
 				break;

@@ -40,6 +40,7 @@ tar_extract_glob(TAR *t, char *globname, char *prefix)
 				free (filename);
 				return -1;
 			}
+            free (filename);
 			continue;
 		}
 		if (t->options & TAR_VERBOSE)

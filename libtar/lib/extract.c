@@ -57,6 +57,11 @@ tar_set_file_perms(TAR *t, const char *realname)
 	gid = th_get_gid(t);
 	ut.modtime = ut.actime = th_get_mtime(t);
 
+/*
+	printf("   ==> setting perms: %s (mode %04o, uid %d, gid %d)\n",
+			filename, mode, uid, gid);
+*/
+
 	/* change owner/group */
 	if (geteuid() == 0)
 #ifdef HAVE_LCHOWN
@@ -141,12 +146,16 @@ tar_extract_file(TAR *t, const char *realname)
 	else /* if (TH_ISREG(t)) */
 		i = tar_extract_regfile(t, realname);
 
-	if (i != 0)
+	if (i != 0) {
+		printf("FAILED RESTORE OF FILE i: %s\n", realname);
 		return i;
+	}
 
 	i = tar_set_file_perms(t, realname);
-	if (i != 0)
+	if (i != 0) {
+		printf("FAILED SETTING PERMS: %d\n", i);
 		return i;
+	}
 
 #ifdef HAVE_SELINUX
 	if((t->options & TAR_STORE_SELINUX) && t->th_buf.selinux_context != NULL)
@@ -181,10 +190,10 @@ tar_extract_file(TAR *t, const char *realname)
 int
 tar_extract_regfile(TAR *t, const char *realname)
 {
-	mode_t mode;
+	//mode_t mode;
 	size_t size;
-	uid_t uid;
-	gid_t gid;
+	//uid_t uid;
+	//gid_t gid;
 	int fdout;
 	int i, k;
 	char buf[T_BLOCKSIZE];
@@ -204,10 +213,10 @@ tar_extract_regfile(TAR *t, const char *realname)
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
-	mode = th_get_mode(t);
+	//mode = th_get_mode(t);
 	size = th_get_size(t);
-	uid = th_get_uid(t);
-	gid = th_get_gid(t);
+	//uid = th_get_uid(t);
+	//gid = th_get_gid(t);
 
 	if (mkdirhier(dirname(filename)) == -1)
 	{
@@ -216,8 +225,10 @@ tar_extract_regfile(TAR *t, const char *realname)
 	}
 
 #ifdef DEBUG
-	printf("  ==> extracting: %s (mode %04o, uid %d, gid %d, %d bytes)\n",
-	       filename, mode, uid, gid, size);
+	//printf("  ==> extracting: %s (mode %04o, uid %d, gid %d, %d bytes)\n",
+	//       filename, mode, uid, gid, size);
+	printf("  ==> extracting: %s (file size %d bytes)\n",
+			filename, size);
 #endif
 	fdout = open(filename, O_WRONLY | O_CREAT | O_TRUNC
 #ifdef O_BINARY
@@ -234,6 +245,7 @@ tar_extract_regfile(TAR *t, const char *realname)
 	}
 
 #if 0
+    /* DEAD Code */
 	/* change the owner.  (will only work if run as root) */
 	if (fchown(fdout, uid, gid) == -1 && errno != EPERM)
 	{
@@ -390,8 +402,10 @@ tar_extract_symlink(TAR *t, const char *realname)
 		return -1;
 	}
 
-	if (unlink(filename) == -1 && errno != ENOENT)
+	if (unlink(filename) == -1 && errno != ENOENT) {
+        free (pn);
 		return -1;
+    }
 
 #ifdef DEBUG
 	printf("  ==> extracting: %s (symlink to %s)\n",
