@@ -99,7 +99,7 @@ static int do_sha256sum_file(const char* filename, unsigned char *rptr) {
 static int store_st(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* s);
 
 void print_stat(struct DEDUPE_STORE_CONTEXT *context, char type, struct stat st, char *selabel, const char *f) {
-    fprintf(context->output_manifest, "%c\t%o\t%d\t%d\t%s\t%lu\t%lu\t%lu\t%s\t", type, st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID), st.st_uid, st.st_gid, selabel, st.st_atime, st.st_mtime, st.st_ctime, f);
+    fprintf(context->output_manifest, "%c\t%o\t%lu\t%lu\t%s\t%lu\t%lu\t%lu\t%s\t", type, st.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID), st.st_uid, st.st_gid, selabel, st.st_atime, st.st_mtime, st.st_ctime, f);
 }
 
 static int store_file(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* f) {
@@ -217,25 +217,32 @@ static int store_link(struct DEDUPE_STORE_CONTEXT *context, struct stat st, cons
 }
 
 static int store_st(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* s) {
-    char* selabel = "<<none>>";
+    char* selabel = NULL;
+    int f = 1;
     if (lgetfilecon(s, &selabel) < 0) {
         fprintf(stderr, "Can't get %s context\n", s);
+        selabel = "unlabel";
+        f = 0;
     }
     if (S_ISREG(st.st_mode)) {
         print_stat(context, 'f', st, selabel, s);
+        if (f) freecon(selabel);
         return store_file(context, st, s);
     }
     else if (S_ISDIR(st.st_mode)) {
         print_stat(context, 'd', st, selabel, s);
         fprintf(context->output_manifest, "\n");
+        if (f) freecon(selabel);
         return store_dir(context, st, s);
     }
     else if (S_ISLNK(st.st_mode)) {
         print_stat(context, 'l', st, selabel, s);
+        if (f) freecon(selabel);
         return store_link(context, st, s);
     }
     else {
         fprintf(stderr, "Skipping special: %s\n", s);
+        if (f) freecon(selabel);
         return 0;
     }
 }
