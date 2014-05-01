@@ -456,19 +456,19 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
 #ifdef BOARD_RECOVERY_USE_BBTAR
     sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
     ensure_path_mounted(tmp);
-    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp)) {
+    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp) || backup_handler == dedupe_compress_wrapper) {
         LOGI("skipping selinux context!\n");
     }
     else if (0 == strcmp(mount_point, "/data") ||
                 0 == strcmp(mount_point, "/system") ||
                 0 == strcmp(mount_point, "/cache"))
     {
-            ui_print("backing up selinux context...\n");
-            sprintf(tmp, "%s/%s.context", backup_path, name);
-            if (backupcon_to_file(mount_point, tmp) < 0)
-                LOGE("backup selinux context error!\n");
-            else
-                ui_print("backup selinux context completed.\n");
+        ui_print("backing up selinux context...\n");
+        sprintf(tmp, "%s/%s.context", backup_path, name);
+        if (bakupcon_to_file(mount_point, tmp) < 0)
+            LOGE("backup selinux context error!\n");
+        else
+            ui_print("backup selinux context completed.\n");
     }
 #endif
 
@@ -1051,20 +1051,20 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 #ifdef BOARD_RECOVERY_USE_BBTAR
     sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
     ensure_path_mounted(tmp);
-    if (strcmp(backup_path, "-") == 0 || file_found(tmp)) {
-        LOGE("skipping restore of selinux context\n");
+    if (strcmp(backup_path, "-") == 0 || file_found(tmp) || restore_handler == dedupe_extract_wrapper) {
+        LOGI("don't need restore of selinux context\n");
     } else if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache")) {
-            ui_print("restoring selinux context...\n");
-            sprintf(name, "%s", BaseName(mount_point));
-            sprintf(tmp, "%s/%s.context", backup_path, name);
-            if ((ret = restorecon_from_file(tmp)) < 0) {
-                ui_print("restorecon from %s.context error, trying regular restorecon.\n", name);
-                if ((ret = restorecon_recursive(mount_point, "/data/media/")) < 0) {
-                    LOGE("Restorecon %s error!\n", mount_point); 
-                    return ret;
-                }
+        ui_print("restoring selinux context...\n");
+        sprintf(name, "%s", BaseName(mount_point));
+        sprintf(tmp, "%s/%s.context", backup_path, name);
+        if ((ret = restorecon_from_file(tmp)) < 0) {
+            ui_print("restorecon from %s.context error, trying regular restorecon.\n", name);
+            if ((ret = restorecon_recursive(mount_point, "/data/media/")) < 0) {
+                LOGE("Restorecon %s error!\n", mount_point);
+                return ret;
             }
-            ui_print("restore selinux context completed.\n");
+        }
+        ui_print("restore selinux context completed.\n");
     }
 #endif
 
@@ -1410,28 +1410,30 @@ int nandroid_main(int argc, char** argv) {
 #ifdef BOARD_RECOVERY_USE_BBTAR
 static int nochange;
 static int verbose;
-int backupcon_to_file(const char *pathname, const char *filename) {
+int bakupcon_to_file(const char *pathname, const char *filename)
+{
     int ret = 0;
     struct stat sb;
     char* filecontext = NULL;
     FILE * f = NULL;
     if (lstat(pathname, &sb) < 0) {
-        LOGW("backupcon_to_file: %s not found\n", pathname);
+        LOGW("bakupcon_to_file: %s not found\n", pathname);
         return -1;
     }
 
     if (lgetfilecon(pathname, &filecontext) < 0) {
-        LOGW("backupcon_to_file: can't get %s context\n", pathname);
+        LOGW("bakupcon_to_file: can't get %s context\n", pathname);
         ret = 1;
     }
     else {
         if ((f = fopen(filename, "a+")) == NULL) {
-            LOGE("backupcon_to_file: can't create %s\n", filename);
+            LOGE("bakupcon_to_file: can't create %s\n", filename);
             return -1;
         }
         //fprintf(f, "chcon -h %s '%s'\n", filecontext, pathname);
         fprintf(f, "%s\t%s\n", pathname, filecontext);
         fclose(f);
+        freecon(filecontext);
     }
 
     //skip read symlink directory
@@ -1454,7 +1456,7 @@ int backupcon_to_file(const char *pathname, const char *filename) {
                 strncmp(entryname, "/data/data/com.google.android.music/files/", 42) == 0 )
             continue;
 
-        backupcon_to_file(entryname, filename);
+        bakupcon_to_file(entryname, filename);
         free(entryname);
     }
 
@@ -1462,7 +1464,8 @@ int backupcon_to_file(const char *pathname, const char *filename) {
     return ret;
 }
 
-int restorecon_from_file(const char *filename) {
+int restorecon_from_file(const char *filename)
+{
     int ret = 0;
     FILE * f = NULL;
     if ((f = fopen(filename, "r")) == NULL)
@@ -1491,7 +1494,8 @@ int restorecon_from_file(const char *filename) {
     return ret;
 }
 
-int restorecon_recursive(const char *pathname, const char *exclude) {
+int restorecon_recursive(const char *pathname, const char *exclude)
+{
     int ret = 0;
     struct stat sb;
     if (lstat(pathname, &sb) < 0) {
@@ -1503,12 +1507,13 @@ int restorecon_recursive(const char *pathname, const char *exclude) {
         if (strncmp(pathname, exclude, strlen(exclude)) == 0)
             return 0;
     }
-    if (selinux_android_restorecon(pathname, 0) < 0) {
+    //if (selinux_android_restorecon(pathname, 0) < 0) {
+    if (restorecon(pathname, &sb) < 0) {
         LOGW("restorecon: error restoring %s context\n", pathname);
         ret = 1;
     }
 
-    // skip symlink dir
+    //skip symlink dir
     if (S_ISLNK(sb.st_mode)) return 0;
 
     DIR *dir = opendir(pathname);
@@ -1532,4 +1537,107 @@ int restorecon_recursive(const char *pathname, const char *exclude) {
     closedir(dir);
     return ret;
 }
+
+extern struct selabel_handle *sehandle;
+int restorecon(const char *pathname, const struct stat *sb)
+{
+    char *oldcontext, *newcontext;
+
+    if (lgetfilecon(pathname, &oldcontext) < 0) {
+        fprintf(stderr, "Could not get context of %s:  %s\n",
+                pathname, strerror(errno));
+        return -1;
+    }
+    if (selabel_lookup(sehandle, &newcontext, pathname, sb->st_mode) < 0) {
+        fprintf(stderr, "Could not lookup context for %s:  %s\n", pathname,
+               strerror(errno));
+        return -1;
+    }
+    if (strcmp(newcontext, "<<none>>") &&
+        strcmp(oldcontext, newcontext)) {
+        if (verbose)
+            fprintf(stdout, "Relabeling %s from %s to %s.\n", pathname,
+                    oldcontext, newcontext);
+        if (!nochange) {
+            if (lsetfilecon(pathname, newcontext) < 0) {
+                fprintf(stderr, "Could not label %s with %s:  %s\n",
+                        pathname, newcontext, strerror(errno));
+                return -1;
+            }
+        }
+    }
+    freecon(oldcontext);
+    freecon(newcontext);
+    return 0;
+}
+/*
+int restorecon_main(int argc, char **argv)
+{
+    int ch, recurse = 0;
+    int i = 0;
+
+    char *exclude = NULL , *progname = argv[0];
+
+    do {
+        ch = getopt(argc, argv, "nrRe:v");
+        if (ch == EOF)
+            break;
+        switch (ch) {
+        case 'n':
+            nochange = 1;
+            break;
+        case 'r':
+        case 'R':
+            recurse = 1;
+            break;
+        case 'v':
+            verbose = 1;
+            break;
+        case 'e':
+            exclude = optarg;
+            break;
+        default:
+            printf("usage:  %s [-nrRev] pathname...\n", progname);
+            return 1;
+        }
+    } while (1);
+
+    argc -= optind;
+    argv += optind;
+    if (!argc) {
+        printf("usage:  %s [-nrRev] pathname...\n", progname);
+        return 1;
+    }
+    //sehandle = selinux_android_file_context_handle();
+    //if (!sehandle) {
+    //    printf("Could not load file_contexts:  %s\n",
+    //            strerror(errno));
+    //    return -1;
+    //}
+    int rc;
+    struct stat sb;
+    if (recurse) {
+        for (i = 0; i < argc; i++) {
+            rc = lstat(argv[i], &sb);
+            if (rc < 0) {
+                printf("Could not stat %s:  %s\n", argv[i],
+                        strerror(errno));
+                continue;
+            }
+            restorecon_recursive(argv[i], exclude);
+        }
+    } else {
+        for (i = 0; i < argc; i++) {
+            rc = lstat(argv[i], &sb);
+            if (rc < 0) {
+                printf("Could not stat %s:  %s\n", argv[i],
+                        strerror(errno));
+                continue;
+            }
+            restorecon(argv[i], &sb);
+        }
+    }
+
+    return 0;
+}*/
 #endif
