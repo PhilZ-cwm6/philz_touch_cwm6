@@ -44,16 +44,22 @@
 #include "flashutils/flashutils.h"
 #include <libgen.h>
 
-#ifdef BOARD_RECOVERY_USE_BBTAR
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-#include <selinux/android.h>
-#endif
-
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "libtouch_gui/nandroid_gui.h"
 #include "libtouch_gui/gui_settings.h"
 #endif
+
+#ifdef BOARD_RECOVERY_USE_BBTAR
+#include <selinux/selinux.h>
+#include <selinux/label.h>
+#include <selinux/android.h>
+
+int bakupcon_to_file(const char *pathname, const char *filename);
+int restorecon(const char *pathname, const struct stat *sb);
+int restorecon_from_file(const char *filename);
+int restorecon_recursive(const char *pathname, const char *exclude);
+#endif
+
 
 // time in msec when nandroid job starts: used for dim timeout and total backup time
 static long long nandroid_start_msec = 0;
