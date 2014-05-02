@@ -447,36 +447,35 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         nandroid_backup_handler backup_handler = get_backup_handler(mount_point);
 
         if (backup_handler == NULL) {
-            ui_print("Error finding an appropriate backup handler.\n");
+            LOGE("Error finding an appropriate backup handler.\n");
             return -2;
         }
         ret = backup_handler(mount_point, tmp, callback);
-    }
-
 #ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
-    ensure_path_mounted(tmp);
-    if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp) || backup_handler == dedupe_compress_wrapper) {
-        LOGI("skipping selinux context!\n");
-    }
-    else if (0 == strcmp(mount_point, "/data") ||
-                0 == strcmp(mount_point, "/system") ||
-                0 == strcmp(mount_point, "/cache"))
-    {
-        ui_print("backing up selinux context...\n");
-        sprintf(tmp, "%s/%s.context", backup_path, name);
-        if (bakupcon_to_file(mount_point, tmp) < 0)
-            LOGE("backup selinux context error!\n");
-        else
-            ui_print("backup selinux context completed.\n");
-    }
+        sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
+        ensure_path_mounted(tmp);
+        if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp) || backup_handler == dedupe_compress_wrapper) {
+            LOGI("skipping selinux context!\n");
+        }
+        else if (0 == strcmp(mount_point, "/data") ||
+                    0 == strcmp(mount_point, "/system") ||
+                    0 == strcmp(mount_point, "/cache"))
+        {
+            ui_print("backing up selinux context...\n");
+            sprintf(tmp, "%s/%s.context", backup_path, name);
+            if (bakupcon_to_file(mount_point, tmp) < 0)
+                LOGE("backup selinux context error!\n");
+            else
+                ui_print("backup selinux context completed.\n");
+        }
 #endif
+    }
 
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
     }
     if (0 != ret) {
-        ui_print("Error while making a backup image of %s!\n", mount_point);
+        LOGE("Error while making a backup image of %s!\n", mount_point);
         return ret;
     }
     ui_print("Backup of %s completed.\n", name);
@@ -510,7 +509,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 
         ui_print("Backing up %s image...\n", name);
         if (0 != (ret = backup_raw_partition(vol->fs_type, vol->blk_device, tmp))) {
-            ui_print("Error while backing up %s image!\n", name);
+            LOGE("Error while backing up %s image!\n", name);
             return ret;
         }
 
