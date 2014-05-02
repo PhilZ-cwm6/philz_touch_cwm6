@@ -50,8 +50,9 @@
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
 #
 #   - BOARD_RECOVERY_USE_BBTAR := true
-#                               spare some space and use busybox tar rather than standalone minitar binary
-#                               busybox tar cannot currently backup/restore selinux labels
+#                               use busybox tar rather than standalone minitar binary (16kb space spare)
+#                               busybox tar cannot currently backup/restore selinux labels !
+#                               this will enable use of external selinux context container during backup/restore
 #
 
 #Amazon Kindle Fire HD 8.9 (jem)
