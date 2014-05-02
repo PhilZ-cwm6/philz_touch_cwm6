@@ -139,7 +139,13 @@ static int store_file(struct DEDUPE_STORE_CONTEXT *context, struct stat st, cons
     strcat(key, psum + 3);
     sprintf(out_blob, "%s/%s", context->blob_dir, key);
     sprintf(tmp_out_blob, "%s.tmp", out_blob);
-    mkdir(dirname(out_blob), S_IRWXU | S_IRWXG | S_IRWXO);
+    //when BUILD_HOST_EXECUTABLE, dirname(out_blob) will change out_blob
+    //so i add a new variable.
+    char out_blob_dir[PATH_MAX];
+    strcpy(out_blob_dir, out_blob);
+    //printf("before dirname %s\n", out_blob_dir);
+    mkdir(dirname(out_blob_dir), S_IRWXU | S_IRWXG | S_IRWXO);
+    //printf("after dirname %s\n", out_blob_dir);
 
     // don't copy the file if it exists? not quite sure how I feel about this.
     int size = (int)st.st_size;

@@ -2,11 +2,14 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := dedupe.c driver.c
+LOCAL_SRC_FILES := dedupe.c driver.c \
+    ../../../external/libselinux/src/lsetfilecon.c \
+    ../../../external/libselinux/src/lgetfilecon.c
+
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_MODULE := dedupe
-LOCAL_STATIC_LIBRARIES := libcrypto_static
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../external/openssl/include
+LOCAL_STATIC_LIBRARIES := libcrypto_static libselinux
+LOCAL_C_INCLUDES += external/openssl/include external/libselinux/include
 include $(BUILD_HOST_EXECUTABLE)
 
 include $(CLEAR_VARS)
