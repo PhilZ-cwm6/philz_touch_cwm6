@@ -362,9 +362,9 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     }
     ret = backup_handler(mount_point, tmp, callback);
 #ifdef NEED_SELINUX_FIX
-    if (0 != ret || strcmp(backup_path, "-") == 0) {
-        LOGI("跳过selinux context备份!\n");
-    }
+    if (0 != ret || strcmp(backup_path, "-") == 0 ||
+         backup_handler == dedupe_compress_wrapper)
+        LOGI("跳过备份selinux context!\n");
     else if (0 == strcmp(mount_point, "/data") ||
                 0 == strcmp(mount_point, "/system") ||
                 0 == strcmp(mount_point, "/cache"))
@@ -814,9 +814,8 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         return ret;
     }
 #ifdef NEED_SELINUX_FIX
-    if (strcmp(backup_path, "-") == 0) {
-        LOGE("不能在undump模式恢复selinux context.\n");
-    }
+    if (strcmp(backup_path, "-") == 0 || restore_handler == dedupe_extract_wrapper)
+        LOGI("无需恢复selinux context.\n");
     else if (0 == strcmp(mount_point, "/data") ||
                 0 == strcmp(mount_point, "/system") ||
                 0 == strcmp(mount_point, "/cache"))
@@ -1128,6 +1127,7 @@ int bakupcon_to_file(const char *pathname, const char *filename)
         //fprintf(f, "chcon -h %s '%s'\n", filecontext, pathname);
         fprintf(f, "%s\t%s\n", pathname, filecontext);
         fclose(f);
+        freecon(filecontext);
     }
 
     //skip read symlink directory
