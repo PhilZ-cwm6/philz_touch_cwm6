@@ -73,6 +73,7 @@ th_set_path(TAR *t, const char *pathname)
 {
 	char suffix[2] = "";
 	char *tmp;
+    size_t pathname_len = strlen(pathname);
 
 #ifdef DEBUG
 	printf("in th_set_path(th, pathname=\"%s\")\n", pathname);
@@ -82,32 +83,49 @@ th_set_path(TAR *t, const char *pathname)
 		free(t->th_buf.gnu_longname);
 	t->th_buf.gnu_longname = NULL;
 
-	if (pathname[strlen(pathname) - 1] != '/' && TH_ISDIR(t))
+    // old archive compatibility (not needed for gnu): add trailing / to directories
+	if (pathname[pathname_len - 1] != '/' && TH_ISDIR(t))
 		strcpy(suffix, "/");
 
-	if (strlen(pathname) > T_NAMELEN && (t->options & TAR_GNU))
+	if (pathname_len >= T_NAMELEN && (t->options & TAR_GNU))
 	{
-		/* GNU-style long name */
+		/* --format=gnu: GNU-style long name (no file name length limit) */
 		t->th_buf.gnu_longname = strdup(pathname);
 		strncpy(t->th_buf.name, t->th_buf.gnu_longname, T_NAMELEN);
 	}
-	else if (strlen(pathname) > T_NAMELEN)
+	else if (pathname_len >= T_NAMELEN)
 	{
-		/* POSIX-style prefix field */
-		tmp = strchr(&(pathname[strlen(pathname) - T_NAMELEN - 1]), '/');
+		/* --format=ustar: POSIX-style prefix field:
+           The maximum length of a file name is limited to 256 characters, provided that the file name can be split at a directory separator in two parts,
+           first of them being at most 155 bytes long. So, in most cases the maximum file name length will be shorter than 256 characters.
+        */
+        // second part, max = 100 chars (T_NAMELEN), include NULL if it fits
+        char tail_path[T_NAMELEN + 1];
+		tmp = strchr(&(pathname[pathname_len - T_NAMELEN]), '/');
 		if (tmp == NULL)
 		{
 			printf("!!! '/' not found in \"%s\"\n", pathname);
 			return;
 		}
-		snprintf(t->th_buf.name, 100, "%s%s", &(tmp[1]), suffix);
-		snprintf(t->th_buf.prefix,
-			 ((tmp - pathname + 1) <
-			  155 ? (tmp - pathname + 1) : 155), "%s", pathname);
+        //fprintf(stderr, ">>tmp=%s\n", tmp); // debug
+        snprintf(tail_path, T_NAMELEN + 1, "%s%s", &(tmp[1]), suffix);
+        //fprintf(stderr, ">>tail_path=%s\n", tail_path); // debug
+		strncpy(t->th_buf.name, tail_path, T_NAMELEN);
+
+        // first part, max = 155 == sizeof(t->th_buf.prefix) , include NULL if it fits
+        // trailing '/' is added during decode: decode.c/th_get_pathname()
+        if (tmp - pathname >= 155) {
+            strncpy(t->th_buf.prefix, pathname, 155);
+        } else {
+            snprintf(t->th_buf.prefix, (tmp - pathname + 1), "%s", pathname);
+        }
+        //fprintf(stderr, ">>th_buf.prefix=%s\n", t->th_buf.prefix); // debug
 	}
-	else
-		/* classic tar format */
-		snprintf(t->th_buf.name, 100, "%s%s", pathname, suffix);
+	else {
+		/* any short name for all formats, or --format=v7: classic tar format (99 chars max) */
+		snprintf(t->th_buf.name, T_NAMELEN, "%s%s", pathname, suffix);
+        //fprintf(stderr, ">>t->th_buf.name=%s\n", t->th_buf.name); // debug
+    }
 
 #ifdef DEBUG
 	puts("returning from th_set_path()...");
@@ -123,21 +141,26 @@ th_set_link(TAR *t, const char *linkname)
 	printf("==> th_set_link(th, linkname=\"%s\")\n", linkname);
 #endif
 
-	if (strlen(linkname) > T_NAMELEN && (t->options & TAR_GNU))
+	if (strlen(linkname) >= T_NAMELEN && (t->options & TAR_GNU))
 	{
-		/* GNU longlink format */
+		/* --format=gnu: GNU-style long name (no file name length limit) */
 		t->th_buf.gnu_longlink = strdup(linkname);
 		strcpy(t->th_buf.linkname, "././@LongLink");
 	}
-	else
+	else if (strlen(linkname) >= T_NAMELEN)
 	{
-		/* classic tar format */
-		strlcpy(t->th_buf.linkname, linkname,
-			sizeof(t->th_buf.linkname));
+        /* --format=ustar: 100 chars max limit for symbolic links */
+		strncpy(t->th_buf.linkname, linkname, T_NAMELEN);
 		if (t->th_buf.gnu_longlink != NULL)
 			free(t->th_buf.gnu_longlink);
 		t->th_buf.gnu_longlink = NULL;
-	}
+	} else {
+        /* all short links or v7 tar format: The maximum length of a symbolic link name is limited to 99 characters */
+		snprintf(t->th_buf.linkname, T_NAMELEN, "%s", linkname);
+		if (t->th_buf.gnu_longlink != NULL)
+			free(t->th_buf.gnu_longlink);
+		t->th_buf.gnu_longlink = NULL;
+    }
 }
 
 
@@ -210,5 +233,3 @@ th_set_from_stat(TAR *t, struct stat *s)
 	else
 		th_set_size(t, 0);
 }
-
-

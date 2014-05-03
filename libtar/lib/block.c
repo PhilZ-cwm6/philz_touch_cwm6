@@ -263,7 +263,7 @@ th_read(TAR *t)
 #endif
 
 #if 0
-	/*
+	/* DEAD code !!
 	** work-around for old archive files with broken typeflag fields
 	** NOTE: I fixed this in the TH_IS*() macros instead
 	*/
@@ -272,7 +272,7 @@ th_read(TAR *t)
 	** (directories are signified with a trailing '/')
 	*/
 	if (t->th_buf.typeflag == AREGTYPE
-	    && t->th_buf.name[strlen(t->th_buf.name) - 1] == '/')
+	    && t->th_buf.name[strnlen(t->th_buf.name, T_NAMELEN) - 1] == '/')
 		t->th_buf.typeflag = DIRTYPE;
 
 	/*
