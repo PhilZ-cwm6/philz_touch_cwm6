@@ -71,6 +71,9 @@ struct CWMSettingsCharValues user_zip_folder = { "user_zip_folder", "" };
 //----- End initialize recovery key/value settings
 
 
+// pass in compiler flags to libtouch_gui
+#ifdef PHILZ_TOUCH_RECOVERY
+
 #ifdef BOARD_HAS_LOW_RESOLUTION
 #define board_has_low_resolution        1
 #else
@@ -124,7 +127,7 @@ struct CompilerFlagsUI libtouch_flags = {
     BATTERY_LEVEL_PATH,
     BOARD_POST_UNBLANK_COMMAND
 };
-
+#endif // PHILZ_TOUCH_RECOVERY
 
 /***********************************/
 /*                                 */

@@ -117,13 +117,7 @@ struct CWMSettingsIntValues use_dst_time;
 struct CWMSettingsIntValues use_qcom_time_daemon;
 struct CWMSettingsLongIntValues use_qcom_time_offset;
 
-#endif // PHILZ_TOUCH_RECOVERY
-void verify_settings_file();
-void refresh_recovery_settings(int on_start);
-#ifdef PHILZ_TOUCH_RECOVERY
-void refresh_touch_gui_settings(int on_start);
-#endif
-
+// pass compiler flags to libtouch_gui
 struct CompilerFlagsUI {
     int char_height;
     int char_width;
@@ -140,5 +134,14 @@ struct CompilerFlagsUI {
 
 struct CompilerFlagsUI libtouch_flags;
 
-#endif // _RECOVERY_SETTINGS_H
+// -------- End recovery settings ini pairs
 
+// load settings from config.ini file
+void refresh_touch_gui_settings(int on_start);
+#endif                                              // PHILZ_TOUCH_RECOVERY
+void refresh_recovery_settings(int on_start);
+
+// check settings file on start and prompt to restore it if absent AND a backup is found: called by recovery.c
+void verify_settings_file();
+
+#endif // _RECOVERY_SETTINGS_H
