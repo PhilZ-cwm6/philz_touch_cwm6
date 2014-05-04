@@ -953,7 +953,30 @@ endif
 
 LOCAL_CFLAGS += -DTARGET_COMMON_NAME="$(TARGET_COMMON_NAME)"
 
-# Battery level default path (PhilZ Touch Only)
-ifndef BATTERY_LEVEL_PATH
-    BATTERY_LEVEL_PATH := "/sys/class/power_supply/battery/capacity"
+ifdef PHILZ_TOUCH_RECOVERY
+    # Battery level default path (PhilZ Touch Only)
+    ifndef BATTERY_LEVEL_PATH
+        BATTERY_LEVEL_PATH := "/sys/class/power_supply/battery/capacity"
+    endif
+
+    ifndef BRIGHTNESS_SYS_FILE
+        $(warning ************************************************************)
+        $(warning * BRIGHTNESS_SYS_FILE path is NOT SET in BoardConfig.mk )
+        $(warning ************************************************************)
+        $(error stopping)
+    endif
+
+    ifndef TARGET_SCREEN_HEIGHT
+        $(warning ************************************************************)
+        $(warning * TARGET_SCREEN_HEIGHT is NOT SET in BoardConfig.mk )
+        $(warning ************************************************************)
+        $(error stopping)
+    endif
+
+    ifndef TARGET_SCREEN_WIDTH
+        $(warning ************************************************************)
+        $(warning * TARGET_SCREEN_WIDTH is NOT SET in BoardConfig.mk )
+        $(warning ************************************************************)
+        $(error stopping)
+    endif
 endif
