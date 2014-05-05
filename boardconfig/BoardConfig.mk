@@ -29,6 +29,10 @@
 #   - TARGET_COMMON_NAME:       The device name that will be displayed on recovery start and in About dialogue
 #   - BRIGHTNESS_SYS_FILE := "path"
 #                               Needed to be able to alter screen brightness (touch only)
+#                               If not set, recovery will try to auto-detect it on start
+#                               If detection succeeds, 'brightness_user_path' key is set to the brightness path in ini file
+#                               On next recovery starts, auto-detect is disabled when 'brightness_user_path' key exists
+#                               If BRIGHTNESS_SYS_FILE flag is defined during compile, you cannot change brightness path without recompiling recovery
 #   - EXTRA_PARTITIONS_PATH := "path" [optional], default is "extra_part"
 #                               This will override the default "/extra_part" mount point for extra partitions
 #                               in your fstab, partition mount point must be "/extra_part1", "/extra_part2",...., "/extra_part5"
@@ -960,10 +964,7 @@ ifdef PHILZ_TOUCH_RECOVERY
     endif
 
     ifndef BRIGHTNESS_SYS_FILE
-        $(warning ************************************************************)
-        $(warning * BRIGHTNESS_SYS_FILE path is NOT SET in BoardConfig.mk )
-        $(warning ************************************************************)
-        $(error stopping)
+        BRIGHTNESS_SYS_FILE := ""
     endif
 
     ifndef TARGET_SCREEN_HEIGHT

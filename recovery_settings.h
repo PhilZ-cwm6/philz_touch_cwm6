@@ -97,6 +97,7 @@ struct CWMSettingsIntValues show_virtual_keys;
 struct CWMSettingsIntValues show_clock;
 struct CWMSettingsIntValues show_battery;
 struct CWMSettingsLongIntValues batt_clock_color;
+struct CWMSettingsCharValues brightness_user_path;
 struct CWMSettingsLongIntValues dim_timeout;
 struct CWMSettingsLongIntValues blank_timeout;
 
@@ -127,7 +128,7 @@ struct CompilerFlagsUI {
     int recovery_touchscreen_flip_y;
     int board_use_b_slot_protocol;
     int board_use_fb2png;
-    const char brightness_sys_file[PATH_MAX];
+    char brightness_sys_file[PATH_MAX];
     const char battery_level_path[PATH_MAX];
     const char board_post_unblank_command[PATH_MAX];
 }; 
