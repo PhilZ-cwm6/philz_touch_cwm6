@@ -53,6 +53,7 @@ void ensure_directory(const char* dir); // in nandroid.c
 int is_path_ramdisk(const char* path);
 int copy_a_file(const char* file_in, const char* file_out);
 int append_string_to_file(const char* filename, const char* string);
+char* find_file_in_path(const char* dir, const char* filename, int depth, int follow);
 char* read_file_to_buffer(const char* filepath, unsigned long *len);
 char* BaseName(const char* path);
 char* DirName(const char* path);
