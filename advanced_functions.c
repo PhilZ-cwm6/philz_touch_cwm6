@@ -49,6 +49,7 @@
 #include "voldclient/voldclient.h"
 
 #include "adb_install.h"
+#include "libcrecovery/common.h" // __popen/__pclose
 
 // md5 display
 #include <pthread.h>
@@ -3421,9 +3422,10 @@ void get_device_id(char *device_id) {
     if (strcmp(model_id, "error") != 0) {
         LOGI("=> product model: '%s'\n", model_id);
         // Replace spaces with underscores
-        for(int i = 0; i < strlen(model_id); i++) {
+        size_t i;
+        for (i = 0; i < strlen(model_id); i++) {
             if (model_id[i] == ' ')
-            model_id[i] = '_';
+                model_id[i] = '_';
         }
         strcpy(device_id, model_id);
         sanitize_device_id(device_id);
