@@ -356,9 +356,9 @@ void delete_a_file(const char* filename) {
 // depth <= 0: no depth limit
 // follow != 0: follow links
 char* find_file_in_path(const char* dir, const char* filename, int depth, int follow) {
-	FILE *fp;
+    FILE *fp;
     char* ret = NULL;
-	char buff[PATH_MAX];
+    char buff[PATH_MAX];
     char cmd[PATH_MAX];
     char suffix[2] = "";
     char options[64] = "";
@@ -371,18 +371,18 @@ char* find_file_in_path(const char* dir, const char* filename, int depth, int fo
 
     sprintf(cmd, "find %s%s%s -name '%s'", dir, suffix, options, filename);
     fp = __popen(cmd, "r");
-	if (fp == NULL){
-		return ret;
-	}
+    if (fp == NULL){
+        return ret;
+    }
 
-	while (fgets(buff, sizeof(buff), fp) != NULL) {
+    while (fgets(buff, sizeof(buff), fp) != NULL) {
         size_t len = strlen(buff);
         if (buff[len - 1] == '\n')
             buff[len - 1] = '\0';
-		ret = strdup(buff);
-	}
+        ret = strdup(buff);
+    }
 
-	__pclose(fp);
+    __pclose(fp);
     return ret;
 }
 
