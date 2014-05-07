@@ -695,6 +695,16 @@ else ifeq ($(TARGET_PRODUCT), cm_m4)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#HTC Wildfire S (marvel) - armv6
+else ifeq ($(TARGET_PRODUCT), cm_p500)
+    TARGET_COMMON_NAME := HTC Wildfire S
+    BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_7x16.h\"
+    BOARD_USE_NTFS_3G := false
+    TARGET_SCREEN_HEIGHT := 480
+    TARGET_SCREEN_WIDTH := 320
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Huawei Acsend P1 U9200 - viva (no cm tree)
 else ifeq ($(TARGET_PRODUCT), cm_viva)
     TARGET_COMMON_NAME := Huawei_Acsend_P1_U9200
