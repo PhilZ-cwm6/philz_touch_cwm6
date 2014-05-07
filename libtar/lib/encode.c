@@ -183,9 +183,11 @@ th_set_user(TAR *t, uid_t uid)
 {
 	struct passwd *pw;
 
-	pw = getpwuid(uid);
-	if (pw != NULL)
-		strlcpy(t->th_buf.uname, pw->pw_name, sizeof(t->th_buf.uname));
+    if (!(t->options & TAR_USE_NUMERIC_ID)) {
+        pw = getpwuid(uid);
+        if (pw != NULL)
+            strlcpy(t->th_buf.uname, pw->pw_name, sizeof(t->th_buf.uname));
+    }
 
 	int_to_oct(uid, t->th_buf.uid, 8);
 }
@@ -197,9 +199,11 @@ th_set_group(TAR *t, gid_t gid)
 {
 	struct group *gr;
 
-	gr = getgrgid(gid);
-	if (gr != NULL)
-		strlcpy(t->th_buf.gname, gr->gr_name, sizeof(t->th_buf.gname));
+    if (!(t->options & TAR_USE_NUMERIC_ID)) {
+        gr = getgrgid(gid);
+        if (gr != NULL)
+            strlcpy(t->th_buf.gname, gr->gr_name, sizeof(t->th_buf.gname));
+    }
 
 	int_to_oct(gid, t->th_buf.gid, 8);
 }

@@ -85,14 +85,14 @@ th_print_long_ls(TAR *t)
 
 	uid = th_get_uid(t);
 	pw = getpwuid(uid);
-	if (pw == NULL)
+	if ((t->options & TAR_USE_NUMERIC_ID) || pw == NULL)
 		snprintf(username, sizeof(username), "%d", uid);
 	else
 		strlcpy(username, pw->pw_name, sizeof(username));
 
 	gid = th_get_gid(t);
 	gr = getgrgid(gid);
-	if (gr == NULL)
+	if ((t->options & TAR_USE_NUMERIC_ID) || gr == NULL)
 		snprintf(groupname, sizeof(groupname), "%d", gid);
 	else
 		strlcpy(groupname, gr->gr_name, sizeof(groupname));
