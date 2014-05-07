@@ -696,7 +696,7 @@ else ifeq ($(TARGET_PRODUCT), cm_m4)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC Wildfire S (marvel) - armv6
-else ifeq ($(TARGET_PRODUCT), cm_p500)
+else ifeq ($(TARGET_PRODUCT), cm_marvel)
     TARGET_COMMON_NAME := HTC Wildfire S
     BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_7x16.h\"
     BOARD_USE_NTFS_3G := false
