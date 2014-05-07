@@ -140,12 +140,9 @@ static int store_file(struct DEDUPE_STORE_CONTEXT *context, struct stat st, cons
     sprintf(out_blob, "%s/%s", context->blob_dir, key);
     sprintf(tmp_out_blob, "%s.tmp", out_blob);
     //when BUILD_HOST_EXECUTABLE, dirname(out_blob) will change out_blob
-    //so i add a new variable.
     char out_blob_dir[PATH_MAX];
     strcpy(out_blob_dir, out_blob);
-    //printf("before dirname %s\n", out_blob_dir);
     mkdir(dirname(out_blob_dir), S_IRWXU | S_IRWXG | S_IRWXO);
-    //printf("after dirname %s\n", out_blob_dir);
 
     // don't copy the file if it exists? not quite sure how I feel about this.
     int size = (int)st.st_size;
@@ -224,31 +221,29 @@ static int store_link(struct DEDUPE_STORE_CONTEXT *context, struct stat st, cons
 
 static int store_st(struct DEDUPE_STORE_CONTEXT *context, struct stat st, const char* s) {
     char* selabel = NULL;
-    int f = 1;
     if (lgetfilecon(s, &selabel) < 0) {
         fprintf(stderr, "Can't get %s context\n", s);
-        selabel = "unlabel";
-        f = 0;
+        selabel = strdup("unlabel");
     }
     if (S_ISREG(st.st_mode)) {
         print_stat(context, 'f', st, selabel, s);
-        if (f) freecon(selabel);
+        freecon(selabel);
         return store_file(context, st, s);
     }
     else if (S_ISDIR(st.st_mode)) {
         print_stat(context, 'd', st, selabel, s);
         fprintf(context->output_manifest, "\n");
-        if (f) freecon(selabel);
+        freecon(selabel);
         return store_dir(context, st, s);
     }
     else if (S_ISLNK(st.st_mode)) {
         print_stat(context, 'l', st, selabel, s);
-        if (f) freecon(selabel);
+        freecon(selabel);
         return store_link(context, st, s);
     }
     else {
         fprintf(stderr, "Skipping special: %s\n", s);
-        if (f) freecon(selabel);
+        freecon(selabel);
         return 0;
     }
 }
