@@ -1707,7 +1707,9 @@ int show_advanced_menu() {
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_log_menu();
 #else
-                ui_printlogtail(12);
+                ui_printlogtail(24);
+                ui_wait_key();
+                ui_clear_key_queue();
 #endif
                 break;
             case 4: {

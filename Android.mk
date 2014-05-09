@@ -1,6 +1,12 @@
-ifneq ($(WITH_SIMPLE_RECOVERY),true)
-
 LOCAL_PATH := $(call my-dir)
+
+ifeq ($(RECOVERY_VARIANT),)
+ifeq ($(LOCAL_PATH),bootable/recovery)
+RECOVERY_VARIANT := cwm
+endif
+endif
+
+ifeq ($(RECOVERY_VARIANT),cwm)
 
 # philz touch gui: either prebuilt or from sources
 PHILZ_TOUCH_RECOVERY := true
