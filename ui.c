@@ -795,6 +795,9 @@ void ui_printlogtail(int nb_lines) {
         }
         fclose(f);
     }
+#ifndef PHILZ_TOUCH_RECOVERY
+    ui_print("Return to menu with any key.\n");
+#endif
     ui_log_stdout=1;
 }
 

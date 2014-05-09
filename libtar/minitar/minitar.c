@@ -58,6 +58,7 @@ segv_handler(int sig)
 
 
 int store_selinux_ctx = 0;
+int use_numeric_id = 0;
 
 #define EXCLUDES_MAX 16
 char *exclude_list[EXCLUDES_MAX];
@@ -219,6 +220,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
              O_WRONLY | O_CREAT, 0644,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
         {
             fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -234,6 +236,7 @@ create(char *tarfile, char *rootdir, libtar_list_t *l)
              O_WRONLY | O_CREAT, 0644,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
         {
             fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -293,6 +296,7 @@ list(char *tarfile)
              O_RDONLY, 0,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
         {
             fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -308,6 +312,7 @@ list(char *tarfile)
              O_RDONLY, 0,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
     {
         fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -430,6 +435,7 @@ extract(char *tarfile, char *rootdir)
              O_RDONLY, 0,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
         {
             fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -445,6 +451,7 @@ extract(char *tarfile, char *rootdir)
              O_RDONLY, 0,
              (verbose == 1 ? TAR_VERBOSE : 0)
              | (store_selinux_ctx ? TAR_STORE_SELINUX : 0)
+             | (use_numeric_id ? TAR_USE_NUMERIC_ID : 0)
              | (use_gnu ? TAR_GNU : 0)) == -1)
         {
             fprintf(stderr, "tar_open(): %s\n", strerror(errno));
@@ -484,20 +491,21 @@ static void usage() {
     printf("\n");
     printf("Main operation mode:\n"
            "   -c, --create     create a new archive\n"
-           "   -t, --list       list the contents of an archive\n"
            "   -x, --extract    extract files from an archive\n"
+           "   -t, --list       list the contents of an archive\n"
     );
     printf("\n");
     printf("Valid Options:\n"
            "   -V, --version\n"
-           "   -f, --file\n"
-           "   -z, --gzip\n"
            "   -C, --directory\n"
            "   -v, --verbose\n"
            "   -H, --format [ustar][gnu](default)\n"
            "   -T, --files-from\n"
+           "   -f, --file\n"
+           "   -z, --gzip\n"
            "   -s, --selinux\n"
            "   -X, --exclude\n"
+           "   -n, --numeric-owner\n"
     );
 }
 
@@ -542,6 +550,7 @@ int minitar_main(int argc, char **argv)
         {"list", no_argument, 0, 't'},
         {"selinux", no_argument, 0, 's'},
         {"exclude", required_argument, 0, 'X'},
+        {"numeric-owner", no_argument, 0, 'n'},
 #ifdef HAVE_LIBZ
         {"gzip", no_argument, 0, 'z'},
 #endif
@@ -549,7 +558,7 @@ int minitar_main(int argc, char **argv)
     };
 
     int option_index = 0;
-    while (ret == 0 && (c = getopt_long(argc, argv, "cf:T:C:gtvH:VxzsX:", long_options, &option_index)) != -1) {
+    while (ret == 0 && (c = getopt_long(argc, argv, "VC:vH:cT:f:xtsX:nz", long_options, &option_index)) != -1) {
         switch (c) {
             case 'V':
                 printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n", libtar_version);
@@ -586,6 +595,9 @@ int minitar_main(int argc, char **argv)
                     ret = 2;
                 else
                     mode = MODE_EXTRACT;
+                break;
+            case 'n':
+                use_numeric_id = 1;
                 break;
             case 't':
                 if (mode)
