@@ -262,8 +262,10 @@ void setup_data_media() {
 
     if (ui_should_log_stdout())
         LOGI("using %s for %s\n", path, mount_point);
+
+    // recreate /data/media with proper permissions
     rmdir(mount_point);
-    mkdir(path, 0755);
+    mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     symlink(path, mount_point);
 }
 

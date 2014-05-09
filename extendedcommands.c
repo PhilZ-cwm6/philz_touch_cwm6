@@ -1032,6 +1032,10 @@ int show_partition_menu() {
                 else
                     ui_print("Done.\n");
                 ignore_data_media_workaround(0);
+
+                // recreate /data/media with proper permissions
+                ensure_path_mounted("/data");
+                setup_data_media();
             }
         } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
             show_mount_usb_storage_menu();
@@ -1721,7 +1725,7 @@ int show_advanced_menu() {
                         write_string_to_file("/data/media/.cwm_force_data_media", "1");
                         ui_print("storage set to /data/media\n");
                     } else {
-                        mkdir("/data/media/0", S_IRWXU | S_IRWXG | S_IRWXO);
+                        mkdir("/data/media/0", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH); 
                         delete_a_file("/data/media/.cwm_force_data_media");
                         ui_print("storage set to /data/media/0\n");
                     }
