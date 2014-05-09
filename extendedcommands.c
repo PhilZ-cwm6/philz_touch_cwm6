@@ -1413,11 +1413,14 @@ void format_sdcard(const char* volume) {
                 sprintf(cmd, "/sbin/mkntfs -f %s", v->blk_device);
                 ret = __system(cmd);
             } else if (strcmp(list[chosen_item], "ext4") == 0) {
-                char options[64] = "";
-                if (v->length)
-                    sprintf(options, "-l %lld", v->length);
-                sprintf(cmd, "/sbin/make_ext4fs -J %s %s", options, v->blk_device);
-                ret = __system(cmd);
+                char *secontext = NULL;
+                if (selabel_lookup(sehandle, &secontext, v->mount_point, S_IFDIR) < 0) {
+                    LOGE("cannot lookup security context for %s\n", v->mount_point);
+                    ret = make_ext4fs(v->blk_device, v->length, volume, NULL);
+                } else {
+                    ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+                    freecon(secontext);
+                }
             }
             break;
         }
