@@ -892,6 +892,7 @@ prompt_and_wait() {
                     break;
             }
             if (ret == REFRESH) {
+                // this will restart the for() loop and run switch (chosen_item) action forcing to return to previous menu and refresh it
                 ret = 0;
                 continue;
             }

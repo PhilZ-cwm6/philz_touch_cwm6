@@ -1,5 +1,5 @@
 // below code is included by nandroid.c
-// make it easier to merge offcial cm changes
+// make it easier to merge official cm changes
 
 /*****************************************/
 /*   DO NOT REMOVE THIS CREDITS HEARDER  */
@@ -12,6 +12,7 @@
 /*    Are parts of PhilZ Touch Recovery  */
 /*****************************************/
 
+//these general variables are needed to not break backup and restore by external script
 int backup_boot = 1, backup_recovery = 1, backup_wimax = 1, backup_system = 1;
 int backup_data = 1, backup_cache = 1, backup_sdext = 1;
 int backup_preload = 0, backup_efs = 0, backup_misc = 0, backup_modem = 0, backup_radio = 0;
@@ -21,6 +22,7 @@ int reboot_after_nandroid = 0;
 int android_secure_ext = 0;
 
 
+// resetting progress bar and background icon once backup/restore done or cancelled by user
 void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
     sync();
@@ -63,6 +65,10 @@ static int is_gzip_file(const char* file_archive) {
     return 1;
 }
 
+// calculate needed space fro backup and check if we have enough free space to compute operations
+// call after a successful run of Get_Size_Via_statfs() to populate Total_Size, Used_Size and Free_Size
+// code adapted mostly from TARP source (dees_troy at yahoo) for PhilZ Touch
+// for these Can_Be_Mounted = true in twrp
 static int Is_File_System(const char* root) {
     Volume *vol = volume_for_path(root);
     if (vol == NULL || vol->fs_type == NULL)
@@ -82,6 +88,7 @@ static int Is_File_System(const char* root) {
         return 1; //false
 }
 
+// for these Can_Be_Mounted = false in twrp
 static int Is_Image(const char* root) {
     Volume *vol = volume_for_path(root);
     if (vol == NULL || vol->fs_type == NULL)
@@ -95,14 +102,28 @@ static int Is_Image(const char* root) {
 }
 
 
+/*
+- If Is_Image(), in twrp we call void TWPartition::Setup_Image(bool Display_Error) which sets Backup_Method = DD or FLASH_UTILS
+  It also calls TWPartition::Find_Partition_Size(void) which we use in CWM to read /proc/partitions to get whole partition "Size"
+  For these partitions, Backup_Size will be equal to total partition size as we use a raw backup mode
+    * Used = Size;
+    * Backup_Size = Size;
+- If Is_File_System() - see above function -, We call void TWPartition::Setup_File_System(bool Display_Error) which
+  will set partition as mountable (Can_Be_Mounted = true) and sets Backup_Method = FILES
+- In TWRP, "Used" space for each partition is refreshed by void TWPartitionManager::Refresh_Sizes(void) which acalls
+  TWPartitionManager::Update_System_Details(void) will call bool TWPartition::Update_Size(bool Display_Error) for each partition with Can_Be_Mounted == true
+- Update_Size() will get size details with Get_Size_Via_statfs() or if it fails with Get_Size_Via_df()
+- So, only not mountable partitions are using Find_Partition_Size()
+*/
 unsigned long long Backup_Size = 0;
 unsigned long long Before_Used_Size = 0;
 int check_backup_size(const char* backup_path) {
+    // these are the size stats for backup_path we previously refreshed by calling Get_Size_Via_statfs()
     int total_mb = (int)(Total_Size / 1048576LLU);
     int used_mb = (int)(Used_Size / 1048576LLU);
     int free_mb = (int)(Free_Size / 1048576LLU);
     int free_percent = free_mb * 100 / total_mb;
-    Before_Used_Size = Used_Size;
+    Before_Used_Size = Used_Size; // save Used_Size to refresh data written stats later
     Backup_Size = 0;
 
     // backable partitions
@@ -154,18 +175,23 @@ int check_backup_size(const char* backup_path) {
     };
 
     LOGI("Checking needed space for backup '%s'\n", backup_path);
+    // calculate needed space for backup
+    // assume recovery and wimax always use a raw backup mode (Is_Image() = 0)
     char skipped_parts[1024] = "";
     int ret = 0;
     Volume* vol;
 
     int i;
-    for(i=0; Partitions_List[i] != NULL; i++) {
+    for(i = 0; Partitions_List[i] != NULL; i++) {
         if (!backup_status[i])
             continue;
 
+        // size of /data will be calculated later for /data/media devices to substract sdcard size from it
         if (strcmp(Partitions_List[i], "/data") == 0 && is_data_media())
             continue;
 
+        // redondant but keep for compatibility:
+        // has_datadata() does a volume_for_path() != NULL check
         if (strcmp(Partitions_List[i], "/datadata") == 0 && !has_datadata())
             continue;
 
@@ -182,6 +208,7 @@ int check_backup_size(const char* backup_path) {
                 strcat(skipped_parts, Partitions_List[i]);
             }
         } else if (Is_File_System(Partitions_List[i]) == 0) {
+            // Get_Size_Via_statfs() will ensure vol->mount_point != NULL
             if (0 == ensure_path_mounted(vol->mount_point) && 0 == Get_Size_Via_statfs(vol->mount_point)) {
                 Backup_Size += Used_Size;
                 LOGI("%s backup size (stat)=%lluMb\n", Partitions_List[i], Used_Size / 1048576LLU); // debug
@@ -197,6 +224,8 @@ int check_backup_size(const char* backup_path) {
         }
     }
 
+    // handle special partitions and folders:
+    // handle /data and /data/media partitions size for /data/media devices
     unsigned long long data_backup_size = 0;
     unsigned long long data_used_bytes = 0;
     unsigned long long data_media_size = 0;
@@ -224,11 +253,14 @@ int check_backup_size(const char* backup_path) {
         Backup_Size += data_backup_size;
 
     // check if we are also backing up /data/media
+    // if backup_path is same as /data/media, ignore this as it will not be processed by nandroid_backup_datamedia()
     if (backup_data_media && !is_data_media_volume_path(backup_path)) {
         Backup_Size += data_media_size;
         LOGI("included /data/media size\n"); // debug
     }
 
+    // .android_secure size calculation
+    // set_android_secure_path() will mount tmp so no need to remount before calling Get_Folder_Size(tmp)
     char tmp[PATH_MAX];
     set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
@@ -238,12 +270,16 @@ int check_backup_size(const char* backup_path) {
         LOGI("%s backup size=%lluMb\n", tmp, andsec_size / 1048576LLU); // debug
     }
 
+    // check if we have the needed space
     int backup_size_mb = (int)(Backup_Size / 1048576LLU);
     ui_print("\n>> Free space: %dMb (%d%%)\n", free_mb, free_percent);
     ui_print(">> Needed space: %dMb\n", backup_size_mb);
     if (ret)
         ui_print(">> Unknown partitions size (%d):%s\n", ret, skipped_parts);
 
+    // dedupe wrapper needs less space than actual backup size (incremental backups)
+    // only check free space in Mb if we use tar or tar.gz as a default format
+    // also, add extra 50 Mb for security measures
     if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb + 50)) {
         LOGW("Low space for backup!\n");
         if (nand_prompt_on_low_space.value && !confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
@@ -253,7 +289,11 @@ int check_backup_size(const char* backup_path) {
     return 0;
 }
 
+// check size of archive files to get total backed up data size
+// find all backup image files of a given partition and increment Backup_Size
+// Backup_Size is set to 0 at start of nandroid_restore() process so that we do not print size progress on
 void check_restore_size(const char* backup_file_image, const char* backup_path) {
+    // refresh target partition size
     if (Get_Size_Via_statfs(backup_path) != 0) {
         Backup_Size = 0;
         return;
@@ -268,6 +308,7 @@ void check_restore_size(const char* backup_file_image, const char* backup_path) 
     sprintf(tmp, "%s/", DirName(backup_file_image));
     files = gather_files(tmp, "", &numFiles);
 
+    // if it's a twrp multi volume backup, ensure we remove trailing 000: strlen("000") = 3
     if (strlen(backup_file_image) > strlen("win000") && strcmp(backup_file_image + strlen(backup_file_image) - strlen("win000"), "win000") == 0)
         snprintf(tmp, strlen(backup_file_image) - 3, "%s", backup_file_image);
     else
@@ -279,6 +320,8 @@ void check_restore_size(const char* backup_file_image, const char* backup_path) 
     for(i = 0; i < numFiles; i++) {
         if (strstr(files[i], filename) != NULL) {
             fsize = Get_File_Size(files[i]);
+            // check if it is a compressed archive and increase size by 45%
+            // this needs a better implementation to do later
             if (is_gzip_file(files[i]) > 0)
                 fsize += (fsize * 45) / 100;
             Backup_Size += fsize;
@@ -288,6 +331,7 @@ void check_restore_size(const char* backup_file_image, const char* backup_path) 
     free_string_array(files);
 }
 
+// print backup stats summary at end of a backup
 void show_backup_stats(const char* backup_path) {
     long long total_msec = timenow_msec() - nandroid_start_msec;
     long long minutes = total_msec / 60000LL;
@@ -302,10 +346,13 @@ void show_backup_stats(const char* backup_path) {
     ui_print("\nBackup complete!\n");
     ui_print("Backup time: %02lld:%02lld mn\n", minutes, seconds);
     ui_print("Backup size: %.2LfMb\n", (long double) final_size / 1048576);
+    // print compression % only if it is a tar / tar.gz backup
+    // keep also for tar to show it is 0% compression
     if (default_backup_handler != dedupe_compress_wrapper)
         ui_print("Compression: %.2Lf%%\n", compression * 100);
 }
 
+// show restore stats (only time for now)
 void show_restore_stats() {
     long long total_msec = timenow_msec() - nandroid_start_msec;
     long long minutes = total_msec / 60000LL;
@@ -315,6 +362,10 @@ void show_restore_stats() {
     ui_print("Restore time: %02lld:%02lld mn\n", minutes, seconds);
 }
 
+// custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
+// for efs partition
+// for now called only from nandroid_backup(), uncomment finish_nandroid_job(0) if called from elsewhere
+// ret = 0 if success, else ret = 1
 int dd_raw_backup_handler(const char* backup_path, const char* root) {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
 
@@ -356,6 +407,10 @@ int dd_raw_backup_handler(const char* backup_path, const char* root) {
     return ret;
 }
 
+// custom raw restore handler
+// used to restore efs in raw mode or modem.bin files
+// for now, only called directly from outside functions (not from nandroid_restore())
+// user selects an image file to restore, so backup_file_image path is already mounted
 int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
 
@@ -436,11 +491,36 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
 /*****************************************/
 
 
+/*
+ emmc/mtd/bml fstypes are restored directly in nandroid_restore_partition()
+ * all other fstypes, include yaffs2 and auto are restored using twrp_restore_wrapper(), called by nandroid_restore_partition_extended()
+ * twrp_restore_wrapper() will always extract in tar with twrp_tar_extract_wrapper()
+ * TWRP uses "Backup_Method = FILES" (= tar) in "TWPartition::Setup_File_System" called by the statement: " if(Is_File_System(Fstab_File_System))"
+ * Is_File_System function below:
+        bool TWPartition::Is_File_System(string File_System) {
+            if (File_System == "ext2" ||
+                File_System == "ext3" ||
+                File_System == "ext4" ||
+                File_System == "vfat" ||
+                File_System == "ntfs" ||
+                File_System == "yaffs2" ||
+                File_System == "exfat" ||
+                File_System == "auto")
+                return true;
+            else
+                return false;
+        }
+ * All those file types will be backed-up / extracted using tar
+ * CWM on the other side, uses a special external binary for yaffs2 fstype which outputs a .img file
+   So this must be accounted for when dealing with both TWRP/CWM backup files
+*/
 
 #define MAX_ARCHIVE_SIZE 4294967296LLU
 int Makelist_File_Count;
 unsigned long long Makelist_Current_Size;
 
+// called only for multi-volume backups to generate stats for progress bar
+// file list was gathered from mounted partition: no need to mount before stat line
 static void compute_twrp_backup_stats(int index) {
     char tmp[PATH_MAX];
     char line[PATH_MAX];
@@ -450,7 +530,7 @@ static void compute_twrp_backup_stats(int index) {
     FILE *fp = fopen(tmp, "rb");
     if (fp != NULL) {
         while (fgets(line, sizeof(line), fp) != NULL) {
-            line[strlen(line)-1] = '\0';
+            line[strlen(line) - 1] = '\0';
             stat(line, &info);
             if (S_ISDIR(info.st_mode)) {
                 compute_directory_stats(line);
@@ -593,6 +673,8 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         return -1;
     }
 
+    // check we are not backing up an empty volume as it would fail to restore (tar: short read)
+    // check first if a filelist was generated. If not, ensure volume is 0 size. Else, it could be an error while 
     if (!file_found("/tmp/list/filelist000")) {
         ui_print("Nothing to backup. Skipping %s\n", BaseName(backup_path));
         return 0;
@@ -603,9 +685,10 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
     int nand_starts = 1;
     last_size_update = 0;
     set_perf_mode(1);
-    for (index=0; index<backup_count; index++)
+    for (index = 0; index < backup_count; index++)
     {
         compute_twrp_backup_stats(index);
+        // folder /data/media and google cached music are excluded from tar by Generate_File_Lists(...)
         if (nandroid_get_default_backup_format() == NANDROID_BACKUP_FORMAT_TAR)
 #ifdef BOARD_RECOVERY_USE_BBTAR
             sprintf(tmp, "(tar -cvf '%s%03i' -T /tmp/list/filelist%03i) 2> /proc/self/fd/1 ; exit $?", backup_file_image, index, index);
@@ -661,6 +744,8 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
 }
 
 int twrp_backup(const char* backup_path) {
+    // keep this for extra security and keep close to stock code
+    // refresh_default_backup_handler() mounts /sdcard. We stat it in nandroid_backup_partition_extended() for callback
     nandroid_backup_bitfield = 0;
     refresh_default_backup_handler();
 
@@ -670,17 +755,22 @@ int twrp_backup(const char* backup_path) {
     int ret;
     struct statfs s;
 
+    // refresh size stats for backup_path
+    // this will also ensure volume for backup path != NULL
     if (0 != Get_Size_Via_statfs(backup_path))
         return print_and_error("Unable to stat backup path.\n");
 
-
+    // estimate backup size and ensure we have enough free space available on backup_path
     if (check_backup_size(backup_path) < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
+    // moved after backup size check to fix pause before showing low space prompt
+    // this is caused by friendly log view triggering on ui_set_background(BACKGROUND_ICON_INSTALLING) call
+    // also, it is expected to have the background installing icon when we actually start backup
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    nandroid_start_msec = timenow_msec();
+    nandroid_start_msec = timenow_msec(); // starts backup monitoring timer for total backup time
 #ifdef PHILZ_TOUCH_RECOVERY
-    last_key_ev = nandroid_start_msec;
+    last_key_ev = nandroid_start_msec; // support dim screen timeout during nandroid operation
 #endif
 
     char tmp[PATH_MAX];
@@ -853,7 +943,7 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
 
         int index = 0;
         sprintf(path, "%s%03i", main_filename, index);
-        while(file_found(path)) {
+        while (file_found(path)) {
             ui_print("  * Restoring archive %d\n", index + 1);
             sprintf(cmd, "cd /; tar %s '%s'; exit $?", tar_args, path);
             if (0 != (ret = twrp_tar_extract_wrapper(cmd, backup_path, callback)))
@@ -871,12 +961,16 @@ int twrp_restore_wrapper(const char* backup_file_image, const char* backup_path,
 }
 
 int twrp_restore(const char* backup_path) {
-    Backup_Size = 0;
+    Backup_Size = 0; // by default, do not calculate size
+
+    // progress bar will be of indeterminate progress
+    // setting nandroid_files_total = 0 will force this in nandroid_callback()
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     nandroid_files_total = 0;
     nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
+    // support dim screen timeout during nandroid operation
     last_key_ev = timenow_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
@@ -976,6 +1070,8 @@ int twrp_restore(const char* backup_path) {
 
 
 // backup /data/media support
+// we reach here only if backup_data_media == 1
+// backup_data_media can be set to 1 only in "custom backup and restore" menu AND if is_data_media() && !twrp_backup_mode.value
 int nandroid_backup_datamedia(const char* backup_path) {
     char tmp[PATH_MAX];
     ui_print("\n>> Backing up /data/media...\n");
@@ -1091,6 +1187,7 @@ int nandroid_restore_datamedia(const char* backup_path) {
     if (0 != format_unknown_device(NULL, "/data/media", NULL))
         return print_and_error("Error while erasing /data/media\n");
 
+    // data can be unmounted by format_unknown_device()
     if (0 != ensure_path_mounted("/data"))
         return -1;
 

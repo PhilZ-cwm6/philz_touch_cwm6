@@ -52,6 +52,7 @@ void vold_set_automount(int automount) {
     should_automount = automount;
 }
 
+// will mount all vold managed volumes if they are ready (if extra storage is not inserted, it is skipped)
 void vold_mount_all() {
 
     struct volume_node *node;

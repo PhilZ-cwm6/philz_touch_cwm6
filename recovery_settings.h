@@ -38,10 +38,17 @@
 #define ORS_BOOT_SCRIPT_FILE    "/cache/recovery/openrecoveryscript"
 
 #ifdef PHILZ_TOUCH_RECOVERY
+// if these are changed, they won't take effect until we update libtouch_gui
+// custom background images
 #define CUSTOM_RES_IMAGE_PATH   "clockworkmod/custom_res"
+
+// capture screen folder
 #define SCREEN_CAPTURE_FOLDER   "clockworkmod/screen_shots"
 #endif
 
+
+// Start recovery settings ini pairs
+// first, we define pairs categories based on value type
 struct CWMSettingsIntValues {
     const char key[56];
     int value;
@@ -57,6 +64,21 @@ struct CWMSettingsCharValues {
     char value[PROPERTY_VALUE_MAX];
 }; 
 
+// now we define the key/value pairs
+/*
+on recovery exit, check if we need to nag for:
+    - auto_restore_settings: missing settings file after a wipe while we have a backup (auto restore or prompt to restore)
+    - check_root_and_recovery: root and recovery that could be messed up (user set)
+- nandroid_add_preload: must be set to 0 on start. Then, if set to 1 in recovery settings file AND /preload volume exists, it will be 1, else, it is 0
+- show_background_icon: used to refresh background icon without reading settings file (nandroid exit, show_log_menu())
+- show_virtual_keys: keep 0 on start to avoid virtual keys showing briefly when set disabled by user
+- scroll_sensitivity: number of pixels finger needs to move to trigger a scroll /up/down by 1 menu
+- touch_accuracy: number of pixels to assume a finger touch/lift action without moving (validate on finger lifted)
+- t_zone: in hours
+- t_zone_offset: offset value in minutes for timezone (0 to 59 mn)
+- use_dst_time: enable/disable daylight saving time (0/1 toggle)
+- use_qcom_time_offset: holds time offset in seconds for qualcom boards
+*/
 struct CWMSettingsIntValues auto_restore_settings;
 struct CWMSettingsIntValues check_root_and_recovery;
 struct CWMSettingsIntValues apply_loki_patch;
@@ -78,6 +100,7 @@ struct CWMSettingsCharValues ors_backup_path;
 struct CWMSettingsCharValues user_zip_folder;
 
 #ifdef PHILZ_TOUCH_RECOVERY
+// selective theme gui settings
 struct CWMSettingsLongIntValues set_brightness;
 struct CWMSettingsLongIntValues menu_height_increase;
 struct CWMSettingsLongIntValues min_log_rows;
@@ -112,6 +135,7 @@ struct CWMSettingsLongIntValues press_move_action;
 struct CWMSettingsIntValues enable_vibrator;
 struct CWMSettingsIntValues wait_after_install;
 
+// time settings
 struct CWMSettingsLongIntValues t_zone;
 struct CWMSettingsLongIntValues t_zone_offset;
 struct CWMSettingsIntValues use_dst_time;

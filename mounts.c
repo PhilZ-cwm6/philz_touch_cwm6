@@ -49,6 +49,8 @@ free_volume_internals(const MountedVolume *volume, int zero)
 
 #define PROC_MOUNTS_FILENAME   "/proc/mounts"
 
+// this function is not thread safe as it free/malloc/modify the static g_mounts_state members
+// called by ensure_path_mounted/ensure_path_unmounted and a few other non thread concerned functions
 int
 scan_mounted_volumes()
 {

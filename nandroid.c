@@ -109,15 +109,18 @@ static void nandroid_callback(const char* filename) {
 
     char size_progress[256] = "Size progress: N/A";
     if (show_nandroid_size_progress.value && Backup_Size != 0) {
+        // Backup_Size == 0 if if we couldn't stat backup size
         sprintf(size_progress, "Done %llu/%lluMb - Free %lluMb",
                 (Used_Size - Before_Used_Size) / 1048576LLU, Backup_Size / 1048576LLU, Free_Size / 1048576LLU);
     }
     size_progress[ui_get_text_cols() - 1] = '\0';
 
 #ifdef PHILZ_TOUCH_RECOVERY
+    // print last 3 log rows in default color: this will include the "Press Back to cancel." line
     ui_print_preset_colors(3, NULL);
 #endif
 
+    // check if we should disable writing file names to log (speeds up backup/restore on some devices)
     if (use_nandroid_simple_logging.value)
         ui_set_log_stdout(0);
 
@@ -166,7 +169,7 @@ static void compute_directory_stats(const char* directory) {
 
     fclose(f);
     nandroid_files_total = atoi(count_text);
-
+    // in twrp backup mode, do not refresh this or it will be a flashy effect on compute_twrp_backup_stats() call
     if (!twrp_backup_mode.value) {
         ui_reset_progress();
         ui_show_progress(1, 0);
@@ -226,7 +229,7 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
         return -1;
     }
 
-    int nand_starts = 1;
+    int nand_starts = 1; // to run only once some user_cancel_nandroid() statements
     last_size_update = 0;
     while (fgets(buf, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -318,7 +321,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
         return -1;
     }
 
-    int nand_starts = 1;
+    int nand_starts = 1; // to run only once some user_cancel_nandroid() statements
     last_size_update = 0;
     while (fgets(tmp, PATH_MAX, fp) != NULL) {
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -337,6 +340,13 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
 
 static nandroid_backup_handler default_backup_handler = tar_compress_wrapper;
 static char forced_backup_format[5] = "";
+// this function will force the backup handler to be tar, whatever filesystem be it ext4 or yaffs2
+// we now disabled forcing to tar if it is yaffs2
+// nandroid_force_backup_format() is used for ors backup coupled to set_override_yaffs2_wrapper(0) to avoid forcing yaffs2 in tar format
+//  * in cwm mode: yaffs2 is not broken
+//  * in twrp mode: in all cases, we do not use get_backup_handler() and yaffs2 is always backed up as tar like in original TWRP
+// to force tar backup: nandroid_force_backup_format("tar");
+// after the backup, reset default backup handler: nandroid_force_backup_format("");
 void nandroid_force_backup_format(const char* fmt) {
     strcpy(forced_backup_format, fmt);
 }
@@ -376,6 +386,15 @@ unsigned nandroid_get_default_backup_format() {
     }
 }
 
+// force yaffs2 to be backed up with default_backup_handler (tar, tar.gz, dup)
+// used for make update.zip from ROM so that we can force it to tar format even on yaffs2 partitions (default behaviour)
+// while in ors backup mode, we can force backup ext4 partitions in tar format while keeping yaffs2 partitions default behaviour (backed up in .img)
+// this is done by calling set_override_yaffs2_wrapper(0)
+// in twrp mode, yaffs2 is always backed up in tar through nandroid_backup_partition_extended() like in TWRP. We do not need nandroid_force_backup_format()
+// we can this way freely use nandroid_force_backup_format() without breaking yaffs2 support when needed
+// To sum it:
+//  * calling nandroid_force_backup_format("tar") will force tar on all ext4/vfat/yaffs2 partitions
+//  * to force tar on all partitions except yaffs2, call set_override_yaffs2_wrapper(0) before nandroid_force_backup_format("tar")
 static int override_yaffs2_wrapper = 1;
 void set_override_yaffs2_wrapper(int set) {
     override_yaffs2_wrapper = set;
@@ -397,6 +416,7 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
         return default_backup_handler;
     }
 
+    // force yaffs2 to be backed up with default_backup_handler (tar/tar.gz/dup)
     if (override_yaffs2_wrapper && strlen(forced_backup_format) > 0)
         return default_backup_handler;
 
@@ -417,6 +437,8 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     strcpy(name, BaseName(mount_point));
 
     struct stat file_info;
+    // sdcard is mounted at this point by previous call to refresh_default_backup_handler()
+    // let's ensure it anyway
     sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
     ensure_path_mounted(tmp);
     int callback = stat(tmp, &file_info) != 0;
@@ -528,8 +550,8 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
 
 int nandroid_backup(const char* backup_path) {
     nandroid_backup_bitfield = 0; // for dedupe mode
-    refresh_default_backup_handler();
-    
+    refresh_default_backup_handler(); // this will mount /sdcard (primary storage)
+
     if (ensure_path_mounted(backup_path) != 0) {
         return print_and_error("Can't mount backup path.\n");
     }
@@ -550,9 +572,13 @@ int nandroid_backup(const char* backup_path) {
     if (0 != (ret = Get_Size_Via_statfs(backup_path)))
         return print_and_error("Unable to stat backup path.\n");
 
+    // estimate backup size and ensure we have enough free space available on backup_path
     if (check_backup_size(backup_path) < 0)
         return print_and_error("Not enough free space: backup cancelled.\n");
 
+    // moved after backup size check to fix pause before showing low space prompt
+    // this is caused by friendly log view triggering on ui_set_background(BACKGROUND_ICON_INSTALLING) call
+    // also, it is expected to have the background installing icon when we actually start backup
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     nandroid_start_msec = timenow_msec(); // starts backup monitoring timer for total backup time
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -566,6 +592,8 @@ int nandroid_backup(const char* backup_path) {
             0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
         return ret;
 
+    // enabled by default (not an original CWM feature), but to restore, you need the Custom Restore Job
+    // when restoring from Nandroid Restore menu, recovery will not be restored (just like original CWM)
     if (backup_recovery && volume_for_path("/recovery") != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, "/recovery")))
         return ret;
@@ -892,6 +920,7 @@ static nandroid_restore_handler get_restore_handler(const char *backup_path) {
     return tar_extract_wrapper;
 }
 
+// include after all static handlers declarations
 #include "nandroid_advanced.c"
 
 int nandroid_restore_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
@@ -917,6 +946,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         restore_handler = tar_extract_wrapper;
         strcpy(tmp, "/proc/self/fd/0");
     } else if (twrp_backup_mode.value || 0 != (ret = stat(tmp, &file_info))) {
+        // if we are restoring a TWRP backup, arg 2 is not checked, Oufff!!
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
         printf("couldn't find old .img format\n");
@@ -1123,12 +1153,16 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
 }
 
 int nandroid_restore(const char* backup_path, int restore_boot, int restore_system, int restore_data, int restore_cache, int restore_sdext, int restore_wimax) {
-    Backup_Size = 0;
+    Backup_Size = 0; // by default, do not calculate size
+
+    // progress bar will be of indeterminate progress
+    // setting nandroid_files_total = 0 will force this in nandroid_callback()
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     nandroid_files_total = 0;
     nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
+    // support dim screen timeout during nandroid operation
     last_key_ev = timenow_msec();
 #endif
     if (ensure_path_mounted(backup_path) != 0)
@@ -1144,6 +1178,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL && 0 != (ret = nandroid_restore_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
         return ret;
 
+    // /recovery backup is always done in original CWM, but restore is never done! Support only in custom backup
     if (is_custom_backup) {
         if (backup_recovery && volume_for_path("/recovery") != NULL && 0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
             return ret;

@@ -84,6 +84,7 @@ int get_filtered_menu_selection(const char** headers, char** items, int menu_onl
     return ret;
 }
 
+// returns negative value on failure and total bytes written on success
 int write_string_to_file(const char* filename, const char* string) {
     char tmp[PATH_MAX];
     int ret = -1;
@@ -101,6 +102,9 @@ int write_string_to_file(const char* filename, const char* string) {
     return ret;
 }
 
+// called on recovery exit
+// data will be mounted by call to write_string_to_file() on /data/media devices
+// we need to ensure a proper unmount
 void write_recovery_version() {
     char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_VERSION_FILE);
@@ -185,7 +189,7 @@ int install_zip(const char* packagefilepath) {
         set_sdcard_update_bootloader_message();
     }
 
-    int status = install_package(packagefilepath);
+    int status = install_package(packagefilepath); // will ensure_path_mounted(packagefilepath) 
     ui_reset_progress();
     if (status != INSTALL_SUCCESS) {
         ui_set_background(BACKGROUND_ICON_ERROR);
@@ -217,6 +221,7 @@ int install_zip(const char* packagefilepath) {
 int show_install_update_menu() {
     char buf[100];
     int i = 0, chosen_item = 0;
+    // + 1 for last NULL item
     static char* install_menu_items[MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1];
 
     char* primary_path = get_primary_storage_path();
@@ -266,6 +271,7 @@ int show_install_update_menu() {
         } else if (chosen_item >= FIXED_TOP_INSTALL_ZIP_MENUS && chosen_item < FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
             show_choose_zip_menu(extra_paths[chosen_item - FIXED_TOP_INSTALL_ZIP_MENUS]);
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes) {
+            // browse for zip files up/backward including root system and have a default user set start folder
             if (show_custom_zip_menu() != 0)
                 set_custom_zip_path();
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 1) {
@@ -311,6 +317,9 @@ void free_string_array(char** array) {
     free(array);
 }
 
+// to gather directories you need to pass NULL for fileExtensionOrDirectory
+// else, only files are gathered. Pass "" to gather all files
+// NO  MORE NEEDED: if it is not called by choose_file_menu(), passed directory MUST end with a trailing /
 char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles) {
     DIR *dir;
     struct dirent *de;
@@ -340,6 +349,8 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
         extension_length = strlen(fileExtensionOrDirectory);
 
     i = 0;
+    // first pass (pass==0) only returns "total" valid file names to initialize files[total] size
+    // second pass (pass == 1), rewinddir and initializes files[i] with directory contents
     for (pass = 0; pass < 2; pass++) {
         while ((de = readdir(dir)) != NULL) {
             // skip hidden files
@@ -349,11 +360,15 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
             // NULL means that we are gathering directories, so skip this
             if (fileExtensionOrDirectory != NULL) {
                 if (strcmp("", fileExtensionOrDirectory) == 0) {
+                    // we exclude directories since they are gathered on second call to gather_files() by choose_file_menu()
+                    // and we keep stock behavior: folders are gathered only by passing NULL
+                    // else, we break things at strcat(files[i], "/") in end of while loop
                     struct stat info;
                     char fullFileName[PATH_MAX];
                     strcpy(fullFileName, directory);
                     strcat(fullFileName, de->d_name);
                     lstat(fullFileName, &info);
+                    // make sure it is not a directory
                     if (S_ISDIR(info.st_mode))
                         continue;
                 } else {
@@ -380,6 +395,7 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
                 continue;
             }
 
+            // only second pass (pass==1) reaches here: initializes files[i] with directory contents
             files[i] = (char*)malloc(dirLen + strlen(de->d_name) + 2);
             strcpy(files[i], directory);
             strcat(files[i], de->d_name);
@@ -391,6 +407,8 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
             break;
         if (total == 0)
             break;
+        // only first pass (pass == 0) reaches here. We rewinddir for second pass
+        // initialize "total" with number of valid files to show and initialize files[total]
         rewinddir(dir);
         *numFiles = total;
         files = (char**)malloc((total + 1) * sizeof(char*));
@@ -424,6 +442,11 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
 }
 
 // pass in NULL for fileExtensionOrDirectory and you will get a directory chooser
+// pass in "" to gather all files without filtering extension or filename
+// returned directory (when NULL is passed as file extension) has a trailing / causing a wired // return path
+// choose_file_menu returns NULL when no file is found or if we choose no file in selection
+// no_files_found = 1 when no valid file was found, no_files_found = 0 when we found a valid file
+// WARNING : CALLER MUST ALWAYS FREE THE RETURNED POINTER
 int no_files_found = 0;
 char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]) {
     const char* fixed_headers[20];
@@ -484,12 +507,16 @@ char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory
             if (chosen_item < numDirs) {
                 char* subret = choose_file_menu(dirs[chosen_item], fileExtensionOrDirectory, headers);
                 if (subret != NULL) {
+                    // we selected either a folder (or a file from a re-entrant call)
                     return_value = strdup(subret);
                     free(subret);
                     break;
                 }
+                // the previous re-entrant call did a GO_BACK, REFRESH or no file found in a directory: subret == NULL
+                // we drop to up folder
                 continue;
             }
+            // we selected a file
             return_value = strdup(files[chosen_item - numDirs]);
             break;
         }
@@ -690,6 +717,7 @@ int confirm_selection(const char* title, const char* confirm) {
 #define E2FSCK_BIN      "/sbin/e2fsck"
 extern void reset_ext4fs_info();
 
+// format_device() is called only by nandroid_restore_partition_extended()
 extern struct selabel_handle *sehandle;
 int format_device(const char *device, const char *path, const char *fs_type) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
@@ -1025,6 +1053,8 @@ int show_partition_menu() {
             } else {
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
                     continue;
+                // sets int ignore_data_media = 1
+                // when ignore_data_media = 1, this will truly format /data as a partition (roots.c)
                 ignore_data_media_workaround(1);
                 ui_print("Formatting /data...\n");
                 if (0 != format_volume("/data"))
@@ -1365,6 +1395,7 @@ out:
     return chosen_item;
 }
 
+// pass in mount point as argument
 void format_sdcard(const char* volume) {
     if (is_data_media_volume_path(volume))
         return;
@@ -1828,6 +1859,10 @@ int bml_check_volume(const char *path) {
     return ret == 0 ? 1 : 0;
 }
 
+// at this stage, unless a ramdisk command mounted something, all partitions are unmounted
+// we need to mount /data so that setup_data_media() can stat /data/media/0
+// load_volume_table() was already called at this stage, so we can use ensure_path_mounted()
+// ensure_path_unmounted("/data") won't work for /data/media devices
 void process_volumes() {
     create_fstab();
 

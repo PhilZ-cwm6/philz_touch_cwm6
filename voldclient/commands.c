@@ -107,11 +107,35 @@ int vold_format_volume(const char* path, int wait) {
     return vold_command(3, cmd, wait);
 }
 
+/*
+vold_custom_format_volume():
+- event_loop.c / vold_command(): will parse command line and send it to minivold binary compiled from android_system_vold repo
+- in android_system_vold (minivold) / CommandListener.cpp / int CommandListener::VolumeCmd::runCommand()
+  will interpret the command line "format" and return VolumeManager.cpp / formatVolume(const char *label, const char *fstype)
+- VolumeManager.cpp / formatVolume() will return Volume.cpp / Volume::formatVol(const char* fstype)
+- formatVol() will format to fstype == exfat, ext4 or ntfs.
+  if fstype == NULL it will detect current fstype
+  else if fstype == any other thing, it will format to vfat
+- in our vold_custom_format_volume(), we cannot send fstype as NULL
+  so, to format to current file system, call vold_format_volume() which doesn't support custom fstype
+*/
 int vold_custom_format_volume(const char* path, const char* fstype, int wait) {
     const char* cmd[4] = { "volume", "format", path, fstype };
     return vold_command(4, cmd, wait);
 }
 
+/* android_system_vold/Volume.h
+    static const int State_Init       = -1;
+    static const int State_NoMedia    = 0;
+    static const int State_Idle       = 1;
+    static const int State_Pending    = 2;
+    static const int State_Checking   = 3;
+    static const int State_Mounted    = 4;
+    static const int State_Unmounting = 5;
+    static const int State_Formatting = 6;
+    static const int State_Shared     = 7;
+    static const int State_SharedMnt  = 8;
+*/
 const char* volume_state_to_string(int state) {
     if (state == State_Init)
         return "Initializing";

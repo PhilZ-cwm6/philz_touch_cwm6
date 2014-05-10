@@ -49,6 +49,8 @@ void check_restore_size(const char* backup_file_image, const char* backup_path);
 
 int dd_raw_backup_handler(const char* backup_path, const char* root);
 int dd_raw_restore_handler(const char* backup_path, const char* root);
+// is_custom_backup = 1 when we call custom_backup_restore_menu()
+// that is, it will be 1 when we are in custom backups or in TWRP mode
 extern int is_custom_backup;
 extern int backup_boot;
 extern int backup_recovery;
@@ -73,6 +75,7 @@ extern int backup_data_media;
 #define TAR_GZ_DEFAULT      TAR_GZ_LOW
 #define TAR_GZ_DEFAULT_STR  "low"
 
+// set == 1 (default): force yaffs2 to be backed up with default_backup_handler (tar, tar.gz, dup)
 void set_override_yaffs2_wrapper(int set);
 
 // option to reboot after user initiated nandroid operations
@@ -82,7 +85,10 @@ extern int reboot_after_nandroid;
 extern int android_secure_ext;
 int set_android_secure_path(char *and_sec_path);
 
+// Total estimated backup and restore size (nandroid jobs)
 unsigned long long Backup_Size;
+
+// saved Used_Size after initial processing of target backup partition: used to refresh size stats during backup
 unsigned long long Before_Used_Size;
 
 //----------------------------- End Custom nandroid + TWRP backup by PhilZ

@@ -39,8 +39,45 @@
 
 static struct fstab *fstab = NULL;
 
-// Support additional extra.fstab entries and add device2
-// Needed until fs_mgr_read_fstab() starts to parse a blk_device2 entries
+/* Support additional extra.fstab entries and add device2
+* Needed until fs_mgr_read_fstab() starts to parse a blk_device2 entries
+* extra.fstab sample:
+----> start extra.fstab
+# add here entries already existing in main device fstab, but for which you want a blk_device2, fs_type2 or fs_options2
+# used to partition sdcard and format it to ext2/ext3
+# used also to stat for size of mtd/yaffs2 partitions
+
+# blk_device2           # mount_point           fs_type2    fs_options2     flags (not used in extra.fstab code)
+/dev/block/mmcblk0p28   /storage/sdcard0 		auto	    defaults		defaults
+/dev/block/mmcblk1p1	/storage/sdcard1 		auto	    defaults		defaults
+/dev/block/sda1			/storage/usbdisk0 		auto	    defaults		defaults
+<---- end extra.fstab
+
+* system/core/fs_mgr/fs_mgr.c/fs_mgr_read_fstab() will parse our recovery.fstab file:
+    - it will populate recovery fstab struct: fstab->recs[i].blk_device, fstab->recs[i].mount_point, fstab->recs[i].fs_type, fstab->recs[i].fs_options
+    - fs_options are defines by "static struct flag_list mount_flags[]"
+    - after that, it will call parse_flags() to parse the flags
+    - flags are defined in "static struct flag_list fs_mgr_flags[]"
+    - the flag voldmanaged=label:partnum is processed by parse_flags() in cm-10.2
+        + label is always set to NULL in cm-10.2
+        + in cm-11, label is used to define v->mount_point = fstab->recs[i].label as mount point is set to auto in fstab.device
+        + partnum is the mmcblk/mtdblk real number for voldmanaged partition
+        + exp for a device with dedicated internal sdcard partition:
+          voldmanaged=sdcard0:36: label is sdcard0, mount_point will be /storage/sdcard0 and partition is /dev/block/mmcblk0p36
+          in cm-10.2, what ever we set label, it doesn't matter as it is discarded by parse_flags() and we use the defined mount_point in fstab.device
+    - to null options, use "defaults" or a non defined entry in flag_list mount_flags[] like "default"
+    - to null flags, use "defaults" or a non defined entry in flag_list fs_mgr_flags[] like "default"
+* once recovery fstab struct is populated by roots.c/load_volume_table(), we process extra.fstab by load_volume_table_extra()
+* it will parse the extra.fstab by calling fs_mgr_read_fstab()
+* this will populate fstab_extra->recs[i].blk_device, fstab_extra->recs[i].mount_point, fstab_extra->recs[i].fs_type, fstab_extra->recs[i].fs_options
+* fstab_extra flags will not be used in cm-10.2, so we them to "defaults"
+* after that, we call add_extra_fstab_entries():
+    - it will compare each fstab->recs[i].mount_point from main recovery.fstab to the fstab_extra->recs[i].mount_point from extra.fstab
+    - if same mount point is found in both files, blk_device2, fs_type2 and fs_options2 from fstab->recs[i] are set to blk_device, fs_type and fs_options from fstab_extra->recs[i]
+    - so, mount point in extra.fstab must be the same as in main fstab.device we're using to create recovery.fstab
+    - in cm11, since mount_point is auto, we should use same voldmanaged flag in both extra.fstab and fstab.device like "voldmanaged=sdcard0:36"
+      this way, we can compare fstab->recs[i].label to fstab_extra->recs[i].label to assign blk_device2, fs_type2 and fs_options2
+*/
 static struct fstab *fstab_extra = NULL;
 static void add_extra_fstab_entries(int num) {
     int i;
@@ -130,6 +167,7 @@ void load_volume_table() {
         fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
         if (v->blk_device2 != NULL) {
+            // print extra volume table
             fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type2,
                     v->blk_device2, v->length);
         }
@@ -222,6 +260,13 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
     return ret;
 }
 
+/*
+- Check if user forces the use of /data/media/0 for internal storage
+- If we call use_migrated_storage() directly, we need to ensure_path_mounted("/data") before
+- On recovery start, no need to mount /data before as use_migrated_storage() is called by setup_data_media()
+  setup_data_media() is either called by ensure_path_mounted() which will mount /data or
+  it is called by process_volumes() where /data is mounted before and unmounted after calling setup_data_media()
+*/
 int use_migrated_storage() {
     struct stat s;
     return lstat("/data/media/0", &s) == 0 &&
@@ -292,10 +337,11 @@ int ensure_path_mounted(const char* path) {
     return ensure_path_mounted_at_mount_point(path, NULL);
 }
 
+// not thread safe because of scan_mounted_volumes()
 int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-	if(device_truedualboot_mount(path, mount_point) <= 0)
-		return 0;
+    if (device_truedualboot_mount(path, mount_point) <= 0)
+        return 0;
 #endif
 
     if (is_data_media_volume_path(path)) {
@@ -389,10 +435,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 
 static int ignore_data_media = 0;
 
+// not thread safe because of scan_mounted_volumes()
 int ensure_path_unmounted(const char* path) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-	if(device_truedualboot_unmount(path) <= 0)
-		return 0;
+    if (device_truedualboot_unmount(path) <= 0)
+        return 0;
 #endif
 
     // if we are using /data/media, do not ever unmount volumes /data or /sdcard
@@ -438,15 +485,20 @@ extern struct selabel_handle *sehandle;
 
 int format_volume(const char* volume) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if(device_truedualboot_format_volume(volume) <= 0)
+    if (device_truedualboot_format_volume(volume) <= 0)
         return 0;
 #endif
 
     if (is_data_media_volume_path(volume)) {
+        // format_unknown_device() with NULL as fstype will end to a rm -rf command issued on path /sdcard, that is /data/media folder
         return format_unknown_device(NULL, volume, NULL);
     }
     // check to see if /data is being formatted, and if it is /data/media
     // Note: the /sdcard check is redundant probably, just being safe.
+    // by default, ignore_data_media = 0, so we will go to format_unknown_device()
+    // format_unknown_device() with null fstype will rm -rf /data, excluding /data/media path
+    // if ignore_data_media_workaround(1) is called, ignore_data_media is set to 1
+    // in that case, we will not use format_unknown_device() but proceed to below with a true format command issued
     if (strstr(volume, "/data") == volume && is_data_media() && !ignore_data_media) {
         return format_unknown_device(NULL, volume, NULL);
     }
@@ -467,6 +519,8 @@ int format_volume(const char* volume) {
         }
     }
 
+    // Only use vold format for exact matches otherwise /sdcard will be
+    // formatted instead of /storage/sdcard0/.android_secure
     if (fs_mgr_is_voldmanaged(v) && strcmp(volume, v->mount_point) == 0) {
         if (ensure_path_unmounted(volume) != 0) {
             LOGE("format_volume failed to unmount %s", v->mount_point);
