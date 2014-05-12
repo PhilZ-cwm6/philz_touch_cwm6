@@ -55,9 +55,9 @@
 #include <selinux/android.h>
 
 int bakupcon_to_file(const char *pathname, const char *filename);
-int restorecon(const char *pathname, const struct stat *sb);
+//int restorecon(const char *pathname, const struct stat *sb);
 int restorecon_from_file(const char *filename);
-int restorecon_recursive(const char *pathname, const char *exclude);
+//int restorecon_recursive(const char *pathname, const char *exclude);
 #endif
 
 
@@ -1093,7 +1093,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         sprintf(tmp, "%s/%s.context", backup_path, name);
         if (file_found(tmp)) {
             ui_print("restoring selinux context...\n");
-            ret = restorecon_from_file(tmp)
+            ret = restorecon_from_file(tmp);
             ui_print("restore selinux context completed.\n");
         }
     }
@@ -1532,6 +1532,7 @@ int restorecon_from_file(const char *filename)
     return ret;
 }
 
+/*
 int restorecon_recursive(const char *pathname, const char *exclude)
 {
     int ret = 0;
@@ -1608,7 +1609,7 @@ int restorecon(const char *pathname, const struct stat *sb)
     freecon(newcontext);
     return 0;
 }
-/*
+
 int restorecon_main(int argc, char **argv)
 {
     int ch, recurse = 0;
