@@ -626,7 +626,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
 #HTC One - m7 (m7ul, m7tmo, m7att) / m7spr / m7vzw
 else ifneq ($(filter $(TARGET_PRODUCT), cm_m7 cm_m7spr cm_m7vzw),)
     TARGET_COMMON_NAME := HTC One ($(TARGET_PRODUCT))
-    KERNEL_EXFAT_MODULE_NAME := "texfat"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -693,7 +693,7 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
 #HTC One M8 (m8)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8vzw cm_m8att),)
     TARGET_COMMON_NAME := HTC One M8 ($(TARGET_PRODUCT))
-    KERNEL_EXFAT_MODULE_NAME := "texfat"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
