@@ -529,6 +529,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt01wifi cm_lt013g cm_lt01lte),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Tab Pro 8.4 WiFi SM-T320 (mondrianwifi)
+else ifeq ($(TARGET_PRODUCT), cm_mondrianwifi)
+    TARGET_COMMON_NAME := Galaxy Tab Pro SM-T320
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1600
+    TARGET_SCREEN_WIDTH := 2560
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
     TARGET_COMMON_NAME := Galaxy Nexus ($(TARGET_PRODUCT))
