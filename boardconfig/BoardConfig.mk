@@ -529,6 +529,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt01wifi cm_lt013g cm_lt01lte),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Tab Pro 8.4 WiFi SM-T320 (mondrianwifi)
+else ifeq ($(TARGET_PRODUCT), cm_mondrianwifi)
+    TARGET_COMMON_NAME := Galaxy Tab Pro SM-T320
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1600
+    TARGET_SCREEN_WIDTH := 2560
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Google Galaxy Nexus (Samsung) - maguro, toro, toroplus (tuna common device)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_maguro cm_toro cm_toroplus),)
     TARGET_COMMON_NAME := Galaxy Nexus ($(TARGET_PRODUCT))
@@ -616,7 +626,7 @@ else ifeq ($(TARGET_PRODUCT), cm_pico)
 #HTC One - m7 (m7ul, m7tmo, m7att) / m7spr / m7vzw
 else ifneq ($(filter $(TARGET_PRODUCT), cm_m7 cm_m7spr cm_m7vzw),)
     TARGET_COMMON_NAME := HTC One ($(TARGET_PRODUCT))
-    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -683,7 +693,7 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
 #HTC One M8 (m8)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8vzw cm_m8att),)
     TARGET_COMMON_NAME := HTC One M8 ($(TARGET_PRODUCT))
-    KERNEL_EXFAT_MODULE_NAME := "texfat"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -693,6 +703,16 @@ else ifeq ($(TARGET_PRODUCT), cm_m4)
     TARGET_COMMON_NAME := HTC One Mini
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#HTC Wildfire S (marvel) - armv6
+else ifeq ($(TARGET_PRODUCT), cm_marvel)
+    TARGET_COMMON_NAME := HTC Wildfire S
+    BOARD_USE_CUSTOM_RECOVERY_FONT := \"font_7x16.h\"
+    BOARD_USE_NTFS_3G := false
+    TARGET_SCREEN_HEIGHT := 480
+    TARGET_SCREEN_WIDTH := 320
+    BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Huawei Acsend P1 U9200 - viva (no cm tree)
