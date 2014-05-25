@@ -234,8 +234,10 @@ void selective_load_theme_settings() {
 
         switch (chosen_item) {
             case 0: {
-                if (confirm_selection("Overwrite all settings ?", "Yes - Apply New Theme") &&
-                        copy_a_file(theme_file, PHILZ_SETTINGS_FILE) == 0) {
+                if (confirm_selection("Overwrite all settings ?", "Yes - Apply New Theme") && copy_a_file(theme_file, PHILZ_SETTINGS_FILE) == 0) {
+                    char settings_copy[PATH_MAX];
+                    sprintf(settings_copy, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_FILE2);
+                    copy_a_file(theme_file, settings_copy);
                     refresh_recovery_settings(0);
                     ui_print("loaded default settings from %s\n", BaseName(theme_file));
                 }

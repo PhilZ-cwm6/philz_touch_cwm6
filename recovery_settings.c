@@ -49,7 +49,7 @@
 
 // Start initialize recovery key/value settings
 // touch recovery key/value settings are initialized in gui_settings.c
-struct CWMSettingsIntValues auto_restore_settings = { "auto_restore_settings", 0 };
+struct CWMSettingsIntValues auto_restore_settings = { "auto_restore_settings", 1 };
 struct CWMSettingsIntValues check_root_and_recovery = { "check_root_and_recovery", 1 };
 struct CWMSettingsIntValues apply_loki_patch = { "apply_loki_patch", 1 };
 struct CWMSettingsIntValues twrp_backup_mode = { "twrp_backup_mode", 0 };
@@ -137,28 +137,38 @@ struct CompilerFlagsUI libtouch_flags = {
 /*                                 */
 /***********************************/
 
-// On exiting recovery, check if there is a settings file
-// if not and we have a backup, prompts to restore settings
-// called when rebooting from recovery
-// exp: after success install of a new rom, before reboot, prompt to restore settings if they were wiped by installed ROM
+/* On recovery exit, check if there is a settings file (PHILZ_SETTINGS_FILE)
+   if not, try to restore the copy we do on primary storage (PHILZ_SETTINGS_FILE2)
+ * Also, if no copy is found, always create it if there is a settings file
+   we shouldn't always copy settings file on exit to avoid loosing user config after a wipe if he just change brightness by error for exp...
+
+ Function is called when rebooting from recovery
+ After success install of a new rom, before reboot, it will preserve settings if they were wiped by installed ROM
+*/
 void verify_settings_file() {
-    char backup_file[PATH_MAX];
-    sprintf(backup_file, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_BAK);
-    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(backup_file)) {
+    char settings_copy[PATH_MAX];
+    sprintf(settings_copy, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_FILE2);
+
+    // always have a copy of settings file in primary storage
+    if (file_found(PHILZ_SETTINGS_FILE) && !file_found(settings_copy))
+        copy_a_file(PHILZ_SETTINGS_FILE, settings_copy);
+
+    // restore settings from the copy if needed (after a wipe)
+    if (!file_found(PHILZ_SETTINGS_FILE) && file_found(settings_copy)) {
         if (!auto_restore_settings.value && !confirm_selection("Restore recovery settings?", "Yes - Restore from sdcard"))
             return;
-        if (copy_a_file(backup_file, PHILZ_SETTINGS_FILE) == 0)
-            ui_print("Settings restored.\n");
+        if (copy_a_file(settings_copy, PHILZ_SETTINGS_FILE) == 0)
+            ui_print("Recovery settings restored.\n");
     }
 }
 
 static void check_auto_restore_settings() {
     char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, auto_restore_settings.key, value, "false");
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0)
-        auto_restore_settings.value = 1;
-    else
+    read_config_file(PHILZ_SETTINGS_FILE, auto_restore_settings.key, value, "true");
+    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0)
         auto_restore_settings.value = 0;
+    else
+        auto_restore_settings.value = 1;
 }
 
 // on recovery exit, check if we need to nag for root and recovery that could be messed up

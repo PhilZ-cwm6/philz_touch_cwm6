@@ -29,7 +29,11 @@
 #define CUSTOM_ROM_PATH     "clockworkmod/custom_rom"
 
 // other settings
+// PHILZ_SETTINGS_FILE  : main config file loaded on start up
+// PHILZ_SETTINGS_FILE2 : whenever we write to config file, we do a second copy on sdcard to be loaded after a wipe for example
+// PHILZ_SETTINGS_BAK   : created/loaded from settings menus (user can save his custom settings before trying some modifications)
 #define PHILZ_SETTINGS_FILE     "/data/philz-touch/philz-touch_6.ini"
+#define PHILZ_SETTINGS_FILE2    "clockworkmod/philz-touch_6.sav"
 #define PHILZ_SETTINGS_BAK      "clockworkmod/philz-touch_6.ini.bak"
 #define PHILZ_THEMES_PATH       "clockworkmod/themes"
 #define AROMA_FM_PATH           "clockworkmod/aromafm/aromafm.zip"
