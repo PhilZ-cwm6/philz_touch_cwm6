@@ -599,7 +599,7 @@ void ui_init(void)
     //useless here if we use fast_ui_init() in default_recovery_ui.c: will be wiped
     //Better ui_print foot notes in recovery.c in that case
     //ui_prints are added in recovery.c under device_recovery_start()
-    //ui_print("Clockworkmod 6.0.1.5\n");
+    //ui_print("ClockworkMod 6.0.1.5\n");
 }
 
 char *ui_copy_image(int icon, int *width, int *height, int *bpp) {
