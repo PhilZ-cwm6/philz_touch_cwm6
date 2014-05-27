@@ -1054,7 +1054,7 @@ main(int argc, char **argv) {
     device_ui_init(&ui_parameters);
     ui_init();
     ui_print(EXPAND(RECOVERY_MOD_VERSION_BUILD) "\n");
-    ui_print("Clockworkmod " EXPAND(CWM_BASE_VERSION) "\n");
+    ui_print("ClockworkMod " EXPAND(CWM_BASE_VERSION) "\n");
     LOGI("Device target: " EXPAND(TARGET_COMMON_NAME) "\n");
 #ifdef PHILZ_TOUCH_RECOVERY
     print_libtouch_version(0);
