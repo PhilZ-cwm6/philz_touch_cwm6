@@ -1166,7 +1166,7 @@ int show_partition_menu() {
             }
 
 #ifdef USE_F2FS
-            if (enable_f2fs_ext4_conversion && strcmp(e->path, "/data") != 0) {
+            if (enable_f2fs_ext4_conversion && !(is_data_media() && strcmp(e->path, "/data") == 0)) {
                 if (strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) {
                     format_ext4_or_f2fs(e->path);
                     continue;
