@@ -1166,7 +1166,7 @@ int show_partition_menu() {
             }
 
 #ifdef USE_F2FS
-            if (enable_f2fs_ext4_conversion) {
+            if (enable_f2fs_ext4_conversion && strcmp(e->path, "/data") != 0) {
                 if (strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) {
                     format_ext4_or_f2fs(e->path);
                     continue;
@@ -1182,7 +1182,7 @@ int show_partition_menu() {
                 else
                     ui_print("Done.\n");
             }
-        } 
+        }
 #ifdef USE_F2FS
         else if ((is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 2)) ||
                     (!is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1))) {
