@@ -422,6 +422,7 @@ else ifeq ($(TARGET_PRODUCT), cm_jflte)
     TARGET_COMMON_NAME := i9505 ($(TARGET_PRODUCT))
     BOOTLOADER_CMD_ARG := "download"
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
