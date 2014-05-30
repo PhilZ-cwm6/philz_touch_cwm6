@@ -1995,7 +1995,7 @@ void process_volumes() {
     }
 
     return;
-
+/*
     // dead code.
     if (device_flash_type() != BML)
         return;
@@ -2031,6 +2031,7 @@ void process_volumes() {
     nandroid_backup(backup_path);
     nandroid_restore(backup_path, 1, 1, 1, 1, 1, 0);
     ui_set_show_text(0);
+*/
 }
 
 void handle_failure(int ret) {
