@@ -968,6 +968,10 @@ else ifeq ($(TARGET_PRODUCT), cm_nex)
 endif
 #---- end device specific config
 
+
+# use libtar for backup/restore instead of busybox
+BOARD_RECOVERY_USE_LIBTAR := true
+
 # The below flags must always be defined as default in BoardConfig.mk, unless defined above:
 # device name to display in About dialog
 ifndef TARGET_COMMON_NAME
