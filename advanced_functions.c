@@ -90,6 +90,87 @@
 /*      Part of PhilZ Touch Recovery     */
 /*****************************************/
 
+#ifdef BOARD_RECOVERY_CREATE_SE_CONTAINER
+#include <selinux/selinux.h>
+#include <selinux/label.h>
+#include <selinux/android.h>
+
+static int nochange;
+static int verbose;
+int bakupcon_to_file(const char *pathname, const char *filename)
+{
+    int ret = 0;
+    struct stat sb;
+    char* filecontext = NULL;
+    FILE * f = NULL;
+    if (lstat(pathname, &sb) < 0) {
+        LOGW("bakupcon_to_file: %s not found\n", pathname);
+        return -1;
+    }
+
+    if (lgetfilecon(pathname, &filecontext) < 0) {
+        LOGW("bakupcon_to_file: can't get %s context\n", pathname);
+        ret = 1;
+    }
+    else {
+        if ((f = fopen(filename, "a+")) == NULL) {
+            LOGE("bakupcon_to_file: can't create %s\n", filename);
+            return -1;
+        }
+        //fprintf(f, "chcon -h %s '%s'\n", filecontext, pathname);
+        fprintf(f, "%s\t%s\n", pathname, filecontext);
+        fclose(f);
+        freecon(filecontext);
+    }
+
+    //skip read symlink directory
+    if (S_ISLNK(sb.st_mode)) return 0;
+
+    DIR *dir = opendir(pathname);
+    // not a directory, carry on
+    if (dir == NULL) return 0;
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        char *entryname;
+        if (!strcmp(entry->d_name, ".."))
+            continue;
+        if (!strcmp(entry->d_name, "."))
+            continue;
+        if (asprintf(&entryname, "%s/%s", pathname, entry->d_name) == -1)
+            continue;
+        if ((is_data_media() && (strncmp(entryname, "/data/media/", 12) == 0)) ||
+                strncmp(entryname, "/data/data/com.google.android.music/files/", 42) == 0 )
+            continue;
+
+        bakupcon_to_file(entryname, filename);
+        free(entryname);
+    }
+
+    closedir(dir);
+    return ret;
+}
+
+void create_external_selinux_container() {
+    static const char* headers[] = { "Choose a backup path", NULL };
+    char path[PATH_MAX];
+    char* file;
+
+    sprintf(path, "/sdcard/%s", CWM_BACKUP_PATH);    
+    file = choose_file_menu(path, NULL, headers);
+    if (file == NULL)
+        return;
+
+    ui_print("backing up /data selinux context...\n");
+    sprintf(path, "%s/data.context", file);
+    if (bakupcon_to_file("/data", path) < 0)
+        LOGE("backup selinux context error!\n");
+    else
+        ui_print("backup /data selinux context completed.\n");
+    free(file);
+}
+#endif
+
 // ignore_android_secure = 1: this will force skipping android secure from backup/restore jobs
 static int ignore_android_secure = 0;
 
@@ -2027,6 +2108,9 @@ void misc_nandroid_menu() {
         item_compress,
         "Default Backup Format...",
         "Regenerate md5 Sum",
+#ifdef BOARD_RECOVERY_CREATE_SE_CONTAINER
+        "Create /data selinux container",
+#endif
         NULL
     };
 
@@ -2179,6 +2263,12 @@ void misc_nandroid_menu() {
                 regenerate_md5_sum_menu();
                 break;
             }
+#ifdef BOARD_RECOVERY_CREATE_SE_CONTAINER
+            case 11: {
+                create_external_selinux_container();
+                break;
+            }
+#endif
         }
     }
 }
