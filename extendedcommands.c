@@ -1016,8 +1016,9 @@ static void format_ext4_or_f2fs(const char* volume) {
             break;
     }
 
-    // refresh volume table fstype
+    // refresh volume table fstype and recreate the /etc/fstab file for proper system mount command function
     load_volume_table();
+    process_volumes();
     if (ret)
         LOGE("Could not format %s (%s)\n", volume, list[chosen_item]);
     else
