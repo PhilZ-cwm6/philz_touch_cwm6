@@ -53,10 +53,8 @@
 #                               will not include ntfs-3g binary to format and mount NTFS partitions. This can spare about 300kb space
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
 #
-#   - BOARD_RECOVERY_USE_BBTAR := true
-#                               use busybox tar rather than standalone minitar binary (16kb space spare)
-#                               busybox tar cannot currently backup/restore selinux labels !
-#                               this will enable use of external selinux context container during backup/restore
+#   - BOARD_RECOVERY_USE_LIBTAR := true
+#                               link tar command to recovery libtar (minitar) rather than to busybox tar
 #
 
 #Amazon Kindle Fire HD 8.9 (jem)

@@ -49,18 +49,6 @@
 #include "libtouch_gui/gui_settings.h"
 #endif
 
-#ifdef BOARD_RECOVERY_USE_BBTAR
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-#include <selinux/android.h>
-
-int bakupcon_to_file(const char *pathname, const char *filename);
-//int restorecon(const char *pathname, const struct stat *sb);
-int restorecon_from_file(const char *filename);
-//int restorecon_recursive(const char *pathname, const char *exclude);
-#endif
-
-
 // time in msec when nandroid job starts: used for dim timeout and total backup time
 static long long nandroid_start_msec = 0;
 
@@ -251,33 +239,21 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
 
 static int tar_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; set -o pipefail ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
-#else
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; set -o pipefail ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
-#endif
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar ; set -o pipefail ; (tar -cpv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, backup_file_image);
 
     return do_tar_compress(tmp, callback, backup_file_image);
 }
 
 static int tar_gzip_compress_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; set -o pipefail ; (tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
-#else
-    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; set -o pipefail ; (tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
-#endif
+    sprintf(tmp, "cd $(dirname %s) ; touch %s.tar.gz ; set -o pipefail ; (tar -cpv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) | pigz -c -%d | split -a 1 -b 1000000000 /proc/self/fd/0 %s.tar.gz.) 2> /proc/self/fd/1 ; exit $?", backup_path, backup_file_image, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path, compression_value.value, backup_file_image);
 
     return do_tar_compress(tmp, callback, backup_file_image);
 }
 
 static int tar_dump_wrapper(const char* backup_path, const char* backup_file_image, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s); set -o pipefail ; tar cv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
-#else
-    sprintf(tmp, "cd $(dirname %s); set -o pipefail ; tar -csv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
-#endif
+    sprintf(tmp, "cd $(dirname %s); set -o pipefail ; tar -cpv --exclude=data/data/com.google.android.music/files/* %s $(basename %s) 2> /dev/null | cat", backup_path, strcmp(backup_path, "/data") == 0 && is_data_media() ? "--exclude 'media'" : "", backup_path);
 
     return __system(tmp);
 }
@@ -479,24 +455,6 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
             return -2;
         }
         ret = backup_handler(mount_point, tmp, callback);
-#ifdef BOARD_RECOVERY_USE_BBTAR
-        sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
-        ensure_path_mounted(tmp);
-        if (0 != ret || strcmp(backup_path, "-") == 0 || file_found(tmp) || backup_handler == dedupe_compress_wrapper) {
-            LOGI("skipping selinux context!\n");
-        }
-        else if (0 == strcmp(mount_point, "/data") ||
-                    0 == strcmp(mount_point, "/system") ||
-                    0 == strcmp(mount_point, "/cache"))
-        {
-            ui_print("backing up selinux context...\n");
-            sprintf(tmp, "%s/%s.context", backup_path, name);
-            if (bakupcon_to_file(mount_point, tmp) < 0)
-                LOGE("backup selinux context error!\n");
-            else
-                ui_print("backup selinux context completed.\n");
-        }
-#endif
     }
 
     if (umount_when_finished) {
@@ -831,22 +789,14 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
 
 static int tar_gzip_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | pigz -d -c | tar xv ; exit $?", backup_path, backup_file_image);
-#else
-    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | pigz -d -c | tar -xsv ; exit $?", backup_path, backup_file_image);
-#endif
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | pigz -d -c | tar -xpv ; exit $?", backup_path, backup_file_image);
 
     return do_tar_extract(tmp, backup_file_image, backup_path, callback);
 }
 
 static int tar_extract_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | tar xv ; exit $?", backup_path, backup_file_image);
-#else
-    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | tar -xsv ; exit $?", backup_path, backup_file_image);
-#endif
+    sprintf(tmp, "cd $(dirname %s) ; set -o pipefail ; cat %s* | tar -xpv ; exit $?", backup_path, backup_file_image);
 
     return do_tar_extract(tmp, backup_file_image, backup_path, callback);
 }
@@ -884,11 +834,7 @@ static int dedupe_extract_wrapper(const char* backup_file_image, const char* bac
 
 static int tar_undump_wrapper(const char* backup_file_image, const char* backup_path, int callback) {
     char tmp[PATH_MAX];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "cd $(dirname %s) ; tar xv ", backup_path);
-#else
-    sprintf(tmp, "cd $(dirname %s) ; tar -xsv ", backup_path);
-#endif
+    sprintf(tmp, "cd $(dirname %s) ; tar -xpv ", backup_path);
 
     return __system(tmp);
 }
@@ -1082,22 +1028,6 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
             return ret;
         }
     }
-
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    sprintf(tmp, "%s/%s", get_primary_storage_path(), NANDROID_IGNORE_SELINUX_FILE);
-    ensure_path_mounted(tmp);
-    if (file_found(tmp) || strcmp(backup_path, "-") == 0 || restore_handler == dedupe_extract_wrapper) {
-        LOGI("don't need restore of selinux context\n");
-    } else if (0 == strcmp(mount_point, "/data") || 0 == strcmp(mount_point, "/system") || 0 == strcmp(mount_point, "/cache")) {
-        sprintf(name, "%s", BaseName(mount_point));
-        sprintf(tmp, "%s/%s.context", backup_path, name);
-        if (file_found(tmp)) {
-            ui_print("restoring selinux context...\n");
-            ret = restorecon_from_file(tmp);
-            ui_print("restore selinux context completed.\n");
-        }
-    }
-#endif
 
     if (umount_when_finished) {
         ensure_path_unmounted(mount_point);
@@ -1442,241 +1372,3 @@ int nandroid_main(int argc, char** argv) {
 
     return nandroid_usage();
 }
-
-#ifdef BOARD_RECOVERY_USE_BBTAR
-static int nochange;
-static int verbose;
-int bakupcon_to_file(const char *pathname, const char *filename)
-{
-    int ret = 0;
-    struct stat sb;
-    char* filecontext = NULL;
-    FILE * f = NULL;
-    if (lstat(pathname, &sb) < 0) {
-        LOGW("bakupcon_to_file: %s not found\n", pathname);
-        return -1;
-    }
-
-    if (lgetfilecon(pathname, &filecontext) < 0) {
-        LOGW("bakupcon_to_file: can't get %s context\n", pathname);
-        ret = 1;
-    }
-    else {
-        if ((f = fopen(filename, "a+")) == NULL) {
-            LOGE("bakupcon_to_file: can't create %s\n", filename);
-            return -1;
-        }
-        //fprintf(f, "chcon -h %s '%s'\n", filecontext, pathname);
-        fprintf(f, "%s\t%s\n", pathname, filecontext);
-        fclose(f);
-        freecon(filecontext);
-    }
-
-    //skip read symlink directory
-    if (S_ISLNK(sb.st_mode)) return 0;
-
-    DIR *dir = opendir(pathname);
-    // not a directory, carry on
-    if (dir == NULL) return 0;
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        char *entryname;
-        if (!strcmp(entry->d_name, ".."))
-            continue;
-        if (!strcmp(entry->d_name, "."))
-            continue;
-        if (asprintf(&entryname, "%s/%s", pathname, entry->d_name) == -1)
-            continue;
-        if ((is_data_media() && (strncmp(entryname, "/data/media/", 12) == 0)) ||
-                strncmp(entryname, "/data/data/com.google.android.music/files/", 42) == 0 )
-            continue;
-
-        bakupcon_to_file(entryname, filename);
-        free(entryname);
-    }
-
-    closedir(dir);
-    return ret;
-}
-
-int restorecon_from_file(const char *filename)
-{
-    int ret = 0;
-    FILE * f = NULL;
-    if ((f = fopen(filename, "r")) == NULL)
-    {
-        LOGW("restorecon_from_file: can't open %s\n", filename);
-        return -1;
-    }
-
-    char linebuf[4096];
-    while(fgets(linebuf, 4096, f)) {
-        if (linebuf[strlen(linebuf)-1] == '\n')
-            linebuf[strlen(linebuf)-1] = '\0';
-
-        char *p1, *p2;
-        char *buf = linebuf;
-
-        p1 = strtok(buf, "\t");
-        if (!p1) continue;
-        p2 = strtok(NULL, "\t");
-        if (!p2) continue;
-        LOGI("%s %s\n", p1, p2);
-        if (lsetfilecon(p1, p2) < 0) {
-            LOGE("restorecon_from_file: can't setfilecon %s\n", p1);
-            ret++;
-        }
-    }
-    fclose(f);
-    return ret;
-}
-
-/*
-int restorecon_recursive(const char *pathname, const char *exclude)
-{
-    int ret = 0;
-    struct stat sb;
-    if (lstat(pathname, &sb) < 0) {
-        LOGW("restorecon: %s not found\n", pathname);
-        return -1;
-    }
-    if (exclude) {
-        int eclen = strlen(exclude);
-        if (strncmp(pathname, exclude, strlen(exclude)) == 0)
-            return 0;
-    }
-    //if (selinux_android_restorecon(pathname, 0) < 0) {
-    if (restorecon(pathname, &sb) < 0) {
-        LOGW("restorecon: error restoring %s context\n", pathname);
-        ret = 1;
-    }
-
-    //skip symlink dir
-    if (S_ISLNK(sb.st_mode)) return 0;
-
-    DIR *dir = opendir(pathname);
-    // not a directory, carry on
-    if (dir == NULL) return 0;
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        char *entryname;
-        if (!strcmp(entry->d_name, ".."))
-            continue;
-        if (!strcmp(entry->d_name, "."))
-            continue;
-        if (asprintf(&entryname, "%s/%s", pathname, entry->d_name) == -1)
-            continue;
-
-        restorecon_recursive(entryname, exclude);
-        free(entryname);
-    }
-
-    closedir(dir);
-    return ret;
-}
-
-extern struct selabel_handle *sehandle;
-int restorecon(const char *pathname, const struct stat *sb)
-{
-    char *oldcontext, *newcontext;
-
-    if (lgetfilecon(pathname, &oldcontext) < 0) {
-        fprintf(stderr, "Could not get context of %s:  %s\n",
-                pathname, strerror(errno));
-        return -1;
-    }
-    if (selabel_lookup(sehandle, &newcontext, pathname, sb->st_mode) < 0) {
-        fprintf(stderr, "Could not lookup context for %s:  %s\n", pathname,
-               strerror(errno));
-        return -1;
-    }
-    if (strcmp(newcontext, "<<none>>") &&
-        strcmp(oldcontext, newcontext)) {
-        if (verbose)
-            fprintf(stdout, "Relabeling %s from %s to %s.\n", pathname,
-                    oldcontext, newcontext);
-        if (!nochange) {
-            if (lsetfilecon(pathname, newcontext) < 0) {
-                fprintf(stderr, "Could not label %s with %s:  %s\n",
-                        pathname, newcontext, strerror(errno));
-                return -1;
-            }
-        }
-    }
-    freecon(oldcontext);
-    freecon(newcontext);
-    return 0;
-}
-
-int restorecon_main(int argc, char **argv)
-{
-    int ch, recurse = 0;
-    int i = 0;
-
-    char *exclude = NULL , *progname = argv[0];
-
-    do {
-        ch = getopt(argc, argv, "nrRe:v");
-        if (ch == EOF)
-            break;
-        switch (ch) {
-        case 'n':
-            nochange = 1;
-            break;
-        case 'r':
-        case 'R':
-            recurse = 1;
-            break;
-        case 'v':
-            verbose = 1;
-            break;
-        case 'e':
-            exclude = optarg;
-            break;
-        default:
-            printf("usage:  %s [-nrRev] pathname...\n", progname);
-            return 1;
-        }
-    } while (1);
-
-    argc -= optind;
-    argv += optind;
-    if (!argc) {
-        printf("usage:  %s [-nrRev] pathname...\n", progname);
-        return 1;
-    }
-    //sehandle = selinux_android_file_context_handle();
-    //if (!sehandle) {
-    //    printf("Could not load file_contexts:  %s\n",
-    //            strerror(errno));
-    //    return -1;
-    //}
-    int rc;
-    struct stat sb;
-    if (recurse) {
-        for (i = 0; i < argc; i++) {
-            rc = lstat(argv[i], &sb);
-            if (rc < 0) {
-                printf("Could not stat %s:  %s\n", argv[i],
-                        strerror(errno));
-                continue;
-            }
-            restorecon_recursive(argv[i], exclude);
-        }
-    } else {
-        for (i = 0; i < argc; i++) {
-            rc = lstat(argv[i], &sb);
-            if (rc < 0) {
-                printf("Could not stat %s:  %s\n", argv[i],
-                        strerror(errno));
-                continue;
-            }
-            restorecon(argv[i], &sb);
-        }
-    }
-
-    return 0;
-}*/
-#endif

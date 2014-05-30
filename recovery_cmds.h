@@ -41,7 +41,7 @@ extern int newfs_msdos_main(int argc, char **argv);
 extern int vdc_main(int argc, char **argv);
 extern int pigz_main(int argc, char **argv);
 extern int sdcard_main(int argc, char **argv);
-#ifndef BOARD_RECOVERY_USE_BBTAR
+#ifdef BOARD_RECOVERY_USE_LIBTAR
 extern int minitar_main(int argc, char **argv);
 #endif
 #ifdef USE_F2FS
@@ -79,7 +79,7 @@ static const struct recovery_cmd recovery_cmds[] = {
     { "vdc",            vdc_main },
     { "pigz",           pigz_main },
     { "sdcard",         sdcard_main },
-#ifndef BOARD_RECOVERY_USE_BBTAR
+#ifdef BOARD_RECOVERY_USE_LIBTAR
     { "tar",            minitar_main },
 #endif
 #ifdef USE_F2FS

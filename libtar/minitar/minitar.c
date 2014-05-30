@@ -503,7 +503,7 @@ static void usage() {
            "   -T, --files-from\n"
            "   -f, --file\n"
            "   -z, --gzip\n"
-           "   -s, --selinux\n"
+           "   -p, --preserve-permissions (include selinux context)\n"
            "   -X, --exclude\n"
            "   -n, --numeric-owner\n"
     );
@@ -548,7 +548,7 @@ int minitar_main(int argc, char **argv)
         {"file", required_argument, 0, 'f'},
         {"extract", no_argument, 0, 'x'},
         {"list", no_argument, 0, 't'},
-        {"selinux", no_argument, 0, 's'},
+        {"preserve-permissions", no_argument, 0, 'p'},
         {"exclude", required_argument, 0, 'X'},
         {"numeric-owner", no_argument, 0, 'n'},
 #ifdef HAVE_LIBZ
@@ -558,7 +558,7 @@ int minitar_main(int argc, char **argv)
     };
 
     int option_index = 0;
-    while (ret == 0 && (c = getopt_long(argc, argv, "VC:vH:cT:f:xtsX:nz", long_options, &option_index)) != -1) {
+    while (ret == 0 && (c = getopt_long(argc, argv, "VC:vH:cT:f:xtpX:nz", long_options, &option_index)) != -1) {
         switch (c) {
             case 'V':
                 printf("libtar %s by Mark D. Roth <roth@uiuc.edu>\n", libtar_version);
@@ -605,7 +605,7 @@ int minitar_main(int argc, char **argv)
                 else
                     mode = MODE_LIST;
                 break;
-            case 's':
+            case 'p':
                 store_selinux_ctx = 1;
                 break;
             case 'X':

@@ -2014,9 +2014,6 @@ void misc_nandroid_menu() {
     char item_prompt_low_space[MENU_MAX_COLS];
     char item_ors_path[MENU_MAX_COLS];
     char item_compress[MENU_MAX_COLS];
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    char item_secontext[MENU_MAX_COLS];
-#endif
 
     char* list[] = {
         item_md5,
@@ -2030,9 +2027,6 @@ void misc_nandroid_menu() {
         item_compress,
         "Default Backup Format...",
         "Regenerate md5 Sum",
-#ifdef BOARD_RECOVERY_USE_BBTAR
-        item_secontext,
-#endif
         NULL
     };
 
@@ -2040,11 +2034,6 @@ void misc_nandroid_menu() {
     char* primary_path = get_primary_storage_path();
     char hidenandprogress_file[PATH_MAX];
     sprintf(hidenandprogress_file, "%s/%s", primary_path, NANDROID_HIDE_PROGRESS_FILE);
-#ifdef BOARD_RECOVERY_USE_BBTAR
-    int nandroid_secontext;
-    char ignore_nand_secontext_file[PATH_MAX];
-    sprintf(ignore_nand_secontext_file, "%s/%s", primary_path, NANDROID_IGNORE_SELINUX_FILE);
-#endif
 
     int fmt;
     for (;;) {
@@ -2097,13 +2086,6 @@ void misc_nandroid_menu() {
             else ui_format_gui_menu(item_compress, "Compression", TAR_GZ_DEFAULT_STR); // useless but to not make exceptions
         } else
             ui_format_gui_menu(item_compress, "Compression", "No");
-
-#ifdef BOARD_RECOVERY_USE_BBTAR
-        nandroid_secontext = !file_found(ignore_nand_secontext_file);
-        if (nandroid_secontext)
-            ui_format_gui_menu(item_secontext, "Process SE Context", "(x)");
-        else ui_format_gui_menu(item_secontext, "Process SE Context", "( )");
-#endif
 
         int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item == GO_BACK)
@@ -2197,15 +2179,6 @@ void misc_nandroid_menu() {
                 regenerate_md5_sum_menu();
                 break;
             }
-#ifdef BOARD_RECOVERY_USE_BBTAR
-            case 11: {
-                nandroid_secontext ^= 1;
-                if (nandroid_secontext)
-                    delete_a_file(ignore_nand_secontext_file);
-                else write_string_to_file(ignore_nand_secontext_file, "1");
-                break;
-            }
-#endif
         }
     }
 }
