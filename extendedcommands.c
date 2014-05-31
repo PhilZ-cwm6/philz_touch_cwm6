@@ -712,11 +712,6 @@ int confirm_selection(const char* title, const char* confirm) {
     return ret;
 }
 
-#define MKE2FS_BIN      "/sbin/mke2fs"
-#define TUNE2FS_BIN     "/sbin/tune2fs"
-#define E2FSCK_BIN      "/sbin/e2fsck"
-extern void reset_ext4fs_info();
-
 // format_device() is called by nandroid_restore_partition_extended(), by format_ext4_or_f2fs() and by format_sdcard()
 extern struct selabel_handle *sehandle;
 int format_device(const char *device, const char *path, const char *fs_type) {
@@ -795,7 +790,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
             // Our desired filesystem matches the one in fstab, respect v->length
             length = v->length;
         }
-        reset_ext4fs_info();
+
         int result = make_ext4fs(device, length, v->mount_point, sehandle);
         if (result != 0) {
             LOGE("format_volume: make_ext4fs failed on %s\n", device);
