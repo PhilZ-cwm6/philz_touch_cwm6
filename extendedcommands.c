@@ -707,6 +707,7 @@ int confirm_selection(const char* title, const char* confirm) {
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         ret = (chosen_item == 1);
     }
+
     free(confirm_str);
     ui_set_showing_back_button(old_val);
     return ret;
