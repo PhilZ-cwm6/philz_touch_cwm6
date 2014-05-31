@@ -110,9 +110,9 @@ void write_recovery_version() {
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_VERSION_FILE);
     write_string_to_file(path, EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     // force unmount /data for /data/media devices as we call this on recovery exit
-    ignore_data_media_workaround(1);
+    preserve_data_media(0);
     ensure_path_unmounted(path);
-    ignore_data_media_workaround(0);
+    preserve_data_media(1);
 }
 
 static void write_last_install_path(const char* install_path) {
@@ -1118,9 +1118,9 @@ int show_partition_menu() {
             } else {
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
                     continue;
-                // sets int ignore_data_media = 1
-                // when ignore_data_media = 1, this will truly format /data as a partition (roots.c)
-                ignore_data_media_workaround(1);
+                // sets is_data_media_preserved() to 0
+                // this will truly format /data as a partition (format_device() and format_volume())
+                preserve_data_media(0);
 #ifdef USE_F2FS
                 if (enable_f2fs_ext4_conversion) {
                     format_ext4_or_f2fs("/data");
@@ -1133,7 +1133,7 @@ int show_partition_menu() {
                     else
                         ui_print("Done.\n");
                 }
-                ignore_data_media_workaround(0);
+                preserve_data_media(1);
 
                 // recreate /data/media with proper permissions
                 ensure_path_mounted("/data");
@@ -1145,10 +1145,10 @@ int show_partition_menu() {
             MountMenuEntry* e = &mount_menu[chosen_item];
 
             if (is_path_mounted(e->path)) {
-                ignore_data_media_workaround(1);
+                preserve_data_media(0);
                 if (0 != ensure_path_unmounted(e->path))
                     ui_print("Error unmounting %s!\n", e->path);
-                ignore_data_media_workaround(0);
+                preserve_data_media(1);
             } else {
                 if (0 != ensure_path_mounted(e->path))
                     ui_print("Error mounting %s!\n", e->path);
@@ -1983,12 +1983,12 @@ void process_volumes() {
 
         if (count != 0) {
             count = 5;
-            ignore_data_media_workaround(1);
+            preserve_data_media(0);
             while (count > 0 && ensure_path_unmounted("/data") != 0) {
                 usleep(500000);
                 count--;
             }
-            ignore_data_media_workaround(0);
+            preserve_data_media(1);
             if (count == 0)
                 LOGE("could not unmount /data after /data/media setup\n");
         }

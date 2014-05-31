@@ -318,8 +318,8 @@ void refresh_recovery_settings(int on_start) {
 #endif
     // unmount settings file on recovery start
     if (on_start) {
-        ignore_data_media_workaround(1);
+        preserve_data_media(0);
         ensure_path_unmounted(PHILZ_SETTINGS_FILE);
-        ignore_data_media_workaround(0);
+        preserve_data_media(1);
     }
 }
