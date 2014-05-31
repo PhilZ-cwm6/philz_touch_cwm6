@@ -727,7 +727,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
     if (is_data_media_volume_path(path)) {
         return format_unknown_device(NULL, path, NULL);
     }
-    if (strstr(path, "/data") == path && is_data_media()) {
+    if (strstr(path, "/data") == path && is_data_media() && is_data_media_preserved()) {
         return format_unknown_device(NULL, path, NULL);
     }
 
