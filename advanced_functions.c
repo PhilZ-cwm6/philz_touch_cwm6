@@ -504,7 +504,7 @@ int file_found(const char* filename) {
         // do not try to mount ramdisk, else it will error "unknown volume for path..."
         ensure_path_mounted(filename);
     }
-    if (0 == stat(filename, &s))
+    if (0 == lstat(filename, &s))
         return 1;
 
     return 0;
