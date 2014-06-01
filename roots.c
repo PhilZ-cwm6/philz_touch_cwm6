@@ -357,19 +357,21 @@ void setup_data_media() {
             break;
         }
     }
-    // support /data/media/0
-    char path[15];
-    if (use_migrated_storage())
-        sprintf(path, "/data/media/0");
-    else sprintf(path, "/data/media");
-
-    if (ui_should_log_stdout())
-        LOGI("using %s for %s\n", path, mount_point);
 
     // recreate /data/media with proper permissions
     rmdir(mount_point);
-    mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    mkdir("/data/media", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+
+    // support /data/media/0 (Android 4.2+)
+    char* path = "/data/media";
+    if (use_migrated_storage()) {
+        path = "/data/media/0";
+        mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    }
     symlink(path, mount_point);
+
+    if (ui_should_log_stdout())
+        LOGI("using %s for %s\n", path, mount_point);
 }
 
 int is_data_media_volume_path(const char* path) {
