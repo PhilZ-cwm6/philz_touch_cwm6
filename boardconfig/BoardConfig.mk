@@ -577,6 +577,7 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
 else ifeq ($(TARGET_PRODUCT), cm_hammerhead)
     TARGET_COMMON_NAME := Nexus 5
     EXTRA_PARTITIONS_PATH := "/efs"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -706,6 +707,7 @@ else ifeq ($(TARGET_PRODUCT), cm_vigor)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8vzw cm_m8att),)
     TARGET_COMMON_NAME := HTC One M8 ($(TARGET_PRODUCT))
     KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
