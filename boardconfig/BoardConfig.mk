@@ -56,6 +56,19 @@
 #   - BOARD_RECOVERY_USE_LIBTAR := true
 #                               link tar command to recovery libtar (minitar) rather than to busybox tar
 #
+#   - TARGET_USERIMAGES_USE_F2FS := true
+#                               enable f2fs support in recovery, include ext4 <-> f2fs data migration
+#                               this is an official CWM flag
+#
+#   - BOARD_HAS_NO_MULTIUSER_SUPPORT := true
+#                               Since Android 4.2, internal storage is located in /data/media/0 (multi user compatibility)
+#                               When upgrading to android 4.2, /data/media content is "migrated" to /data/media/0
+#                               By default, in recovery, we always use /data/media/0 unless /data/media/.cwm_force_data_media file is found
+#                               For devices with pre-4.2 android support, we can define BOARD_HAS_NO_MULTIUSER_SUPPORT flag
+#                               It will default to /data/media, unless /data/media/0 exists
+#                               In any case, user can toggle the storage path by create/delete the file /data/media/.cwm_force_data_media
+#                               This is achieved through the Advanced menu
+#
 
 #Amazon Kindle Fire HD 8.9 (jem)
 ifeq ($(TARGET_PRODUCT), cm_jem)

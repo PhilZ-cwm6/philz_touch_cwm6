@@ -312,7 +312,10 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
 }
 
 /*
-- Check if user forces the use of /data/media/0 for internal storage
+- Since Android 4.2, internal storage is located in /data/media/0 (multi user compatibility)
+- When upgrading to android 4.2, /data/media content is "migrated" to /data/media/0
+- In recovery, we force use of /data/media instead of /data/media/0 for internal storage if /data/media/.cwm_force_data_media file is found
+- For devices with pre-4.2 android support, we can define BOARD_HAS_NO_MULTIUSER_SUPPORT flag to default to /data/media, unless /data/media/0 exists
 - If we call use_migrated_storage() directly, we need to ensure_path_mounted("/data") before
 - On recovery start, no need to mount /data before as use_migrated_storage() is called by setup_data_media()
   setup_data_media() is either called by ensure_path_mounted() which will mount /data or
@@ -320,8 +323,12 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
 */
 int use_migrated_storage() {
     struct stat s;
+#ifdef BOARD_HAS_NO_MULTIUSER_SUPPORT
     return lstat("/data/media/0", &s) == 0 &&
             lstat("/data/media/.cwm_force_data_media", &s) != 0;
+#else
+    return lstat("/data/media/.cwm_force_data_media", &s) != 0;
+#endif
 }
 
 int is_data_media() {
