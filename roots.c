@@ -280,8 +280,8 @@ void load_volume_table() {
                 if (strcmp(v->fs_type, "f2fs") == 0) {
                     v->fs_options = strdup("rw,noatime,nodev,nodiratime,inline_xattr");
                 } else {
-                    // ext4
-                    v->fs_options = strdup("rw,noatime,nodev,nodiratime");
+                    // ext4: default options will be set in try_mount()
+                    v->fs_options = NULL;
                 }
 
                 fprintf(stderr, "%s: %s -> %s\n", v->mount_point, fstab_fstype, v->fs_type);
