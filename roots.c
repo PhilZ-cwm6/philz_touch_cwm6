@@ -69,7 +69,81 @@ char* get_real_fstype(const char* device) {
 
 static struct fstab *fstab = NULL;
 
-/* Support additional extra.fstab entries and add device2
+
+/* 
+system/core/fs_mgr/include/fs_mgr.h
+struct fstab {
+    int num_entries;
+    struct fstab_rec *recs;
+    char *fstab_filename;
+};
+
+struct fstab_rec {
+    char *blk_device;
+    char *mount_point;
+    char *fs_type;
+    unsigned long flags;
+    char *fs_options;
+    int fs_mgr_flags;
+    char *key_loc;
+    char *verity_loc;
+    long long length;
+    char *label;
+    int partnum;
+    int swap_prio;
+    unsigned int zram_size;
+
+    // cwm
+    char *blk_device2;
+    char *fs_type2;
+    char *fs_options2;
+
+    char *lun;
+};
+
+*******
+
+system/core/fs_mgr/fs_mgr.c
+
+static struct flag_list mount_flags[] = {
+    { "noatime",    MS_NOATIME },
+    { "noexec",     MS_NOEXEC },
+    { "nosuid",     MS_NOSUID },
+    { "nodev",      MS_NODEV },
+    { "nodiratime", MS_NODIRATIME },
+    { "ro",         MS_RDONLY },
+    { "rw",         0 },
+    { "remount",    MS_REMOUNT },
+    { "bind",       MS_BIND },
+    { "rec",        MS_REC },
+    { "unbindable", MS_UNBINDABLE },
+    { "private",    MS_PRIVATE },
+    { "slave",      MS_SLAVE },
+    { "shared",     MS_SHARED },
+    { "sync",       MS_SYNCHRONOUS },
+    { "defaults",   0 },
+    { 0,            0 },
+};
+
+static struct flag_list fs_mgr_flags[] = {
+    { "wait",        MF_WAIT },
+    { "check",       MF_CHECK },
+    { "encryptable=",MF_CRYPT },
+    { "nonremovable",MF_NONREMOVABLE },
+    { "voldmanaged=",MF_VOLDMANAGED},
+    { "length=",     MF_LENGTH },
+    { "recoveryonly",MF_RECOVERYONLY },
+    { "swapprio=",   MF_SWAPPRIO },
+    { "zramsize=",   MF_ZRAMSIZE },
+    { "verify",      MF_VERIFY },
+    { "noemulatedsd", MF_NOEMULATEDSD },
+    { "defaults",    0 },
+    { 0,             0 },
+};
+
+****
+
+Support additional extra.fstab entries and add device2
 * Needed until fs_mgr_read_fstab() starts to parse a blk_device2 entries
 * extra.fstab sample:
 ----> start extra.fstab
@@ -186,20 +260,31 @@ void load_volume_table() {
         }
 #ifdef USE_F2FS
         // allow switching between f2fs/ext4 depending on actual real format
+        // if fstab entry matches the real device fs_type, do nothing
+        // also skip vold managed devices as vold relies on the defined flags. These should be set to auto fstype for free formatting
         else if (strcmp(v->fs_type, "ext4") == 0 || strcmp(v->fs_type, "f2fs") == 0) {
             char* real_fstype = get_real_fstype(v->blk_device);
-            if (real_fstype == NULL || strcmp(real_fstype, v->fs_type) == 0)
+            if (real_fstype == NULL || strcmp(real_fstype, v->fs_type) == 0 || fs_mgr_is_voldmanaged(v))
                 continue;
 
             if (strcmp(real_fstype, "ext4") == 0 || strcmp(real_fstype, "f2fs") == 0) {
+                // drop to bare minimal default fs_options
+                char fstab_fstype[10];
+                strcpy(fstab_fstype, v->fs_type);
                 free(v->fs_type);
                 v->fs_type = strdup(real_fstype);
 
+                if (v->fs_options != NULL)
+                    free(v->fs_options);
+
                 if (strcmp(v->fs_type, "f2fs") == 0) {
-                    if (v->fs_options != NULL)
-                        free(v->fs_options);
-                    v->fs_options = strdup("noatime,nodev,nodiratime,inline_xattr");
+                    v->fs_options = strdup("rw,noatime,nodev,nodiratime,inline_xattr");
+                } else {
+                    // ext4
+                    v->fs_options = strdup("rw,noatime,nodev,nodiratime");
                 }
+
+                fprintf(stderr, "%s: %s -> %s\n", v->mount_point, fstab_fstype, v->fs_type);
             }
         }
 #endif
