@@ -1167,6 +1167,8 @@ int show_partition_menu() {
                 if (strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) {
                     format_ext4_or_f2fs(e->path);
                     continue;
+                } else {
+                    ui_print("unsupported file system (%s)\n", e->type);
                 }
             } else
 #endif
