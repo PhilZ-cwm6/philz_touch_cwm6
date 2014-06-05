@@ -38,8 +38,11 @@
 #include "voldclient/voldclient.h"
 #include "libcrecovery/common.h" // __popen / __pclose
 
-// get actual fstype from device (modified code from @kumajaya)
-// device argument is the v->blk_device
+/*
+ get actual fstype from device (modified code from @kumajaya)
+ device argument is the v->blk_device
+ blkid output exp:  /dev/block/mmcblk1p1: UUID="3461-3337" TYPE="exfat"
+*/
 static char* real_device_fstype = NULL;
 char* get_real_fstype(const char* device) {
     char cmd[PATH_MAX];
@@ -726,11 +729,9 @@ int format_volume(const char* volume) {
 
 #ifdef USE_F2FS
     if (strcmp(v->fs_type, "f2fs") == 0) {
-        char cmd[PATH_MAX];
-        sprintf(cmd, "mkfs.f2fs %s", v->blk_device);
-        int result = __system(cmd);
-        if (result != 0) {
-            LOGE("format_volume: mkfs.f2fs failed on %s (%s)\n", v->blk_device, strerror(errno));
+        char* args[] = { "mkfs.f2fs", v->blk_device };
+        if (make_f2fs_main(2, args) != 0) {
+            LOGE("format_volume: mkfs.f2fs failed on %s\n", v->blk_device);
             return -1;
         }
         return 0;
@@ -746,7 +747,7 @@ int format_volume(const char* volume) {
 
 static int data_media_preserved_state = 1;
 void preserve_data_media(int val) {
-  data_media_preserved_state = val;
+    data_media_preserved_state = val;
 }
 
 int is_data_media_preserved() {

@@ -801,10 +801,9 @@ int format_device(const char *device, const char *path, const char *fs_type) {
     }
 #ifdef USE_F2FS
     if (strcmp(fs_type, "f2fs") == 0) {
-        char cmd[PATH_MAX];
-        sprintf(cmd, "mkfs.f2fs %s", device);
-        if (__system(cmd) != 0) {
-            LOGE("format_volume: mkfs.f2fs failed on %s (%s)\n", device, strerror(errno));
+        char* args[] = { "mkfs.f2fs", v->blk_device };
+        if (make_f2fs_main(2, args) != 0) {
+            LOGE("format_volume: mkfs.f2fs failed on %s\n", v->blk_device);
             return -1;
         }
         return 0;
