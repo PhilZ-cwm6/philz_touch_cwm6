@@ -115,6 +115,7 @@ static int Is_Image(const char* root) {
 - Update_Size() will get size details with Get_Size_Via_statfs() or if it fails with Get_Size_Via_df()
 - So, only not mountable partitions are using Find_Partition_Size()
 */
+#define BASE_PARTITIONS_NUM   13
 unsigned long long Backup_Size = 0;
 unsigned long long Before_Used_Size = 0;
 int check_backup_size(const char* backup_path) {
@@ -126,8 +127,8 @@ int check_backup_size(const char* backup_path) {
     Before_Used_Size = Used_Size; // save Used_Size to refresh data written stats later
     Backup_Size = 0;
 
-    // backable partitions
-    static const char* Partitions_List[] = {
+    // supported nandroid partitions
+    char* Base_Partitions_List[BASE_PARTITIONS_NUM] = {
             "/recovery",
             BOOT_PARTITION_MOUNT_POINT,
             "/wimax",
@@ -140,20 +141,28 @@ int check_backup_size(const char* backup_path) {
             "/data",
             "/datadata",
             "/cache",
-            "/sd-ext",
-            EXTRA_PARTITIONS_PATH"1",
-            EXTRA_PARTITIONS_PATH"2",
-            EXTRA_PARTITIONS_PATH"3",
-            EXTRA_PARTITIONS_PATH"4",
-            EXTRA_PARTITIONS_PATH"5",
-            NULL
+            "/sd-ext"
     };
+
+    int items_num = BASE_PARTITIONS_NUM + MAX_EXTRA_NANDROID_PARTITIONS + 1;
+    char* Partitions_List[items_num];
+    int i;
+    for (i = 0; i < BASE_PARTITIONS_NUM; ++i) {
+        Partitions_List[i] = Base_Partitions_List[i];
+    }
+
+    int extra_partitions_num = get_extra_partitions_state();
+    for (i = 0; i < extra_partitions_num; ++i) {
+        Partitions_List[BASE_PARTITIONS_NUM + i] = extra_partition[i].mount_point;
+    }
+
+    Partitions_List[BASE_PARTITIONS_NUM + extra_partitions_num] = NULL;
 
     int preload_status = 0;
     if ((is_custom_backup && backup_preload) || (!is_custom_backup && nandroid_add_preload.value))
         preload_status = 1;
 
-    int backup_status[] = {
+    int Base_Partitions_Backup_Status[] = {
             backup_recovery,
             backup_boot,
             backup_wimax,
@@ -167,11 +176,6 @@ int check_backup_size(const char* backup_path) {
             backup_data,
             backup_cache,
             backup_sdext,
-            extra_partition[0].backup_state,
-            extra_partition[1].backup_state,
-            extra_partition[2].backup_state,
-            extra_partition[3].backup_state,
-            extra_partition[4].backup_state
     };
 
     LOGI("Checking needed space for backup '%s'\n", backup_path);
@@ -181,16 +185,19 @@ int check_backup_size(const char* backup_path) {
     int ret = 0;
     Volume* vol;
 
-    int i;
-    for(i = 0; Partitions_List[i] != NULL; i++) {
-        if (!backup_status[i])
+    for (i = 0; Partitions_List[i] != NULL; ++i) {
+        if (i >= BASE_PARTITIONS_NUM) {
+            if (!extra_partition[i - BASE_PARTITIONS_NUM].backup_state)
+                continue;
+        } else if (!Base_Partitions_Backup_Status[i]) {
             continue;
+        }
 
-        // size of /data will be calculated later for /data/media devices to substract sdcard size from it
+        // size of /data will be calculated later for /data/media devices to subtract sdcard size from it
         if (strcmp(Partitions_List[i], "/data") == 0 && is_data_media())
             continue;
 
-        // redondant but keep for compatibility:
+        // redundant but keep for compatibility:
         // has_datadata() does a volume_for_path() != NULL check
         if (strcmp(Partitions_List[i], "/datadata") == 0 && !has_datadata())
             continue;
@@ -852,9 +859,9 @@ int twrp_backup(const char* backup_path) {
 
     // handle extra partitions
     int i;
-    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
-        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+    int extra_partitions_num = get_extra_partitions_state();
+    for (i = 0; i < extra_partitions_num; ++i) {
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, extra_partition[i].mount_point)))
             return ret;
     }
 
@@ -1039,9 +1046,9 @@ int twrp_restore(const char* backup_path) {
 
     // handle extra partitions
     int i;
-    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
-        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+    int extra_partitions_num = get_extra_partitions_state();
+    for (i = 0; i < extra_partitions_num; ++i) {
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, extra_partition[i].mount_point)))
             return ret;
     }
 

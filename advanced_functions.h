@@ -26,6 +26,7 @@
 #define __ADVANCED_FUNCTIONS_H
 
 
+#include <linux/limits.h>   // PATH_MAX
 #include "ui_defines.h" // MENU_MAX_COLS, CHAR_HEIGHT, CHAR_WIDTH
 
 // format toggle menus to screen width
@@ -109,7 +110,15 @@ void get_rom_name(char *rom_name);
 void get_device_id(char *device_id);
 void reset_custom_job_settings(int custom_job);
 
-// custom backup and restore menu items
+#define MAX_EXTRA_NANDROID_PARTITIONS    5
+void reset_extra_partitions_state();
+int get_extra_partitions_state();
+struct extra_partitions_list {
+    char mount_point[PATH_MAX];
+    int backup_state;
+} extra_partition[MAX_EXTRA_NANDROID_PARTITIONS];
+
+// custom backup and restore top menu items
 enum {
   LIST_ITEM_VALIDATE,
   LIST_ITEM_REBOOT,
@@ -127,21 +136,7 @@ enum {
   LIST_ITEM_MISC,
   LIST_ITEM_DATAMEDIA,
   LIST_ITEM_WIMAX,
-  LIST_ITEM_EXTRA_1,
-  LIST_ITEM_EXTRA_2,
-  LIST_ITEM_EXTRA_3,
-  LIST_ITEM_EXTRA_4,
-  LIST_ITEM_EXTRA_5
 };
-
-#ifndef EXTRA_PARTITIONS_PATH
-#define EXTRA_PARTITIONS_PATH   "/extra_part"
-#endif
-#define EXTRA_PARTITIONS_NUM    5
-struct extra_partitions_list {
-    char menu_label[MENU_MAX_COLS];
-    int backup_state;
-} extra_partition[EXTRA_PARTITIONS_NUM];
 
 // multi zip installer
 void show_multi_flash_menu();

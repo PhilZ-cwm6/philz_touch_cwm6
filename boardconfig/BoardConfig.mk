@@ -33,15 +33,6 @@
 #                               If detection succeeds, 'brightness_user_path' key is set to the brightness path in ini file
 #                               On next recovery starts, auto-detect is disabled when 'brightness_user_path' key exists
 #                               If BRIGHTNESS_SYS_FILE flag is defined during compile, you cannot change brightness path without recompiling recovery
-#   - EXTRA_PARTITIONS_PATH := "path" [optional], default is "extra_part"
-#                               This will override the default "/extra_part" mount point for extra partitions
-#                               in your fstab, partition mount point must be "/extra_part1", "/extra_part2",...., "/extra_part5"
-#                               you can add this way up to 5 special partitions for nandroid backup/restore custom jobs
-#                               this flag will just override the default "/extra_part". You still have to append a 1 to 5 digit to the name in fstab
-#                               exp: EXTRA_PARTITIONS_PATH := "/efs"
-#                               in recovery.fstab, we must put: /dev/block/xxx  /efs1   ext4    options
-#                                                               /dev/block/xxx  /efs2   ext4    options
-#                               up to 5 partitions:             /dev/block/xxx  /efs5   ext4    options
 #   - TW_USE_MODEL_HARDWARE_ID_FOR_DEVICE_ID := true
 #                               will force using ro.product.model as device id if available
 #                               you still need to enable a LOCAL_CFLAGS if defined
@@ -566,7 +557,6 @@ else ifeq ($(TARGET_PRODUCT), cm_mako)
 #Google Nexus 5 (LGE) - hammerhead
 else ifeq ($(TARGET_PRODUCT), cm_hammerhead)
     TARGET_COMMON_NAME := Nexus 5
-    EXTRA_PARTITIONS_PATH := "/efs"
     TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080

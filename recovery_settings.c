@@ -288,15 +288,6 @@ static void check_install_zip_verify_md5() {
         install_zip_verify_md5.value = 0;
 }
 
-// struct initializer for custom partitions to be supported in nandroid
-static void initialize_extra_partitions_state() {
-    int i;
-    for(i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        extra_partition[i].menu_label[0] = '\0';
-        extra_partition[i].backup_state = 0;
-    }
-}
-
 void refresh_recovery_settings(int on_start) {
     check_auto_restore_settings();
     check_root_and_recovery_settings();
@@ -309,7 +300,6 @@ void refresh_recovery_settings(int on_start) {
     check_prompt_on_low_space();
     check_signature_check();
     check_install_zip_verify_md5();
-    initialize_extra_partitions_state();
 #ifdef ENABLE_LOKI
     loki_support_enabled();
 #endif

@@ -661,9 +661,9 @@ int nandroid_backup(const char* backup_path) {
 
     // handle extra partitions
     int i;
-    for (i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
-        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, tmp)))
+    int extra_partitions_num = get_extra_partitions_state();
+    for (i = 0; i < extra_partitions_num; ++i) {
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, extra_partition[i].mount_point)))
             return ret;
     }
 
@@ -1227,9 +1227,9 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     // handle extra partitions
     int i;
-    for (i = 0; i < EXTRA_PARTITIONS_NUM; ++i) {
-        sprintf(tmp, "%s%d", EXTRA_PARTITIONS_PATH, i+1);
-        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, tmp)))
+    int extra_partitions_num = get_extra_partitions_state();
+    for (i = 0; i < extra_partitions_num; ++i) {
+        if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, extra_partition[i].mount_point)))
             return ret;
     }
 

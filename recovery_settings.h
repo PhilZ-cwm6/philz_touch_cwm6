@@ -169,4 +169,17 @@ void refresh_recovery_settings(int on_start);
 // check settings file on start and prompt to restore it if absent AND a backup is found: called by recovery.c
 void verify_settings_file();
 
+/*
+properties reference:
+ro.cwm.backup_partitions
+ro.cwm.enable_key_repeat
+ro.cwm.repeatable_keys
+ro.cwm.forbid_mount
+ro.cwm.forbid_format
+ro.cwm.prefer_tar
+ro.sf.lcd_density // not used in PhilZ Touch
+ro.loki_disabled
+ro.bootloader.mode
+*/
+
 #endif // _RECOVERY_SETTINGS_H
