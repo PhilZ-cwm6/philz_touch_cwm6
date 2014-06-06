@@ -1206,6 +1206,7 @@ void ui_delete_line(int num) {
 
 void ui_increment_frame() {
     if (!ui_has_initialized) return;
+
     gInstallingFrame =
         (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
