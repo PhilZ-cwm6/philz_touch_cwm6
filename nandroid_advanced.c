@@ -289,7 +289,10 @@ int check_backup_size(const char* backup_path) {
     // also, add extra 50 Mb for security measures
     if (free_percent < 3 || (default_backup_handler != dedupe_compress_wrapper && free_mb < backup_size_mb + 50)) {
         LOGW("Low space for backup!\n");
-        if (nand_prompt_on_low_space.value && !confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
+        if (!ui_is_initialized()) {
+            // do not prompt when it is an "adb shell nandroid backup" command
+            LOGW("\n>>> Backup could fail with I/O error!! <<<\n\n");
+        } else if (nand_prompt_on_low_space.value && !confirm_selection("Low free space! Continue anyway?", "Yes - Continue Nandroid Job"))
             return -1;
     }
 
