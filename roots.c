@@ -457,9 +457,11 @@ void setup_data_media() {
         mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     }
     symlink(path, mount_point);
-
+/*
+    // debug
     if (ui_should_log_stdout())
         LOGI("using %s for %s\n", path, mount_point);
+*/
 }
 
 int is_data_media_volume_path(const char* path) {
