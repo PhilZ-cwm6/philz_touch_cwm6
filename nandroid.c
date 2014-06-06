@@ -1118,7 +1118,6 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     // progress bar will be of indeterminate progress
     // setting nandroid_files_total = 0 will force this in nandroid_callback()
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    ui_show_indeterminate_progress();
     nandroid_files_total = 0;
     nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -1132,6 +1131,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (enable_md5sum.value && verify_nandroid_md5sum(backup_path) != 0) {
         return print_and_error("MD5 verification failed!\n");
     }
+    ui_show_indeterminate_progress(); // call after verify_nandroid_md5sum() as it will reset the progress
 
     int ret;
 

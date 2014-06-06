@@ -961,7 +961,6 @@ int twrp_restore(const char* backup_path) {
     // progress bar will be of indeterminate progress
     // setting nandroid_files_total = 0 will force this in nandroid_callback()
     ui_set_background(BACKGROUND_ICON_INSTALLING);
-    ui_show_indeterminate_progress();
     nandroid_files_total = 0;
     nandroid_start_msec = timenow_msec();
 #ifdef PHILZ_TOUCH_RECOVERY
@@ -976,6 +975,8 @@ int twrp_restore(const char* backup_path) {
         if (0 != check_twrp_md5sum(backup_path))
             return print_and_error("MD5 mismatch!\n");
     }
+
+    ui_show_indeterminate_progress(); // call after verify_nandroid_md5sum() as it will reset the progress
 
     int ret;
 
