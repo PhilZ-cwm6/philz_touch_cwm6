@@ -495,7 +495,9 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 #endif
 
     if (is_data_media_volume_path(path)) {
-        if (ui_should_log_stdout()) {
+        if (ui_should_log_stdout() && ui_is_initialized()) {
+            // ui_is_initialized() check to limit output logging during "adb shell nandroid" commands
+            // also, will limit logging when "mount /sdcard" from shell  on /data/media devices with BOARD_RECOVERY_HANDLES_MOUNT enabled
             LOGI("setting up /data/media(/0) for %s.\n", path);
         }
         int ret;
