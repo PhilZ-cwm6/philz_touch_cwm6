@@ -82,6 +82,7 @@ static int nandroid_backup_bitfield = 0;
 #define NANDROID_FIELD_DEDUPE_CLEARED_SPACE 1
 static int nandroid_files_total = 0;
 static int nandroid_files_count = 0;
+static int nandroid_stdout_progress = 0;
 static void nandroid_callback(const char* filename) {
     if (filename == NULL)
         return;
@@ -93,6 +94,26 @@ static void nandroid_callback(const char* filename) {
     tmp[ui_get_text_cols() - 1] = '\0';
 
     nandroid_files_count++;
+    if (!ui_is_initialized()) {
+        if (strlen(tmp) == 0)
+            return;
+        if (nandroid_files_total != 0) {
+            fprintf(stdout, "Progress: %.2f\r", ((float)nandroid_files_count / (float)nandroid_files_total) * 100);
+        } else {
+            if (nandroid_stdout_progress == 0)
+                is_time_interval_passed(0);
+            if (nandroid_stdout_progress == 0 || nandroid_stdout_progress > 20) {
+                fprintf(stdout, "\rRestoring: >                    \b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+                nandroid_stdout_progress = 1;
+            } else if (is_time_interval_passed(100)) {
+                fprintf(stdout, ">");
+                nandroid_stdout_progress += 1;
+            }
+        }
+        fflush(stdout);
+        return;
+    }
+
     ui_increment_frame();
 
     char size_progress[256] = "Size progress: N/A";

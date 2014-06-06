@@ -264,7 +264,7 @@ void draw_screen_locked(void)
     draw_progress_locked();
 
 #ifdef PHILZ_TOUCH_RECOVERY
-        draw_touch_menu();
+    draw_touch_menu();
 #else
     if (show_text) {
         // don't "disable" the background anymore with this...
@@ -601,6 +601,10 @@ void ui_init(void)
     //Better ui_print foot notes in recovery.c in that case
     //ui_prints are added in recovery.c under device_recovery_start()
     //ui_print("Clockworkmod 6.0.1.5\n");
+}
+
+int ui_is_initialized() {
+    return ui_has_initialized;
 }
 
 char *ui_copy_image(int icon, int *width, int *height, int *bpp) {
