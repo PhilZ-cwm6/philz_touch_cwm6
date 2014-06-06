@@ -78,7 +78,11 @@ long long last_key_ev;
 
 // checks to see if user cancel action during nandroid job
 // also dims screen during nandroid job if no key action
+// ui_is_initialized() check is to avoid the "Press Back to cancel." message during 'adb shell nandroid backup/restore' commands
 int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup, int *nand_starts) {
+    if (!ui_is_initialized())
+        return 0;
+
     if (*nand_starts) {
         // initialize settings
         ui_clear_key_queue();
