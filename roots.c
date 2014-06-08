@@ -43,10 +43,12 @@
  device argument is the v->blk_device
  blkid output exp:  /dev/block/mmcblk1p1: UUID="3461-3337" TYPE="exfat"
 */
-static char* real_device_fstype = NULL;
 char* get_real_fstype(const char* device) {
     char cmd[PATH_MAX];
-    real_device_fstype = NULL;
+    char line[1024];
+    static char fstype[128];
+    char* real_device_fstype = NULL;
+
     sprintf(cmd, "/sbin/blkid -c /dev/null %s", device);
     FILE *fp = __popen(cmd, "r");
     if (fp == NULL) {
@@ -54,19 +56,15 @@ char* get_real_fstype(const char* device) {
         return NULL;
     }
 
-    char line[1024];
-    char value[128];
     if (fgets(line, sizeof(line), fp) != NULL) {
-        char* start = strstr(line, "TYPE=");
-        if (start != NULL && sscanf(start + 5, "\"%127[^\"]\"", value) == 1) {
-            /* fprintf(stderr, "Found %s filesystem on %s\n", value, device); */
-            real_device_fstype = value;
-        } else {
-            /* fprintf(stderr, "None or unknown filesystem on %s\n", device); */
-        }
+        char* ptr = strstr(line, "TYPE=");
+        if (ptr != NULL && sscanf(ptr + 5, "\"%127[^\"]\"", fstype) == 1)
+            real_device_fstype = fstype;
     }
-
     __pclose(fp);
+    if (real_device_fstype == NULL)
+        fprintf(stderr, "blkid: unknown filesystem on '%s'\n", device);
+
     return real_device_fstype;
 }
 
