@@ -72,7 +72,6 @@ char* get_real_fstype(const char* device) {
 
 static struct fstab *fstab = NULL;
 
-
 /* 
 system/core/fs_mgr/include/fs_mgr.h
 struct fstab {
@@ -207,7 +206,8 @@ static void load_volume_table_extra() {
         return;
     }
 
-    fprintf(stderr, "extra filesystem table (device2, fstype2, options2):\n");
+    fprintf(stderr, "\nextra filesystem table: (device2, fstype2, options2):\n");
+    fprintf(stderr,   "======================\n");
     for(i = 0; i < fstab_extra->num_entries; ++i) {
         Volume* v = &fstab_extra->recs[i];
         add_extra_fstab_entries(i);
