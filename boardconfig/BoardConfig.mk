@@ -962,6 +962,15 @@ else ifeq ($(TARGET_PRODUCT), cm_nex)
     TARGET_SCREEN_WIDTH := 480
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Asus Memo Pad Smart (me301t)
+else ifeq ($(TARGET_PRODUCT), cm_me301t)
+    TARGET_COMMON_NAME := Asus Memo Pad Smart
+    BOARD_USE_NTFS_3G := false
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 1280
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
+
+
 endif
 #---- end device specific config
 
