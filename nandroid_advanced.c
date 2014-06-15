@@ -1185,6 +1185,7 @@ int nandroid_restore_datamedia(const char* backup_path) {
 
 int gen_nandroid_md5sum(const char* backup_path) {
     char md5file[PATH_MAX];
+    char** files;
     int ret = -1;
     int numFiles = 0;
 
@@ -1194,7 +1195,9 @@ int gen_nandroid_md5sum(const char* backup_path) {
     ui_show_progress(1, 0);
 
     // this will exclude subfolders!
-    char** files = gather_files(backup_path, "", &numFiles);
+    set_gather_hidden_files(1);
+    files = gather_files(backup_path, "", &numFiles);
+    set_gather_hidden_files(0);
     if (numFiles == 0) {
         LOGE("No files found in backup path %s\n", backup_path);
         goto out;
@@ -1279,7 +1282,10 @@ int verify_nandroid_md5sum(const char* backup_path) {
     // verify backup integrity for each backupfile to the md5sum we saved in temporary md5file
     int i = 0;
     int numFiles = 0;
-    char** files = gather_files(backup_path, "", &numFiles);
+    char** files;
+    set_gather_hidden_files(1);
+    files = gather_files(backup_path, "", &numFiles);
+    set_gather_hidden_files(1);
     if (numFiles == 0) {
         free_string_array(files);
         return -1;

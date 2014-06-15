@@ -7,6 +7,9 @@ toggle_signature_check();
 void
 show_choose_zip_menu();
 
+void
+set_gather_hidden_files(int enable);
+
 char**
 gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles);
 

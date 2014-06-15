@@ -320,6 +320,11 @@ void free_string_array(char** array) {
 // to gather directories you need to pass NULL for fileExtensionOrDirectory
 // else, only files are gathered. Pass "" to gather all files
 // NO  MORE NEEDED: if it is not called by choose_file_menu(), passed directory MUST end with a trailing /
+static int gather_hidden_files = 0;
+void set_gather_hidden_files(int enable) {
+    gather_hidden_files = enable;
+}
+
 char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles) {
     DIR *dir;
     struct dirent *de;
@@ -354,7 +359,7 @@ char** gather_files(const char* basedir, const char* fileExtensionOrDirectory, i
     for (pass = 0; pass < 2; pass++) {
         while ((de = readdir(dir)) != NULL) {
             // skip hidden files
-            if (de->d_name[0] == '.')
+            if (!gather_hidden_files && de->d_name[0] == '.')
                 continue;
 
             // NULL means that we are gathering directories, so skip this
