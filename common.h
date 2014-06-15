@@ -49,11 +49,7 @@ void ui_printlogtail(int nb_lines);
 
 void ui_delete_line(int num);
 void ui_set_show_text(int value);
-void ui_set_nice(int enabled);
-#define ui_nice_print(...) { ui_set_nice(1); ui_print(__VA_ARGS__); ui_set_nice(0); }
-int ui_was_niced();
 int ui_get_text_cols();
-void ui_increment_frame();
 void ui_setMenuTextColor(int r, int g, int b, int a);
 
 void ui_nolog_lines(int lines);

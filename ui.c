@@ -48,8 +48,9 @@ static int gShowBackButton = 0;
 #endif
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
-#define UI_KEY_REPEAT_INTERVAL 80
-#define UI_KEY_WAIT_REPEAT 400
+#define UI_KEY_REPEAT_INTERVAL      80
+#define UI_KEY_WAIT_REPEAT          400
+#define UI_UPDATE_PROGRESS_INTERVAL 300
 
 UIParameters ui_parameters = {
     6,       // indeterminate progress bar frames
@@ -126,8 +127,6 @@ int key_queue[256], key_queue_len = 0;
 unsigned long key_last_repeat[KEY_MAX + 1], key_press_time[KEY_MAX + 1];
 volatile char key_pressed[KEY_MAX + 1];
 
-void update_screen_locked(void);
-
 #ifdef BOARD_TOUCH_RECOVERY
 #include "../../vendor/koush/recovery/touch.c"
 #else
@@ -191,12 +190,23 @@ static void draw_background_locked(int icon)
     }
 }
 
-// Draw the progress bar (if any) on the screen.  Does not flip pages.
+// increment background progress icon frame (installation animation)
+// called only with gUpdateMutex locked
+static void ui_increment_frame() {
+    gInstallingFrame =
+        (gInstallingFrame + 1) % ui_parameters.installing_frames;
+}
+
+// Draw the progress bar (if any) on the screen. Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 // never called if !ui_has_initialized
+static long long t_last_progress_update = 0;
 static void draw_progress_locked()
 {
     if (gCurrentIcon == BACKGROUND_ICON_INSTALLING) {
+        // update the installation animation, if active
+        if (ui_parameters.installing_frames > 0)
+            ui_increment_frame();
         draw_install_overlay_locked(gInstallingFrame);
     }
 
@@ -230,6 +240,8 @@ static void draw_progress_locked()
             frame = (frame + 1) % ui_parameters.indeterminate_frames;
         }
     }
+
+    t_last_progress_update = timenow_msec();
 }
 
 #ifndef PHILZ_TOUCH_RECOVERY
@@ -345,6 +357,12 @@ void update_screen_locked(void)
 static void update_progress_locked(void)
 {
     if (!ui_has_initialized) return;
+
+    // minimum of UI_UPDATE_PROGRESS_INTERVAL msec delay between progress updates if we have a text overlay
+    // exception: gProgressScopeDuration != 0: to keep zip installer refresh behaviour
+    if (show_text && t_last_progress_update > 0 && gProgressScopeDuration == 0 && timenow_msec() - t_last_progress_update < UI_UPDATE_PROGRESS_INTERVAL)
+        return;
+
     if (show_text || !gPagesIdentical) {
         draw_screen_locked();    // Must redraw the whole screen
         gPagesIdentical = 1;
@@ -364,32 +382,23 @@ static void *progress_thread(void *cookie)
 
         int redraw = 0;
 
-        // update the installation animation, if active
-        // skip this if we have a text overlay (too expensive to update)
-        if (gCurrentIcon == BACKGROUND_ICON_INSTALLING &&
-            ui_parameters.installing_frames > 0 &&
-            !show_text) {
-            gInstallingFrame =
-                (gInstallingFrame + 1) % ui_parameters.installing_frames;
-            redraw = 1;
-        }
-
         // update the progress bar animation, if active
         // skip this if we have a text overlay (too expensive to update)
-        if (gProgressBarType == PROGRESSBAR_TYPE_INDETERMINATE && !show_text) {
+        if (gProgressBarType == PROGRESSBAR_TYPE_INDETERMINATE) {
             redraw = 1;
-        }
-
-        // move the progress bar forward on timed intervals, if configured
-        int duration = gProgressScopeDuration;
-        if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && duration > 0) {
+        } else if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && gProgressScopeDuration > 0) {
+            // move the progress bar forward on timed intervals, if configured
             double elapsed = now() - gProgressScopeTime;
-            float progress = 1.0 * elapsed / duration;
+            float progress = 1.0 * elapsed / gProgressScopeDuration;
             if (progress > 1.0) progress = 1.0;
             if (progress > gProgress) {
                 gProgress = progress;
                 redraw = 1;
             }
+        }
+
+        if (gCurrentIcon == BACKGROUND_ICON_INSTALLING) {
+            redraw = 1;
         }
 
         if (redraw) update_progress_locked();
@@ -688,29 +697,15 @@ void ui_reset_progress()
 
     pthread_mutex_lock(&gUpdateMutex);
     gProgressBarType = PROGRESSBAR_TYPE_NONE;
-    gProgressScopeStart = gProgressScopeSize = 0;
-    gProgressScopeTime = gProgressScopeDuration = 0;
+    gProgressScopeStart = 0;
+    gProgressScopeSize = 0;
+    gProgressScopeTime = 0;
+    gProgressScopeDuration = 0;
     gProgress = 0;
     update_screen_locked();
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-static long delta_milliseconds(struct timeval from, struct timeval to) {
-    long delta_sec = (to.tv_sec - from.tv_sec)*1000;
-    long delta_usec = (to.tv_usec - from.tv_usec)/1000;
-    return (delta_sec + delta_usec);
-}
-
-static struct timeval lastupdate = (struct timeval) {0};
-static int ui_nice = 0;
-static int ui_niced = 0;
-void ui_set_nice(int enabled) {
-    ui_nice = enabled;
-}
-#define NICE_INTERVAL 300
-int ui_was_niced() {
-    return ui_niced;
-}
 int ui_get_text_cols() {
     return text_cols;
 }
@@ -765,22 +760,8 @@ void ui_print(const char *fmt, ...)
         fputs(buf, stdout);
 
     // now, we write log to screen
-    // if we are running 'ui nice' mode, we do not want to force a screen update
-    // for this line if not necessary.
-    ui_niced = 0;
-    if (ui_nice) {
-        struct timeval curtime;
-        gettimeofday(&curtime, NULL);
-        long ms = delta_milliseconds(lastupdate, curtime);
-        if (ms < NICE_INTERVAL && ms >= 0) {
-            ui_niced = 1;
-            return;
-        }
-    }
-
     // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
-    gettimeofday(&lastupdate, NULL);
     if (text_rows > 0 && text_cols > 0) {
         char *ptr;
         for (ptr = buf; *ptr != '\0'; ++ptr) {
@@ -1202,13 +1183,6 @@ void ui_delete_line(int num) {
         text_col = 0;
     }
     pthread_mutex_unlock(&gUpdateMutex);
-}
-
-void ui_increment_frame() {
-    if (!ui_has_initialized) return;
-
-    gInstallingFrame =
-        (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
 
 #ifdef NOT_ENOUGH_RAINBOWS
