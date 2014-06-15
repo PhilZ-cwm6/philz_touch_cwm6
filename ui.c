@@ -706,6 +706,23 @@ void ui_reset_progress()
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
+// do a reset and show the progress bar without updating screen
+// it will be drawn on next call to update screen locked
+// this is a loop friendly version to avoid flashy effects in loop calls
+void ui_quick_reset_and_show_progress(float portion, int seconds)
+{
+    if (!ui_has_initialized) return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
+    gProgressScopeStart = 0;
+    gProgressScopeSize = portion;
+    gProgressScopeTime = now();
+    gProgressScopeDuration = seconds;
+    gProgress = 0;
+    pthread_mutex_unlock(&gUpdateMutex);
+}
+
 int ui_get_text_cols() {
     return text_cols;
 }

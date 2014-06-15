@@ -919,13 +919,12 @@ static int computeMD5(const char* filepath, char *md5sum) {
 
     size_total = Get_File_Size(filepath);
     size_progress = 0;
-    is_time_interval_passed(0);
     cancel_md5digest = 0;
     MD5Init(&md5c);
     while (!cancel_md5digest && (len = fread(buf, 1, sizeof(buf), file)) > 0) {
         MD5Update(&md5c, buf, len);
         size_progress += len;
-        if (size_total != 0 && is_time_interval_passed(300))
+        if (size_total != 0)
             ui_set_progress((float)size_progress / (float)size_total);
     }
 
@@ -3502,14 +3501,13 @@ int check_twrp_md5sum(const char* backup_path) {
     }
 
     int i = 0;
-    ui_reset_progress();
-    ui_show_progress(1, 0);
     for(i = 0; i < numFiles; i++) {
         // exclude md5 files
         char *str = strstr(files[i], ".md5");
         if (str != NULL && strcmp(str, ".md5") == 0)
             continue;
 
+        ui_quick_reset_and_show_progress(1, 0);
         ui_print("   - %s\n", BaseName(files[i]));
         sprintf(md5file, "%s.md5", files[i]);
         if (verify_md5digest(files[i], md5file) != 0) {
@@ -3542,9 +3540,8 @@ int gen_twrp_md5sum(const char* backup_path) {
     }
 
     int i = 0;
-    ui_reset_progress();
-    ui_show_progress(1, 0);
     for(i = 0; i < numFiles; i++) {
+        ui_quick_reset_and_show_progress(1, 0);
         ui_print("   - %s\n", BaseName(files[i]));
         sprintf(md5file, "%s.md5", files[i]);
         if (write_md5digest(files[i], md5file, 0) < 0) {

@@ -119,6 +119,9 @@ void ui_show_indeterminate_progress();
 // Hide and reset the progress bar.
 void ui_reset_progress();
 
+// do a reset and show the progress bar without updating screen
+void ui_quick_reset_and_show_progress(float portion, int seconds);
+
 #define LOGE(...) ui_print("E:" __VA_ARGS__)
 #define LOGW(...) fprintf(stdout, "W:" __VA_ARGS__)
 #define LOGI(...) fprintf(stdout, "I:" __VA_ARGS__)

@@ -1191,8 +1191,6 @@ int gen_nandroid_md5sum(const char* backup_path) {
 
     ui_print("\n>> Generating md5 sum...\n");
     ensure_path_mounted(backup_path);
-    ui_reset_progress();
-    ui_show_progress(1, 0);
 
     // this will exclude subfolders!
     set_gather_hidden_files(1);
@@ -1208,10 +1206,12 @@ int gen_nandroid_md5sum(const char* backup_path) {
     write_string_to_file(md5file, "");
 
     int i = 0;
-    for(i = 0; i < numFiles; i++) {
+    for (i = 0; i < numFiles; i++) {
         // exclude md5 and log files
         if (strcmp(BaseName(files[i]), "nandroid.md5") == 0 || strcmp(BaseName(files[i]), "recovery.log") == 0)
             continue;
+
+        ui_quick_reset_and_show_progress(1, 0);
         ui_print("  > %s\n", BaseName(files[i]));
         if (write_md5digest(files[i], md5file, 1) < 0)
             goto out;
@@ -1291,12 +1291,12 @@ int verify_nandroid_md5sum(const char* backup_path) {
         return -1;
     }
 
-    ui_reset_progress();
-    ui_show_progress(1, 0);
     for(i = 0; i < numFiles; i++) {
         // exclude md5 and log files
         if (strcmp(BaseName(files[i]), "nandroid.md5") == 0 || strcmp(BaseName(files[i]), "recovery.log") == 0)
             continue;
+
+        ui_quick_reset_and_show_progress(1, 0);
         sprintf(md5file, "/tmp/%s.md5", BaseName(files[i]));
         ui_print("  > %s\n", BaseName(files[i]));
         if (verify_md5digest(files[i], md5file) != 0) {
