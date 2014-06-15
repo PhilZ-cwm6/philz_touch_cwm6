@@ -710,15 +710,11 @@ int ui_get_text_cols() {
     return text_cols;
 }
 
-// exclude specified line from writing to log for next ui_print() calls
-// pass -1 to disable and restore all logging
-// for now, used only in ui_nice_print() to not write backup size progress in log
-// calling 2 times a ui_print() there will cause whole screen to refresh and flashy effect on deleted lines
-// to improve: support multi line exclude, use another delimiter to preserve \n if needed
-// first line is 0
-static int no_stdout_line = -1;
-void ui_nolog_lines(int lines) {
-    no_stdout_line = lines;
+static int ui_print_no_screen_update = 0;
+static int ui_print_replace_lines = 0;
+void ui_set_nandroid_print(int enable, int num) {
+    ui_print_no_screen_update = enable;
+    ui_print_replace_lines = num;
 }
 
 void ui_print(const char *fmt, ...)
@@ -729,39 +725,22 @@ void ui_print(const char *fmt, ...)
     vsnprintf(buf, 256, fmt, ap);
     va_end(ap);
 
-    // check if we need to exclude some line from write to log file
-    // first line is line 0
-    if (ui_log_stdout && no_stdout_line >= 0) {
-        char str[256];
-        char buf2[256];
-        char buf3[256] = "";
-
-        // copy the buffer to modify it
-        // check for new lines until we find the line to exclude from writing to recovery.log file
-        strcpy(buf2, buf);
-        char *ptr = strtok(buf2, "\n");
-        int i = 0;
-        while(ptr != NULL) {
-            // parse the buffer and exclude the line we do not want to write to recovery.log file
-            if (i != no_stdout_line) {
-                strcpy(str, ptr);
-                // log only nandroid non empty lines (empty lines are turned into spaces by nandroid_callback()
-                if (strcmp(str, " ") != 0) {
-                    strcat(str, "\n");
-                    strcat(buf3, str);
-                }
-            }
-            ptr = strtok(NULL, "\n");
-            ++i;
-        }
-        fputs(buf3, stdout);
-    }
-    else if (ui_log_stdout)
+    // write text to log file
+    if (ui_log_stdout)
         fputs(buf, stdout);
 
     // now, we write log to screen
     // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
+    if (ui_print_replace_lines) {
+        int i;
+        for(i = 0; i < ui_print_replace_lines; ++i) {
+            text[text_row][0] = '\0';
+            text_row = (text_row - 1 + text_rows) % text_rows;
+            text_col = 0;
+        }
+    }
+
     if (text_rows > 0 && text_cols > 0) {
         char *ptr;
         for (ptr = buf; *ptr != '\0'; ++ptr) {
@@ -774,7 +753,8 @@ void ui_print(const char *fmt, ...)
             if (*ptr != '\n') text[text_row][text_col++] = *ptr;
         }
         text[text_row][text_col] = '\0';
-        update_screen_locked();
+        if (!ui_print_no_screen_update)
+            update_screen_locked();
     }
     pthread_mutex_unlock(&gUpdateMutex);
 }
@@ -1169,20 +1149,6 @@ int ui_handle_key(int key, int visible) {
 #else
     return device_handle_key(key, visible);
 #endif
-}
-
-// called by nandroid_callback()
-// it will delete num first lines from the log in memory
-// that way, on next ui_print, they do not appear. This avoids screen to scroll during nandroid progress
-void ui_delete_line(int num) {
-    pthread_mutex_lock(&gUpdateMutex);
-    int i;
-    for(i = 0; i < num; ++i) {
-        text[text_row][0] = '\0';
-        text_row = (text_row - 1 + text_rows) % text_rows;
-        text_col = 0;
-    }
-    pthread_mutex_unlock(&gUpdateMutex);
 }
 
 #ifdef NOT_ENOUGH_RAINBOWS

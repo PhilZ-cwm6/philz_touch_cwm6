@@ -88,10 +88,9 @@ static void nandroid_callback(const char* filename) {
         return;
 
     char tmp[PATH_MAX];
-    sprintf(tmp, "%s", BaseName(filename));
+    strcpy(tmp, filename);
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = '\0';
-    tmp[ui_get_text_cols() - 1] = '\0';
 
     nandroid_files_count++;
     if (!ui_is_initialized()) {
@@ -114,9 +113,11 @@ static void nandroid_callback(const char* filename) {
         return;
     }
 
-    ui_increment_frame();
+    // check if we should disable writing file names to log (speeds up backup/restore on some devices)
+    if (!use_nandroid_simple_logging.value && strlen(tmp) != 0)
+        LOGI("%s\n", tmp);
 
-    char size_progress[256] = "Size progress: N/A";
+    static char size_progress[256] = "Size progress: N/A";
     if (show_nandroid_size_progress.value && Backup_Size != 0) {
         // Backup_Size == 0 if if we couldn't stat backup size
         sprintf(size_progress, "Done %llu/%lluMb - Free %lluMb",
@@ -124,32 +125,19 @@ static void nandroid_callback(const char* filename) {
     }
     size_progress[ui_get_text_cols() - 1] = '\0';
 
-#ifdef PHILZ_TOUCH_RECOVERY
-    // print last 3 log rows in default color: this will include the "Press Back to cancel." line
-    ui_print_preset_colors(3, NULL);
-#endif
-
-    // check if we should disable writing file names to log (speeds up backup/restore on some devices)
-    if (use_nandroid_simple_logging.value)
-        ui_set_log_stdout(0);
-
-    // do not write size progress to log file
-    ui_nolog_lines(1);
-
-    // strlen(tmp) check avoids ui_nolog_lines() printing size progress to log on empty lines
-    if (strlen(tmp) == 0)
-        sprintf(tmp, " ");
-    ui_nice_print("%s\n%s\n", tmp, size_progress);
-    ui_nolog_lines(-1);
-    if (!ui_was_niced()) {
-        if (nandroid_files_total != 0)
-            ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
-        ui_delete_line(2);
-    }
-#ifdef PHILZ_TOUCH_RECOVERY
-    ui_print_preset_colors(0, NULL);
-#endif
+    // write size progress and file names to screen but not to log file
+    char name[PATH_MAX];
+    sprintf(name, "%s", BaseName(tmp));
+    name[ui_get_text_cols() - 1] = '\0';
+    ui_set_log_stdout(0);
+    ui_set_nandroid_print(1, 2);
+    ui_print("%s\n%s\n", name, size_progress);
     ui_set_log_stdout(1);
+    ui_set_nandroid_print(0, 0);
+
+    // update progress thread
+    if (nandroid_files_total != 0)
+        ui_set_progress((float)nandroid_files_count / (float)nandroid_files_total);
 }
 
 static void compute_directory_stats(const char* directory) {
@@ -224,6 +212,9 @@ static int mkyaffs2image_wrapper(const char* backup_path, const char* backup_fil
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     return __pclose(fp);
 }
 
@@ -254,6 +245,9 @@ static int do_tar_compress(char* command, int callback, const char* backup_file_
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     set_perf_mode(0);
     return __pclose(fp);
 }
@@ -332,6 +326,9 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     return __pclose(fp);
 }
 
@@ -773,6 +770,9 @@ static int unyaffs_wrapper(const char* backup_file_image, const char* backup_pat
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     return __pclose(fp);
 }
 
@@ -804,6 +804,9 @@ static int do_tar_extract(char* command, const char* backup_file_image, const ch
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     set_perf_mode(0);
     return __pclose(fp);
 }
@@ -850,6 +853,9 @@ static int dedupe_extract_wrapper(const char* backup_file_image, const char* bac
             nandroid_callback(path);
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     return __pclose(fp);
 }
 

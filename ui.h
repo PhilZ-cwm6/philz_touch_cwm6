@@ -63,8 +63,6 @@ void update_screen_locked(void);
 
 void draw_screen_locked(void);
 
-void update_screen_locked(void);
-
 #ifdef PHILZ_TOUCH_RECOVERY
 void draw_touch_menu();
 void draw_text_line(int row, const char* t, int height, int align);

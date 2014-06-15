@@ -140,6 +140,8 @@ extern int ui_handle_key(int key, int visible);
 
 int ui_is_initialized();
 
+void ui_set_nandroid_print(int enable, int num);
+
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg);
 

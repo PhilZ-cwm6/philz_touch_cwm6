@@ -725,6 +725,10 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
                 nandroid_callback(tmp);
             }
         }
+
+#ifdef PHILZ_TOUCH_RECOVERY
+        ui_print_preset_colors(0, NULL);
+#endif
         if (0 != __pclose(fp)) {
             set_perf_mode(0);
             return -1;
@@ -911,6 +915,9 @@ int twrp_tar_extract_wrapper(const char* popen_command, const char* backup_path,
         }
     }
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    ui_print_preset_colors(0, NULL);
+#endif
     set_perf_mode(0);
     return __pclose(fp);
 }

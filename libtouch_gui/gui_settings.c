@@ -2364,14 +2364,19 @@ static void rom_zip_callback(const char* filename) {
     strcpy(tmp, filename);
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = '\0';
+    if (strlen(tmp) == 0)
+        return;
+
     tmp[ui_get_text_cols() - 1] = '\0';
     rom_files_count++;
-    ui_increment_frame();
-    ui_nice_print("%s\n", tmp);
-    if (!ui_was_niced() && rom_files_total != 0)
+    ui_set_log_stdout(0);
+    ui_set_nandroid_print(1, 1);
+    ui_print("%s\n", tmp);
+    ui_set_log_stdout(1);
+    ui_set_nandroid_print(0, 0);
+
+    if (rom_files_total != 0)
         ui_set_progress((float)rom_files_count / (float)rom_files_total);
-    if (!ui_was_niced())
-        ui_delete_line(1);
 }
 
 static void get_directory_stats(const char* directory) {
@@ -2410,7 +2415,7 @@ static int rom_zip_wrapper(const char* backup_path) {
     }
 
     ui_clear_key_queue();
-    ui_print("Press Back to cancel.\n");
+    ui_print("Press Back to cancel.\n \n");
     // support dim screen durin zip operation
     struct timeval now;
     time_t last_key_ev;
@@ -2470,7 +2475,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
         nandroid_force_backup_format("");
         backup_recovery = 1, backup_wimax = 1, backup_data = 1, backup_cache = 1, backup_sdext = 1;
         if (0 != ret) {
-            ui_print("Error while creating a nandroid image!\n");
+            LOGE("Error while creating a nandroid image!\n");
             return ret;
         }
     } else if (nandroid_add_preload.value) {

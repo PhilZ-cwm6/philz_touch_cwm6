@@ -47,12 +47,9 @@ void ui_clear_key_queue();
 void ui_print(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void ui_printlogtail(int nb_lines);
 
-void ui_delete_line(int num);
 void ui_set_show_text(int value);
 int ui_get_text_cols();
 void ui_setMenuTextColor(int r, int g, int b, int a);
-
-void ui_nolog_lines(int lines);
 
 #ifdef ENABLE_LOKI
 int loki_support_enabled();
