@@ -285,7 +285,6 @@ void load_volume_table() {
                     v->fs_type = strdup(v->fs_type2);
                     free(v->fs_type2);
                     v->fs_type2 = strdup(fstab_fstype);
-                    free(fstab_fstype);
                     if (v->fs_options != NULL) {
                         fstab_options = strdup(v->fs_options);
                         free(v->fs_options);
