@@ -259,39 +259,65 @@ void load_volume_table() {
             free(v->mount_point);
             v->mount_point = strdup(mount);
         }
+    }
+
+    load_volume_table_extra();
+
 #ifdef USE_F2FS
-        // allow switching between f2fs/ext4 depending on actual real format
-        // if fstab entry matches the real device fs_type, do nothing
-        // also skip vold managed devices as vold relies on the defined flags. These should be set to auto fstype for free formatting
-        else if (strcmp(v->fs_type, "ext4") == 0 || strcmp(v->fs_type, "f2fs") == 0) {
+    // allow switching between f2fs/ext4 depending on actual real format
+    // if fstab entry matches the real device fs_type, do nothing
+    // also skip vold managed devices as vold relies on the defined flags. These should be set to auto fstype for free formatting
+    for (i = 0; i < fstab->num_entries; ++i) {
+        Volume* v = &fstab->recs[i];
+
+        if (strcmp(v->fs_type, "ext4") == 0 || strcmp(v->fs_type, "f2fs") == 0) {
             char* real_fstype = get_real_fstype(v->blk_device);
             if (real_fstype == NULL || strcmp(real_fstype, v->fs_type) == 0 || fs_mgr_is_voldmanaged(v))
                 continue;
 
             if (strcmp(real_fstype, "ext4") == 0 || strcmp(real_fstype, "f2fs") == 0) {
-                // drop to bare minimal default fs_options
-                char fstab_fstype[10];
-                strcpy(fstab_fstype, v->fs_type);
-                free(v->fs_type);
-                v->fs_type = strdup(real_fstype);
-
-                if (v->fs_options != NULL)
-                    free(v->fs_options);
-
-                if (strcmp(v->fs_type, "f2fs") == 0) {
-                    v->fs_options = strdup("rw,noatime,nodev,nodiratime,inline_xattr");
+                char *fstab_fstype;
+                char *fstab_options = NULL;
+                if (v->fs_type2 != NULL && v->fs_options2 != NULL && strcmp(real_fstype, v->fs_type2) == 0) {
+                    // try to use existing fs_options2 if possible
+                    fstab_fstype = strdup(v->fs_type);
+                    free(v->fs_type);
+                    v->fs_type = strdup(v->fs_type2);
+                    free(v->fs_type2);
+                    v->fs_type2 = strdup(fstab_fstype);
+                    free(fstab_fstype);
+                    if (v->fs_options != NULL) {
+                        fstab_options = strdup(v->fs_options);
+                        free(v->fs_options);
+                    }
+                    v->fs_options = strdup(v->fs_options2);
+                    free(v->fs_options2);
+                    if (fstab_options != NULL) {
+                        v->fs_options2 = strdup(fstab_options);
+                        free(fstab_options);
+                    }
                 } else {
-                    // ext4: default options will be set in try_mount()
-                    v->fs_options = NULL;
-                }
+                    // no fs_options2: drop to bare minimal default fs_options
+                    fstab_fstype = strdup(v->fs_type);
+                    free(v->fs_type);
+                    v->fs_type = strdup(real_fstype);
 
+                    if (v->fs_options != NULL)
+                        free(v->fs_options);
+
+                    if (strcmp(v->fs_type, "f2fs") == 0) {
+                        v->fs_options = strdup("rw,noatime,nodev,nodiratime,inline_xattr");
+                    } else {
+                        // ext4: default options will be set in try_mount()
+                        v->fs_options = NULL;
+                    }
+                }
                 fprintf(stderr, "%s: %s -> %s\n", v->mount_point, fstab_fstype, v->fs_type);
+                free(fstab_fstype);
             }
         }
-#endif
     }
-
-    load_volume_table_extra();
+#endif
 
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
     device_truedualboot_after_load_volume_table();
