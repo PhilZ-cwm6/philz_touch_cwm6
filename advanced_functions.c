@@ -2019,15 +2019,15 @@ static void regenerate_md5_sum_menu() {
 
     char list_prefix[] = "Select from ";
     char buf[80];
-    static const char* headers[] = {"Regenerate md5 sum", "Select a backup to regenerate", NULL};
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    const char* headers[] = {"Regenerate md5 sum", "Select a backup to regenerate", NULL};
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
     int i;
     if (extra_paths != NULL) {
-        for(i = 0; i < num_extra_volumes; i++) {
+        for (i = 0; i < num_extra_volumes; i++) {
             sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
             list[i + 1] = strdup(buf);
         }
@@ -2067,7 +2067,7 @@ out:
 }
 
 void misc_nandroid_menu() {
-    static const char* headers[] = {
+    const char* headers[] = {
         "Misc Nandroid Settings",
         "",
         NULL
