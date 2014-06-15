@@ -848,19 +848,11 @@ int twrp_backup(const char* backup_path) {
     if (backup_cache && 0 != (ret = nandroid_backup_partition_extended(backup_path, "/cache", 0)))
         return ret;
 
-    vol = volume_for_path("/sd-ext");
     if (backup_sdext) {
-        if (vol == NULL || 0 != statfs(vol->blk_device, &s))
-            // could be we need ensure_path_mouned("/sd-ext") before this!
-        {
+        if (0 != ensure_path_mounted("/sd-ext")) {
             LOGI("No sd-ext found. Skipping backup of sd-ext.\n");
-        }
-        else
-        {
-            if (0 != ensure_path_mounted("/sd-ext"))
-                LOGI("Could not mount sd-ext. sd-ext backup may not be supported on this device. Skipping backup of sd-ext.\n");
-            else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext")))
-                return ret;
+        } else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext"))) {
+            return ret;
         }
     }
 

@@ -506,7 +506,9 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
     }
     Volume* v = volume_for_path(path);
     if (v == NULL) {
-        LOGE("unknown volume for path [%s]\n", path);
+        // silent failure for sd-ext
+        if (strncmp(path, "/sd-ext", 7) != 0)
+            LOGE("unknown volume for path [%s]\n", path);
         return -1;
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
