@@ -374,13 +374,10 @@ void show_restore_stats() {
 
 // custom backup: raw backup through shell (ext4 raw backup not supported in backup_raw_partition())
 // for efs partition
-// for now called only from nandroid_backup(), uncomment finish_nandroid_job(0) if called from elsewhere
+// for now called only from nandroid_backup()
 // ret = 0 if success, else ret = 1
 int dd_raw_backup_handler(const char* backup_path, const char* root) {
-    ui_set_background(BACKGROUND_ICON_INSTALLING);
-
     Volume *vol = volume_for_path(root);
-    // make sure the volume exists...
     ui_print("\n>> Backing up %s...\nUsing raw mode...\n", root);
     if (vol == NULL || vol->fs_type == NULL) {
         LOGE("volume not found! Skipping raw backup of %s\n", root);
@@ -422,18 +419,19 @@ int dd_raw_backup_handler(const char* backup_path, const char* root) {
 // for now, only called directly from outside functions (not from nandroid_restore())
 // user selects an image file to restore, so backup_file_image path is already mounted
 int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
-    ui_set_background(BACKGROUND_ICON_INSTALLING);
-
     ui_print("\n>> Restoring %s...\n", root);
     Volume *vol = volume_for_path(root);
-    // make sure the volume exists...
     if (vol == NULL || vol->fs_type == NULL) {
-        LOGE("volume not found! Skipping raw restore of %s...\n", root);
+        ui_print("volume not found! Skipping raw restore of %s...\n", root);
         return 0;
     }
 
+    ui_set_background(BACKGROUND_ICON_INSTALLING);
+    ui_show_indeterminate_progress();
+
     // make sure we  have a valid image file name
     int i = 0;
+    char errmsg[PATH_MAX];
     char tmp[PATH_MAX];
     char filename[PATH_MAX];
     const char *raw_image_format[] = { ".img", ".bin", NULL };
@@ -449,14 +447,14 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
     }
 
     if (raw_image_format[i] == NULL) {
-        LOGE("invalid image file! Failed to restore %s to %s\n", filename, root);
-        return -1;
+        sprintf(errmsg, "invalid image file! Failed to restore %s to %s\n", filename, root);
+        return print_and_error(errmsg);
     }
 
     //make sure file exists
     if (!file_found(backup_file_image)) {
-        LOGE("%s not found. Skipping restore of %s\n", backup_file_image, root);
-        return -1;
+        sprintf(errmsg, "%s not found. Skipping restore of %s\n", backup_file_image, root);
+        return print_and_error(errmsg);
     }
 
     //restore raw image
@@ -466,24 +464,25 @@ int dd_raw_restore_handler(const char* backup_file_image, const char* root) {
     ui_print("Restoring %s to %s\n", filename, vol->mount_point);
     if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device, "/dev/block/mtdblock") != NULL) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device, vol->mount_point);
-    }
-    else if (vol->blk_device2 != NULL &&
+    } else if (vol->blk_device2 != NULL &&
             (strstr(vol->blk_device2, "/dev/block/mmcblk") != NULL || strstr(vol->blk_device2, "/dev/block/mtdblock") != NULL)) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, vol->blk_device2, vol->mount_point);
-    }
-    else if ((device_mmcblk = readlink_device_blk(root)) != NULL) {
+    } else if ((device_mmcblk = readlink_device_blk(root)) != NULL) {
         sprintf(tmp, "raw-backup.sh -r '%s' %s %s", backup_file_image, device_mmcblk, vol->mount_point);
         free(device_mmcblk);
-    }
-    else {
-        LOGE("invalid device! Skipping raw restore of %s\n", root);
-        return 0;
+    } else {
+        sprintf(errmsg, "raw restore: no device found (%s)\n", root);
+        return print_and_error(errmsg);
     }
 
-    if (0 != (ret = __system(tmp)))
-        LOGE("failed raw restore of %s to %s\n", filename, root);
-    //log
-    finish_nandroid_job();
+    ret = __system(tmp);
+    if (0 != ret) {
+        sprintf(errmsg, "failed raw restore of %s to %s\n", filename, root);
+        print_and_error(errmsg);
+    } else {
+        finish_nandroid_job();
+    }
+
     sprintf(tmp, "%s/log.txt", DirName(backup_file_image));
     ui_print_custom_logtail(tmp, 3);
     return ret;
@@ -785,74 +784,74 @@ int twrp_backup(const char* backup_path) {
 
     if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     if (backup_recovery && volume_for_path("/recovery") != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, "/recovery")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
 #ifdef BOARD_USE_MTK_LAYOUT
     if ((backup_boot || backup_recovery) && volume_for_path("/uboot") != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, "/uboot")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 #endif
 
     Volume *vol = volume_for_path("/efs");
     if (backup_efs &&  NULL != vol) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/efs")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/misc");
     if (backup_misc && NULL != vol) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/misc")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/modem");
     if (backup_modem && NULL != vol) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/modem")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/radio");
     if (backup_radio && NULL != vol) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/radio")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_system && 0 != (ret = nandroid_backup_partition(backup_path, "/system")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     vol = volume_for_path("/preload");
     if (backup_preload && NULL != vol) {
         if (0 != (ret = nandroid_backup_partition(backup_path, "/preload")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_data && 0 != (ret = nandroid_backup_partition(backup_path, "/data")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     if (has_datadata()) {
         if (backup_data && 0 != (ret = nandroid_backup_partition(backup_path, "/datadata")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     // handle .android_secure on external and internal storage
     set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, tmp, 0)))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_cache && 0 != (ret = nandroid_backup_partition_extended(backup_path, "/cache", 0)))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     if (backup_sdext) {
         if (0 != ensure_path_mounted("/sd-ext")) {
             LOGI("No sd-ext found. Skipping backup of sd-ext.\n");
         } else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext"))) {
-            return ret;
+            return nandroid_error_exit(NULL, ret);
         }
     }
 
@@ -861,12 +860,12 @@ int twrp_backup(const char* backup_path) {
     int extra_partitions_num = get_extra_partitions_state();
     for (i = 0; i < extra_partitions_num; ++i) {
         if (extra_partition[i].backup_state && 0 != (ret = nandroid_backup_partition(backup_path, extra_partition[i].mount_point)))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (enable_md5sum.value) {
         if (0 != (ret = gen_twrp_md5sum(backup_path)))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     sprintf(tmp, "chmod -R 777 %s", backup_path);
@@ -981,78 +980,78 @@ int twrp_restore(const char* backup_path) {
 
     if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
             0 != (ret = nandroid_restore_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     if (backup_recovery && volume_for_path("/recovery") != NULL &&
             0 != (ret = nandroid_restore_partition(backup_path, "/recovery")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
 #ifdef BOARD_USE_MTK_LAYOUT
     if ((backup_boot || backup_recovery) && volume_for_path("/uboot") != NULL &&
             0 != (ret = nandroid_restore_partition(backup_path, "/uboot")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 #endif
 
     Volume *vol = volume_for_path("/efs");
     if (backup_efs == RESTORE_EFS_TAR && vol != NULL) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/efs")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/misc");
     if (backup_misc && vol != NULL) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/misc")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/modem");
     if (backup_modem == RAW_IMG_FILE && vol != NULL) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/modem")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     vol = volume_for_path("/radio");
     if (backup_radio == RAW_IMG_FILE && vol != NULL) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/radio")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_system && 0 != (ret = nandroid_restore_partition(backup_path, "/system")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     vol = volume_for_path("/preload");
     if (backup_preload && vol != NULL) {
         if (0 != (ret = nandroid_restore_partition(backup_path, "/preload")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_data && 0 != (ret = nandroid_restore_partition(backup_path, "/data")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
         
     if (has_datadata()) {
         if (backup_data && 0 != (ret = nandroid_restore_partition(backup_path, "/datadata")))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     // handle .android_secure on external and internal storage
     set_android_secure_path(tmp);
     if (backup_data && android_secure_ext) {
         if (0 != (ret = nandroid_restore_partition_extended(backup_path, tmp, 0)))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     if (backup_cache && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/cache", 0)))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     if (backup_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
-        return ret;
+        return nandroid_error_exit(NULL, ret);
 
     // handle extra partitions
     int i;
     int extra_partitions_num = get_extra_partitions_state();
     for (i = 0; i < extra_partitions_num; ++i) {
         if (extra_partition[i].backup_state && 0 != (ret = nandroid_restore_partition(backup_path, extra_partition[i].mount_point)))
-            return ret;
+            return nandroid_error_exit(NULL, ret);
     }
 
     finish_nandroid_job();

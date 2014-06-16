@@ -2502,16 +2502,18 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
         sprintf(cmd, "cd %s; mv boot.* system.* preload.* %s", tmp_path, source_path);
         __system(cmd);
     }
+
     //remove tmp folder
     sprintf(cmd, "rm -rf '%s'", tmp_path);
     __system(cmd);
-    sync();
-    ui_set_background(BACKGROUND_ICON_NONE);
-    ui_reset_progress();
+
     if (0 != ret) {
-        ui_print("Error while making a zip image!\n");
-    } else ui_print("Custom ROM saved in %s/%s\n", target_volume, CUSTOM_ROM_PATH);
-    return ret;
+        return nandroid_error_exit("Error while making a zip image!", ret);
+    }
+
+    finish_nandroid_job();
+    ui_print("Custom ROM saved in %s/%s\n", target_volume, CUSTOM_ROM_PATH);
+    return 0;
 }
 
 //select target volume for custom ROM
