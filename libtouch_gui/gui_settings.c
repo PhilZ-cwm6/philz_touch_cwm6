@@ -2508,7 +2508,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     __system(cmd);
 
     if (0 != ret) {
-        return nandroid_error_exit("Error while making a zip image!", ret);
+        return print_and_error("Error while making a zip image!\n", ret);
     }
 
     finish_nandroid_job();

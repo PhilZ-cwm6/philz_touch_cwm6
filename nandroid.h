@@ -18,6 +18,8 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 #define NANDROID_BACKUP_FORMAT_DUP 1
 #define NANDROID_BACKUP_FORMAT_TGZ 2
 
+#define NANDROID_ERROR_GENERAL -1
+
 
 /**********************************/
 /* Custom nandroid + TWRP backup  */
@@ -27,7 +29,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 /**********************************/
 
 void finish_nandroid_job();
-int nandroid_error_exit(const char* message, int ret);
+int print_and_error(const char* message, int ret);
 int gen_nandroid_md5sum(const char* backup_path);
 int verify_nandroid_md5sum(const char* backup_path);
 int gen_twrp_md5sum(const char* backup_path);
