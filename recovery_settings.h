@@ -37,6 +37,7 @@
 #define RECOVERY_ORS_PATH       "clockworkmod/ors"
 #define ORS_BOOT_SCRIPT_FILE    "/cache/recovery/openrecoveryscript"
 
+
 #ifdef PHILZ_TOUCH_RECOVERY
 // if these are changed, they won't take effect until we update libtouch_gui
 // custom background images
@@ -44,6 +45,11 @@
 
 // capture screen folder
 #define SCREEN_CAPTURE_FOLDER   "clockworkmod/screen_shots"
+
+// recovery lock file, pass key max chars and max allowed errors
+#define RECOVERY_LOCK_FILE      "/system/.recovery_key.lok"
+#define RECOVERY_LOCK_MAX_CHARS 6
+#define RECOVERY_LOCK_MAX_ERROR 3
 #endif
 
 

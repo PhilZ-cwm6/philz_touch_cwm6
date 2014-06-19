@@ -839,6 +839,7 @@ Exp:
     unsigned long len = 0;
     char* buffer = read_file_to_buffer(md5file, &len);
     if (buffer != NULL) {
+        buffer[len] = '\0';
         printf("buffer=%s\n", buffer);
         free(buffer);
     }
@@ -3908,6 +3909,7 @@ void show_philz_settings_menu()
         item_auto_restore,
         "Save and Restore Settings",
         "Reset All Recovery Settings",
+        "Setup Recovery Lock",
         "GUI Preferences",
         "About",
         NULL
@@ -3995,13 +3997,17 @@ void show_philz_settings_menu()
                 }
                 break;
             }
-            case 7: {
 #ifdef PHILZ_TOUCH_RECOVERY
-                show_touch_gui_menu();
-#endif
+            case 7: {
+                show_recovery_lock_menu();
                 break;
             }
             case 8: {
+                show_touch_gui_menu();
+                break;
+            }
+#endif
+            case 9: {
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");

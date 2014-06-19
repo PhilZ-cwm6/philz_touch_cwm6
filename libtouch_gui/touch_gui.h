@@ -20,10 +20,6 @@
 */
 
 
-/****************************/
-/*   Toggle menu settings   */
-/****************************/
-
 #ifndef __TOUCH_GUI_H
 #define __TOUCH_GUI_H
 
@@ -34,8 +30,15 @@ int ui_showing_progress_bar();
 // direct draw a text line on screen and make it visible: not shown in log
 void draw_visible_text_line(int row, const char* t, int align);
 
-// used to cancel nandroid operations and support dim screen during them
+// used to cancel nandroid operations and support dim screen during backup/restore
 int key_press_event();
+
+// call update screen locked
+void ui_update_screen();
+
+/****************************/
+/*   Toggle menu settings   */
+/****************************/
 
 // gesture action support
 extern int key_gesture;

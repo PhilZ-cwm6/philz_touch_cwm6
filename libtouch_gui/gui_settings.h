@@ -39,6 +39,10 @@ void show_log_menu();
 // if colored_rows_num == 0 then, color used for all ui_print text
 void ui_print_preset_colors(int colored_rows_num, const char* color);
 
+// recovery passkey lock
+void check_recovery_lock();
+void show_recovery_lock_menu();
+
 // Highlight on first touch
 int ui_menu_touch_select();
 
@@ -52,4 +56,3 @@ int vibrate_device(int timeout_ms);
 void print_libtouch_version(int onscreen);
 
 #endif // __GUI_SETTINGS_H
-

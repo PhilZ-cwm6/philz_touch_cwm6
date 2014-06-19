@@ -2652,6 +2652,220 @@ void custom_rom_menu() {
 //-------- End Clone ROM to update.zip
 
 
+/*******************************/
+/*   Start Recovery Lock Code  */
+/*******************************/
+
+// setup / change recovery lock passkey
+static void recovery_change_passkey() {
+    int pass_key[RECOVERY_LOCK_MAX_CHARS];
+    char pass_text[128] = "";
+    char pass_string[128] = "";
+    int i = 0;
+    int key_match = 1;
+    ui_set_show_text(0);
+
+    // type in new passkey
+    ui_clear_key_queue();
+    for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+        char tmp[64];
+        ui_update_screen(); // remove previous drawing
+        draw_visible_text_line(2, "* New Passkey (6 chars) *", 1);
+        draw_visible_text_line(4, pass_text, 1);
+        pass_key[i] = ui_wait_key();
+        sprintf(tmp, "%d,", pass_key[i]);
+        strcat(pass_string, tmp);
+        strcat(pass_text, "* ");
+        // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
+    }
+
+    // verify passkey
+    strcpy(pass_text, "");
+    ui_clear_key_queue();
+    for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+        ui_update_screen();
+        draw_visible_text_line(2, "* Retype Passkey *", 1);
+        draw_visible_text_line(4, pass_text, 1);
+        if (ui_wait_key() != pass_key[i]) {
+            key_match = 0;
+            LOGE("Passkey doesn't match\n"); // will remove any previous drawing (actual ui_print will show on returning to menu)
+            draw_visible_text_line(2, "* Passkey mismatch! *", 1);
+            draw_visible_text_line(4, "Press a key to exit", 1);
+            ui_clear_key_queue();
+            ui_wait_key();
+            break;
+        }
+        strcat(pass_text, "* ");
+        // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
+    }
+
+    // if passkey was entered twice correctly, save to lock file
+    if (key_match) {
+        write_string_to_file(RECOVERY_LOCK_FILE, pass_string);
+        ui_print("Recovery Lock is enabled\n");
+    }
+
+    ui_set_show_text(1);
+}
+
+// check if recovery needs to be locked and prompt for a pass key if it is defined
+void check_recovery_lock() {
+    LOGI("Checking for recovery lock...\n");
+    if (!file_found(RECOVERY_LOCK_FILE)) {
+        ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        return;
+    }
+
+    char line[1024];
+    char *ptr;
+    FILE *fp = fopen(RECOVERY_LOCK_FILE, "rb");
+    if (fp == NULL) {
+        LOGE("failed to open lock file\n");
+        ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        return;
+    }
+
+    // read password file (one line)
+    ptr = fgets(line, sizeof(line), fp);
+    fclose(fp);
+    ensure_path_unmounted(RECOVERY_LOCK_FILE);
+    if (ptr == NULL) {
+        LOGE("failed to read lock file\n");
+        return;
+    }
+
+    // hide screen menus and ui_print
+    // this function can be called on recovery start (show_text == 0) or from menus (show_text == 1) to lock recovery or reset password
+    int visible = ui_text_visible();
+    ui_set_show_text(0);
+
+    // parse the password: "key1,key2,key3,key4..."
+    int i = 0;
+    int pass_chars = 0;
+    char** pass_key = (char**) malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
+    memset(pass_key, 0, RECOVERY_LOCK_MAX_CHARS);
+    ptr = strtok(line, ", \n");
+    while (i < RECOVERY_LOCK_MAX_CHARS && ptr != NULL) {
+        pass_key[i] = strdup(ptr);
+        // LOGI("Passkey[%d]=%s\n", i, pass_key[i]); // debug
+        ptr = strtok(NULL, ", \n");
+        ++i;
+    }
+
+    pass_chars = i;
+
+    // lock adb (should be already locked if on recovery boot)
+    property_set("sys.usb.recovery_lock", "1");
+    // property_set("sys.usb.recovery_lock", "0"); // debug
+
+    // prompt for pass key
+    // key_err: number of wrong key input by user
+    long int key_input[RECOVERY_LOCK_MAX_CHARS];
+    int key_err = 0;
+    char pass_text[128] = "";
+    char trials_left_message[64];
+
+    // don't allow pass if key file was tempered with
+    // this will only allow passwords of RECOVERY_LOCK_MAX_CHARS characters
+    if (pass_chars != RECOVERY_LOCK_MAX_CHARS) {
+        LOGE("unusual passkey length (%d)\n", pass_chars);
+        key_err = RECOVERY_LOCK_MAX_ERROR;
+    }
+
+    ui_clear_key_queue();
+    while (key_err < RECOVERY_LOCK_MAX_ERROR) {
+        // prompt for the key
+        for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+            ui_update_screen(); // remove any previous writing to screen
+            sprintf(trials_left_message, "Trials left: %d", RECOVERY_LOCK_MAX_ERROR - key_err);
+            draw_visible_text_line(2, "* Recovery Locked *", 1);
+            draw_visible_text_line(3, trials_left_message, 1);
+            draw_visible_text_line(5, pass_text, 1);
+            key_input[i] = ui_wait_key();
+            strcat(pass_text, "* ");
+            // LOGI("key press=%d\n", key_input[i]); // debug
+        }
+
+        // reset displayed input key on screen
+        strcpy(pass_text, "");
+
+        // check if the input key length is valid
+        if (i != pass_chars) {
+            ++key_err;
+            continue;
+        }
+
+        // verify the input key
+        for (i = 0; i < pass_chars; ++i) {
+            if (key_input[i] != strtol(pass_key[i], NULL, 10)) {
+                ++key_err;
+                break;
+            }
+        }
+
+        // break loop if the input key is valid
+        if (i == pass_chars)
+            break;
+    }
+
+    for (i = 0; i < pass_chars; ++i) {
+        free(pass_key[i]);
+    }
+    free(pass_key);
+
+    if (key_err >= RECOVERY_LOCK_MAX_ERROR) {
+        LOGI("Max pass key errors reached!\n");
+        ui_set_background(BACKGROUND_ICON_ERROR); // will also remove previous drawing
+        draw_visible_text_line(2, "Wrong pass!", 1);
+        draw_visible_text_line(4, "Press a key to reboot", 1);
+        ui_clear_key_queue();
+        ui_wait_key();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
+    }
+
+    // unlock and continue
+    LOGI("Recovery unlocked\n");
+    ui_set_show_text(visible);
+    property_set("sys.usb.recovery_lock", "0");
+}
+
+// setup a passkey to lock recovery
+void show_recovery_lock_menu() {
+    // prompt for password if needed before allowing any modification
+    check_recovery_lock();
+
+    const char* headers[] = {
+        "Recovery Lock Setup",
+        "",
+        NULL
+    };
+
+    char* list[] = {
+        "Change Recovery Passkey",
+        "Disable Recovery Lock",
+        NULL
+    };
+
+    for (;;) {
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item) {
+            case 0: {
+                recovery_change_passkey();
+                break;
+            }
+            case 1: {
+                if (confirm_selection("Disable Recovery Lock ?", "Yes - Disable Lock")) {
+                    delete_a_file(RECOVERY_LOCK_FILE);
+                }
+                break;
+            }
+        }
+    }
+}
+//-------- End recovery lock code
+
 // display and log the libtouch_gui version
 // called on recovery start (onscreen == ) and from About menu
 void print_libtouch_version(int onscreen) {
