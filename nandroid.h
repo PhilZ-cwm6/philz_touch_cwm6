@@ -18,7 +18,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 #define NANDROID_BACKUP_FORMAT_DUP 1
 #define NANDROID_BACKUP_FORMAT_TGZ 2
 
-#define NANDROID_ERROR_GENERAL -1
+#define NANDROID_ERROR_GENERAL 1
 
 
 /**********************************/
