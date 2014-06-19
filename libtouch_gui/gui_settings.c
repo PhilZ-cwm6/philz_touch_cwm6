@@ -198,19 +198,19 @@ int force_wait = -1;
 int key_gesture = 0;
 
 void selective_load_theme_settings() {
-    static const char* header_choose[] = {
+    const char* header_choose[] = {
         "Select a theme to load",
         "",
         NULL
     };
 
-    static const char* headers[] = {
+    const char* headers[] = {
         "Select settings to load from theme",
         "",
         NULL
     };
 
-    static char* list[] = {
+    char* list[] = {
         "Load all recovery settings",
         "Load only GUI settings",
         NULL
@@ -313,7 +313,7 @@ static void check_wait_after_install() {
 
 static void check_menu_height() {
     char value[PROPERTY_VALUE_MAX];
-    static char value_def[5];
+    char value_def[5];
     sprintf (value_def, "%d", MENU_HEIGHT_INCREASE_0);
     read_config_file(PHILZ_SETTINGS_FILE, menu_height_increase.key, value, value_def);
     menu_height_increase.value = strtol(value, NULL, 10);
@@ -773,7 +773,7 @@ static void apply_background_icon(int write_cfg) {
 //this will only apply settings to the active session
 static void apply_gui_colors(const char* key, long int value) {
     //30 lines, each with 4 columns: red value, green value, blue value, alpha value
-    static int menu_color_table[30][4] = {
+    int menu_color_table[30][4] = {
         {WHITE_COLOR_CODE},
         {BLACK_COLOR_CODE},
         {CYAN_BLUE_CODE},
@@ -1123,9 +1123,7 @@ static void choose_background_image(const char* sd_path) {
         return;
     }
 
-    static const char* headers[] = {  "Choose a background image.",
-                                NULL
-    };
+    const char* headers[] = {"Choose a background image.", NULL};
 
     char tmp[PATH_MAX];
     //tariling / previously needed for choose_file_menu()
@@ -1147,7 +1145,7 @@ static void browse_background_image() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {"Choose an image or color", "", NULL};
+    const char* headers[] = {"Choose an image or color", "", NULL};
     int list_top_items = 5;
     char list_prefix[] = "Image from ";
     char* list[MAX_NUM_MANAGED_VOLUMES + list_top_items + 1];
@@ -1269,11 +1267,11 @@ void refresh_touch_gui_settings(int on_start) {
 
 //start show GUI Preferences menu
 static void change_menu_color() {
-    static const char* headers[] = {  "Change Menu Colors",
+    const char* headers[] = {  "Change Menu Colors",
                                 NULL
     };
 
-    static char* list[] = { "Change Menu Text Color",
+    char* list[] = { "Change Menu Text Color",
                             "Change Menu Background Color",
                             "Change Menu Background Alpha",
                             "Change Menu Highlight Color",
@@ -1474,7 +1472,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 }
 
 static void gestures_action_setup() {
-    static const char* headers[] = {  "Gesture Action Setup",
+    const char* headers[] = {  "Gesture Action Setup",
                                 NULL
     };
 
@@ -1492,7 +1490,7 @@ static void gestures_action_setup() {
                     NULL
     };
 
-    static char* gesture_action[] = { "disabled",
+    char* gesture_action[] = { "disabled",
                                       "screen shot", 
                                       "aroma browser",
                                       "set brightness",
@@ -1579,9 +1577,9 @@ static void gestures_action_setup() {
 
 // set time zone
 static void time_zone_h_menu() {
-    static const char* headers[] = { "Select Time Zone", NULL };
+    const char* headers[] = { "Select Time Zone", NULL };
 
-    static char* list[] = {
+    char* list[] = {
         "(UTC -11) Samoa, Midway Island",
         "(UTC -10) Hawaii",
         "(UTC -9) Alaska",
@@ -1953,7 +1951,7 @@ static void change_date_time_menu() {
 }
 
 static void show_time_settings_menu() {
-    static const char* headers[] = { "Time settings", NULL };
+    const char* headers[] = { "Time settings", NULL };
 
     char item_timezone_h[MENU_MAX_COLS];
     char item_timezone_m[MENU_MAX_COLS];
@@ -2024,7 +2022,7 @@ static void show_time_settings_menu() {
 // end check time zone
 
 void show_touch_gui_menu() {
-    static const char* headers[] = { "Touch GUI Setup", NULL };
+    const char* headers[] = { "Touch GUI Setup", NULL };
 
     char item_touch[MENU_MAX_COLS];
     char item_height[MENU_MAX_COLS];
@@ -2522,8 +2520,8 @@ static void custom_rom_target_volume(const char* source_path) {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {"Choose custom ROM target", "", NULL};
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    const char* headers[] = {"Choose custom ROM target", "", NULL};
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Create ROM in ";
     char buf[80];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
@@ -2556,12 +2554,13 @@ static void choose_nandroid_menu() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {  "Choose a nandroid backup",
-                                      "to export",
-                                      "",
-                                      NULL
+    const char* headers[] = {
+        "Choose a nandroid backup",
+        "to export",
+        "",
+        NULL
     };
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Choose from ";
     char buf[80];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
@@ -2615,13 +2614,13 @@ out:
 
 //start Clone ROM to update.zip menu
 void custom_rom_menu() {
-    static const char* headers[] = {
+    const char* headers[] = {
         "Create Custom ROM",
         "",
         NULL
     };
 
-    static char* list[] = {
+    char* list[] = {
         "Create from Current ROM",
         "Create from Previous Backup",
         "Settings...",
