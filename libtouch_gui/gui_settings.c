@@ -2656,10 +2656,19 @@ void custom_rom_menu() {
 /*   Start Recovery Lock Code  */
 /*******************************/
 
+// drop invalid key codes: touch events (BTN_*) and faked ignored event key (KEY_ESC)
+static int is_valid_key_code(int key_code) {
+    if (key_code == KEY_ESC)
+        return 0;
+    if (key_code >= BTN_TOOL_PEN && key_code <= BTN_GEAR_UP)
+        return 0;
+    return 1;
+}
+
 // setup / change recovery lock passkey
 static void recovery_change_passkey() {
     int pass_key[RECOVERY_LOCK_MAX_CHARS];
-    char pass_text[128] = "";
+    char pass_display[128] = "";
     char pass_string[128] = "";
     int i = 0;
     int key_match = 1;
@@ -2671,22 +2680,34 @@ static void recovery_change_passkey() {
         char tmp[64];
         ui_update_screen(); // remove previous drawing
         draw_visible_text_line(2, "* New Passkey (6 chars) *", 1);
-        draw_visible_text_line(4, pass_text, 1);
-        pass_key[i] = ui_wait_key();
+        draw_visible_text_line(4, pass_display, 1);
+        while (1) {
+            pass_key[i] = ui_wait_key();
+            if (is_valid_key_code(pass_key[i]))
+                break;
+        }
         sprintf(tmp, "%d,", pass_key[i]);
         strcat(pass_string, tmp);
-        strcat(pass_text, "* ");
+        strcat(pass_display, "* ");
         // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
     }
 
     // verify passkey
-    strcpy(pass_text, "");
+    strcpy(pass_display, "");
     ui_clear_key_queue();
     for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
         ui_update_screen();
         draw_visible_text_line(2, "* Retype Passkey *", 1);
-        draw_visible_text_line(4, pass_text, 1);
-        if (ui_wait_key() != pass_key[i]) {
+        draw_visible_text_line(4, pass_display, 1);
+
+        int input_key;
+        while (1) {
+            input_key = ui_wait_key();
+            if (is_valid_key_code(input_key))
+                break;
+        }
+
+        if (input_key != pass_key[i]) {
             key_match = 0;
             LOGE("Passkey doesn't match\n"); // will remove any previous drawing (actual ui_print will show on returning to menu)
             draw_visible_text_line(2, "* Passkey mismatch! *", 1);
@@ -2695,7 +2716,7 @@ static void recovery_change_passkey() {
             ui_wait_key();
             break;
         }
-        strcat(pass_text, "* ");
+        strcat(pass_display, "* ");
         // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
     }
 
@@ -2763,9 +2784,9 @@ void check_recovery_lock() {
 
     // prompt for pass key
     // key_err: number of wrong key input by user
-    long int key_input[RECOVERY_LOCK_MAX_CHARS];
+    long int key_input[RECOVERY_LOCK_MAX_CHARS] = { 0 };
     int key_err = 0;
-    char pass_text[128] = "";
+    char pass_display[128] = "";
     char trials_left_message[64];
 
     // don't allow pass if key file was tempered with
@@ -2783,14 +2804,18 @@ void check_recovery_lock() {
             sprintf(trials_left_message, "Trials left: %d", RECOVERY_LOCK_MAX_ERROR - key_err);
             draw_visible_text_line(2, "* Recovery Locked *", 1);
             draw_visible_text_line(3, trials_left_message, 1);
-            draw_visible_text_line(5, pass_text, 1);
-            key_input[i] = ui_wait_key();
-            strcat(pass_text, "* ");
+            draw_visible_text_line(5, pass_display, 1);
+            while (1) {
+                key_input[i] = ui_wait_key();
+                if (is_valid_key_code(key_input[i]))
+                    break;
+            }
+            strcat(pass_display, "* ");
             // LOGI("key press=%d\n", key_input[i]); // debug
         }
 
         // reset displayed input key on screen
-        strcpy(pass_text, "");
+        strcpy(pass_display, "");
 
         // check if the input key length is valid
         if (i != pass_chars) {
