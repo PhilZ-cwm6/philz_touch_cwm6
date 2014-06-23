@@ -2713,6 +2713,7 @@ void check_recovery_lock() {
     LOGI("Checking for recovery lock...\n");
     if (!file_found(RECOVERY_LOCK_FILE)) {
         ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        property_set("sys.usb.recovery_lock", "0");
         return;
     }
 
@@ -2722,6 +2723,7 @@ void check_recovery_lock() {
     if (fp == NULL) {
         LOGE("failed to open lock file\n");
         ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        property_set("sys.usb.recovery_lock", "0");
         return;
     }
 
@@ -2731,6 +2733,7 @@ void check_recovery_lock() {
     ensure_path_unmounted(RECOVERY_LOCK_FILE);
     if (ptr == NULL) {
         LOGE("failed to read lock file\n");
+        property_set("sys.usb.recovery_lock", "0");
         return;
     }
 
