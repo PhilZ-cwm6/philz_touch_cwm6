@@ -697,6 +697,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_m8 cm_m8spr cm_m8vzw cm_m8att),)
 #HTC One Mini (m4)
 else ifeq ($(TARGET_PRODUCT), cm_m4)
     TARGET_COMMON_NAME := HTC One Mini
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
