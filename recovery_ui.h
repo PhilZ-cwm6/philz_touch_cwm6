@@ -142,6 +142,8 @@ int ui_is_initialized();
 
 void ui_set_nandroid_print(int enable, int num);
 
+int ui_get_background_icon();
+
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg);
 

@@ -645,6 +645,15 @@ void ui_set_background(int icon)
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
+// return current background icon
+int ui_get_background_icon() {
+    int icon;
+    pthread_mutex_lock(&gUpdateMutex);
+    icon = gCurrentIcon;
+    pthread_mutex_unlock(&gUpdateMutex);
+    return icon;
+}
+
 void ui_show_indeterminate_progress()
 {
     if (!ui_has_initialized) return;

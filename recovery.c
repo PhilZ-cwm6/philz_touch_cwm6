@@ -354,6 +354,7 @@ int
 erase_volume(const char *volume) {
     bool is_cache = (strcmp(volume, CACHE_ROOT) == 0);
 
+    int icon = ui_get_background_icon();
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
 
@@ -431,7 +432,7 @@ erase_volume(const char *volume) {
         copy_logs();
     }
 
-    ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+    ui_set_background(icon);
     ui_reset_progress();
     return result;
 }

@@ -132,6 +132,7 @@ apply_from_adb() {
     ui_clear_key_queue();
 
     struct stat st;
+    int icon = ui_get_background_icon();
     if (stat(ADB_SIDELOAD_FILENAME, &st) != 0) {
         if (errno == ENOENT) {
             ui_print("No package received.\n");
@@ -161,7 +162,7 @@ apply_from_adb() {
 #endif
 
     if (install_status == INSTALL_SUCCESS)
-        ui_set_background(BACKGROUND_ICON_NONE);
+        ui_set_background(icon);
 
     remove(ADB_SIDELOAD_FILENAME);
     ui_print("\nInstall from sideload complete.\n");

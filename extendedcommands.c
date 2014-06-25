@@ -209,7 +209,13 @@ int install_zip(const char* packagefilepath) {
     }
 #endif
 
-    ui_set_background(BACKGROUND_ICON_NONE);
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (show_background_icon.value)
+        ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+    else
+#endif
+        ui_set_background(BACKGROUND_ICON_NONE);
+
     ui_print("\nInstall from sdcard complete.\n");
     return 0;
 }
