@@ -1924,7 +1924,6 @@ void write_fstab_root(char *path, FILE *file) {
     fprintf(file, "%s ", device);
     fprintf(file, "%s ", path);
     // special case rfs cause auto will mount it as vfat on samsung.
-    // also, some devices seem to have trouble detecting f2fs if set to auto
     // use real fstype if it is an f2fs/ext4 conversion
     char* fstype = vol->fs_type;
     if (vol->fs_type2 != NULL && strcmp(vol->fs_type, "rfs") != 0 && strcmp(vol->fs_type, "f2fs") != 0 && strcmp(vol->fs_type2, "f2fs") != 0) {
