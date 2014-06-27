@@ -871,6 +871,13 @@ else ifeq ($(TARGET_PRODUCT), cm_n1)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Oppo Find7,Find7a,X9007,X9006 (find7)
+else ifeq ($(TARGET_PRODUCT), cm_find7)
+    TARGET_COMMON_NAME := Oppo Find7
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Sony Xperia Z (yuga)
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
     TARGET_COMMON_NAME := Xperia Z
