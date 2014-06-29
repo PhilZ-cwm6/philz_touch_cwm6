@@ -2967,10 +2967,15 @@ void check_recovery_lock() {
     }
 
     ui_clear_key_queue();
+
+    // workaround to refresh display buffers with active background
+    // this is needed to avoid first passkey prompt screen background to be black on recovery start
+    draw_visible_text_line(2, "* Recovery Locked *", 1);
+    ui_update_screen(); // will wipe above text line and properly refresh the buffers
+
     while (key_err < RECOVERY_LOCK_MAX_ERROR) {
         // prompt for the key
         for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
-            ui_update_screen(); // remove any previous writing to screen
             sprintf(trials_left_message, "Trials left: %d", RECOVERY_LOCK_MAX_ERROR - key_err);
             draw_visible_text_line(2, "* Recovery Locked *", 1);
             draw_visible_text_line(3, trials_left_message, 1);
@@ -2981,6 +2986,7 @@ void check_recovery_lock() {
                     break;
             }
             strcat(pass_display, "* ");
+            ui_update_screen(); // remove any previous writing to screen
             // LOGI("key press=%d\n", key_input[i]); // debug
         }
 

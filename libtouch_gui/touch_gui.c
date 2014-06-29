@@ -446,7 +446,7 @@ void draw_text_line(int row, const char* t, int height, int align) {
     }
 }
 
-// draw and make visible a text line
+// draw and make visible a text line over current screen (no whole screen redraw)
 // row == 0 is top screen
 void draw_visible_text_line(int row, const char* t, int align) {
     pthread_mutex_lock(&gUpdateMutex);
