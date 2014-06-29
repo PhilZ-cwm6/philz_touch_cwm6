@@ -115,6 +115,7 @@ struct CWMSettingsIntValues wait_after_install = { "wait_after_install", 1 };
 struct CWMSettingsLongIntValues t_zone = { "t_zone", 0 };
 struct CWMSettingsLongIntValues t_zone_offset = { "t_zone_offset", 0 };
 struct CWMSettingsIntValues use_dst_time = { "use_dst_time", 0 };
+struct CWMSettingsIntValues use_qcom_time_data_files = { "use_qcom_time_data_files", 0 };
 struct CWMSettingsIntValues use_qcom_time_daemon = { "use_qcom_time_daemon", 0 };
 struct CWMSettingsLongIntValues use_qcom_time_offset = { "use_qcom_time_offset", 0 };
 
@@ -601,7 +602,8 @@ static void set_system_time() {
         "EET-10;EETDT",
         "MET-11;METDT",
         "NZST-12;NZDT",
-        NULL };
+        NULL
+    };
 
     // parse to get time zone
     char time_string[50];
@@ -622,7 +624,7 @@ static void set_system_time() {
         strcat(t_zone_string, dst_string);
 
     // apply time through TZ environment variable
-	setenv("TZ", t_zone_string, 1);
+    setenv("TZ", t_zone_string, 1);
     tzset();
 
     // log current system time
@@ -670,22 +672,95 @@ static void apply_time_zone(int write_cfg, int tz) {
 }
 
 /* Start Qualcom Time Fixes */
-// this is called on recovery start and from the Qcom Time Daemon toggle menu when user sets it
-static void load_qcom_time_daemon(int on_start) {
-    if (on_start) {
-        // called on recovery start
-        char value[PROPERTY_VALUE_MAX];
-        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value, "0");
-        if (strcmp(value, "1") == 0)
-            use_qcom_time_daemon.value = 1;
-        else
-            use_qcom_time_daemon.value = 0;
+// parse the time daemon data files (credits to TeamWin)
+static void parse_t_daemon_data_files() {
+    // Devices with Qualcomm Snapdragon 800 do some shenanigans with RTC.
+    // They never set it, it just ticks forward from 1970-01-01 00:00,
+    // and then they have files /data/system/time/ats_* with 64bit offset
+    // in miliseconds which, when added to the RTC, gives the correct time.
+    // So, the time is: (offset_from_ats + value_from_RTC)
+    // There are multiple ats files, they are for different systems? Bases?
+    // Like, ats_1 is for modem and ats_2 is for TOD (time of day?).
+    // Look at file time_genoff.h in CodeAurora, qcom-opensource/time-services
+
+    const char *paths[] = {"/data/system/time/", "/data/time/"};
+    char ats_path[PATH_MAX] = "";
+    DIR *d;
+    FILE *f;
+    uint64_t offset = 0;
+    struct timeval tv;
+    struct dirent *dt;
+
+    // Don't fix the time of it already is over year 2000, it is likely already okay, either
+    // because the RTC is fine or because the recovery already set it and then crashed
+    gettimeofday(&tv, NULL);
+    if (tv.tv_sec > 946684800) {
+        // timestamp of 2000-01-01 00:00:00
+        LOGE("parse_t_daemon_data_files: time already okay (after year 2000).\n");
+        return;
     }
 
-    if (!use_qcom_time_daemon.value)
+    // on start, /data will be unmounted by refresh_recovery_settings()
+    if (ensure_path_mounted("/data") != 0) {
+        LOGE("parse_t_daemon_data_files: failed to mount /data\n");
         return;
+    }
 
-    // load the daemon
+    // Prefer ats_2, it seems to be the one we want according to logcat on hammerhead
+    // - it is the one for ATS_TOD (time of day?).
+    // However, I never saw a device where the offset differs between ats files.
+    size_t i;
+    for (i = 0; i < (sizeof(paths)/sizeof(paths[0])); ++i) {
+        DIR *d = opendir(paths[i]);
+        if (!d)
+            continue;
+
+        while ((dt = readdir(d))) {
+            if (dt->d_type != DT_REG || strncmp(dt->d_name, "ats_", 4) != 0)
+                continue;
+
+            if (strlen(ats_path) == 0 || strcmp(dt->d_name, "ats_2") == 0)
+                sprintf(ats_path, "%s%s", paths[i], dt->d_name);
+        }
+
+        closedir(d);
+    }
+
+    if (strlen(ats_path) == 0) {
+        LOGE("parse_t_daemon_data_files: no ats files found, leaving time as-is!\n");
+        return;
+    }
+
+    f = fopen(ats_path, "r");
+    if (!f) {
+        LOGE("parse_t_daemon_data_files: failed to open file %s\n", ats_path);
+        return;
+    }
+
+    if (fread(&offset, sizeof(offset), 1, f) != 1) {
+        LOGE("parse_t_daemon_data_files: failed load uint64 from file %s\n", ats_path);
+        fclose(f);
+        return;
+    }
+    fclose(f);
+
+    LOGI("parse_t_daemon_data_files: Setting time offset from file %s, offset %llu\n", ats_path, offset);
+
+    gettimeofday(&tv, NULL);
+    tv.tv_sec += offset / 1000;
+    tv.tv_usec += (offset % 1000) * 1000;
+
+    while(tv.tv_usec >= 1000000) {
+        ++tv.tv_sec;
+        tv.tv_usec -= 1000000;
+    }
+
+    settimeofday(&tv, NULL);
+    log_current_system_time();
+}
+
+// load the qcom time_daemon
+static void load_qcom_time_daemon(int on_start) {
     // unmount of /system + /data must be done in __system() or in source code after a sleep() delay. Else, they are unmounted while time_daemon is not done
     // only unmount partitions on recovery start
     if (!file_found("/system/bin/time_daemon") ||
@@ -701,7 +776,8 @@ static void load_qcom_time_daemon(int on_start) {
             ui_print("starting time daemon...\n");
 
         char cmd[PATH_MAX];
-        sprintf(cmd, "export LD_LIBRARY_PATH=/system/vendor/lib:/system/lib; /system/bin/time_daemon &(sleep 2; killall time_daemon;%s) &", on_start ? " /sbin/umount /system; /sbin/umount /data" : "");
+        sprintf(cmd, "export LD_LIBRARY_PATH=/system/vendor/lib:/system/lib; /system/bin/time_daemon &(sleep 2; killall time_daemon;%s) &",
+                on_start ? " /sbin/umount /system; /sbin/umount /data" : "");
         __system(cmd);
         // sleep 2.5 secs, else on recovery start, refresh_recovery_settings() will unmount /data too early
         //  - time_daemon may not sync time correctly
@@ -716,11 +792,11 @@ static void load_qcom_time_daemon(int on_start) {
 }
 
 // apply qcom time rtc offset
-// called only on recovery start
-static void apply_qcom_rtc_offset() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_offset.key, value, "0");
-    use_qcom_time_offset.value = strtol(value, NULL, 10);
+// only apply on recovery start
+// else, this will increment the time by given offset when applied multiple times from menu
+static void apply_qcom_rtc_offset(int on_start) {
+    if (!on_start)
+        return;
 
     if (use_qcom_time_offset.value > 0) {
         LOGI("applying rtc time offset...\n");
@@ -735,8 +811,41 @@ static void apply_qcom_rtc_offset() {
             settimeofday(&tv, NULL);
             log_current_system_time();
         }
-    } else {
-        use_qcom_time_offset.value = 0;
+    }
+}
+
+// first check if we must directly parse time data files
+// if not, try to directly load the time_daemon service
+// started on recovery start or from menu
+static void apply_qcom_time_daemon_fixes(int on_start) {
+    if (on_start) {
+        // called on recovery start, no need to parse settings file when called from menus
+        char value[PROPERTY_VALUE_MAX];
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value, "0");
+        if (strcmp(value, "1") == 0)
+            use_qcom_time_daemon.value = 1;
+        else
+            use_qcom_time_daemon.value = 0;
+
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_data_files.key, value, "0");
+        if (strcmp(value, "1") == 0 || strcmp(value, "true") == 0)
+            use_qcom_time_data_files.value = 1;
+        else
+            use_qcom_time_data_files.value = 0;
+
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_offset.key, value, "0");
+        use_qcom_time_offset.value = strtol(value, NULL, 10);
+        if (use_qcom_time_offset.value < 0)
+            use_qcom_time_offset.value = 0;
+    }
+
+    // Only allow one qcom time_daemon fix (this should never happen unless user manually alters settings file)
+    if (use_qcom_time_data_files.value) {
+        parse_t_daemon_data_files();
+    } else if (use_qcom_time_daemon.value) {
+        load_qcom_time_daemon(on_start);
+    } else if (use_qcom_time_offset.value) {
+        apply_qcom_rtc_offset(on_start);
     }
 }
 // ------- End Qualcom Time Fixes
@@ -1259,8 +1368,7 @@ void refresh_touch_gui_settings(int on_start) {
         // no need to load these when refreshing recovery settings (theme loading, restore settings...)
         // only load them on recovery start
         apply_time_zone(0, 0);
-        load_qcom_time_daemon(1);
-        apply_qcom_rtc_offset();
+        apply_qcom_time_daemon_fixes(1);
     }
 }
 //-------- End GUI Preferences functions
@@ -1706,28 +1814,26 @@ static void time_zone_h_menu() {
     - it will set current time and date to the total seconds since epoch specified by the timeval struct
     - in our case, the tv timeval struct holds the date chosen by user
 */
-#define CHANGE_TIME_MENU_VALIDATE 0
-#define CHANGE_TIME_MENU_INCREASE 1
-#define CHANGE_TIME_MENU_DECREASE 2
-#define CHANGE_TIME_MENU_NEXT     3
-#define CHANGE_TIME_MENU_PREVIOUS 4
-#define CHANGE_TIME_MENU_DATE_BIN 5
-#define CHANGE_TIME_MENU_T_DAEMON 6
-#define CHANGE_TIME_MENU_T_OFFSET 7
+#define CHANGE_TIME_MENU_VALIDATE       0
+#define CHANGE_TIME_MENU_INCREASE       1
+#define CHANGE_TIME_MENU_DECREASE       2
+#define CHANGE_TIME_MENU_NEXT           3
+#define CHANGE_TIME_MENU_PREVIOUS       4
+#define CHANGE_TIME_MENU_DATE_BIN       5
+#define CHANGE_TIME_MENU_T_DAEMON_DATA  6
+#define CHANGE_TIME_MENU_T_DAEMON_LOAD  7
+#define CHANGE_TIME_MENU_T_OFFSET       8
 static void change_date_time_menu() {
-    struct tm new_date;
-    time_t new_date_secs = time(NULL);
-    localtime_r(&new_date_secs, &new_date);
-
     char item_increase[MENU_MAX_COLS];
     char item_decrease[MENU_MAX_COLS];
     char item_next[MENU_MAX_COLS];
     char item_previous[MENU_MAX_COLS];
     char item_force_system_date[MENU_MAX_COLS];
+    char item_parse_time_daemon_data_files[MENU_MAX_COLS];
     char item_qcom_time_daemon[MENU_MAX_COLS];
     char item_qcom_time_offset[MENU_MAX_COLS];
 
-    char chosen_date[MENU_MAX_COLS];
+    char chosen_date[MENU_MAX_COLS] = "";
     const char* headers[] = { "Change date and time:", chosen_date, "", NULL };
 
     char* list[] = {
@@ -1737,6 +1843,7 @@ static void change_date_time_menu() {
         item_next,
         item_previous,
         item_force_system_date,
+        item_parse_time_daemon_data_files,
         item_qcom_time_daemon,
         item_qcom_time_offset,
         NULL    // GO_BACK (cancel)
@@ -1749,6 +1856,10 @@ static void change_date_time_menu() {
     int next = 0;
     int previous = 0;
 
+    struct tm new_date;
+    time_t new_date_secs = time(NULL);
+    localtime_r(&new_date_secs, &new_date);
+
     for (;;) {
         // update header text
         strftime(chosen_date, sizeof(chosen_date), "--> %Y-%m-%d %H:%M:%S", &new_date);
@@ -1756,6 +1867,10 @@ static void change_date_time_menu() {
         // update "toggle use of date -s" menu
         if (force_system_date) ui_format_gui_menu(item_force_system_date, "Try Force Persist on Reboot", "(x)");
         else ui_format_gui_menu(item_force_system_date, "Try Force Persist on Reboot", "( )");
+
+        // qcom devices: try to directly parse the /data/time contents
+        if (use_qcom_time_data_files.value) ui_format_gui_menu(item_parse_time_daemon_data_files, "Parse Time Daemon Data", "(x)");
+        else ui_format_gui_menu(item_parse_time_daemon_data_files, "Parse Time Daemon Data", "( )");
 
         // menu to toggle load of time_daemon
         if (use_qcom_time_daemon.value)
@@ -1848,32 +1963,87 @@ static void change_date_time_menu() {
         } else if (chosen_item == CHANGE_TIME_MENU_DATE_BIN) {
             // toggle force use of date -s command
             force_system_date ^= 1;
-        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON) {
+        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON_DATA) {
+            const char* qcom_headers[] = {
+                "Apply time daemon data:",
+                "Use Only for Qualcom boards",
+                NULL
+            };
+            char* qcom_list[] = { "Yes - Apply Time Daemon Data", NULL };
+            struct timeval tv;
+
+            // only allow one qcom time fix: time daemon, rtc offset or parse of time data files
+            if (!use_qcom_time_data_files.value && use_qcom_time_offset.value != 0) {
+                LOGE("first, disable RTC Time Offset\n");
+                continue;
+            }
+            if (!use_qcom_time_data_files.value && use_qcom_time_daemon.value) {
+                LOGE("first, disable Qcom Time Daemon\n");
+                continue;
+            }
+
+            // prompt to enable parsing time daemon data files, but not when disabling it
+            if (!use_qcom_time_data_files.value && 0 != get_menu_selection(qcom_headers, qcom_list, 0, 0))
+                continue;
+            use_qcom_time_data_files.value ^= 1;
+            sprintf(value, "%d", use_qcom_time_data_files.value);
+            write_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_data_files.key, value);
+
+            // check if the time/date is not what we expect (something near epoch)
+            // assume > 2000-01-01 00:00:00
+            // if after that time, try to set time to epoch and warn user to reboot into ROM, sync time and back to recovery
+            gettimeofday(&tv, NULL);
+            if (use_qcom_time_data_files.value && tv.tv_sec > 946684800) {
+                tv.tv_sec = 0;
+                tv.tv_usec = 0;
+                settimeofday(&tv, NULL);
+                ui_print("If time is wrong,\n");
+                ui_print("reboot to system & sync time\n");
+            }
+            apply_qcom_time_daemon_fixes(0);
+
+            // refresh current time in menu header
+            new_date_secs = time(NULL);
+            localtime_r(&new_date_secs, &new_date);
+        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON_LOAD) {
             const char* qcom_headers[] = { "Load time daemon:", "Use Only for Qualcom boards", "And if all manual modes fail", NULL };
             char* qcom_list[] = { "Yes - Load Time Daemon", NULL };
 
-            // do not allow to use both time daemon and rtc offset fixes
+            // only allow one qcom time fix: time daemon, rtc offset or parse of time data files
             if (!use_qcom_time_daemon.value && use_qcom_time_offset.value != 0) {
-                LOGE("disable RTC Time Offset first\n");
+                LOGE("first, disable RTC Time Offset\n");
                 continue;
             }
+            if (!use_qcom_time_daemon.value && use_qcom_time_data_files.value) {
+                LOGE("first, disable Parse Time Daemon Data\n");
+                continue;
+            }
+
             // prompt to enable time daemon, but not when disabling it
             if (!use_qcom_time_daemon.value && 0 != get_menu_selection(qcom_headers, qcom_list, 0, 0))
                 continue;
             use_qcom_time_daemon.value ^= 1;
             sprintf(value, "%d", use_qcom_time_daemon.value);
             write_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value);
-            load_qcom_time_daemon(0);
+            apply_qcom_time_daemon_fixes(0);
+
+            // refresh current time in menu header
+            new_date_secs = time(NULL);
+            localtime_r(&new_date_secs, &new_date);
         } else if (chosen_item == CHANGE_TIME_MENU_T_OFFSET) {
             // some Qcom boards that need time_daemon, can use an offset from RTC clock (LGE G2 devices)
             // use_qcom_time_offset.value holds the offset in seconds. If we set to 1, we consider it is to enable and read the offset
             // if user has a ROM that doesn't properly support time_daemon, it will need this trick
             // also this could be used if recovery is missing some selinux permissions to load time_daemon
-            // we only allow use of either method: time daemon or time offset
+            // we only allow use of one method: time daemon, parse time daemon data files or time offset
             const char* qcom_headers[] = { "Use time offset:", "Use Only for Qualcom boards", "And if all other modes fail", NULL };
             char* qcom_list[] = { "Yes - Enable Time Offset", NULL };
             if (use_qcom_time_offset.value == 0 && use_qcom_time_daemon.value) {
-                LOGE("disable Qcom Time Daemon first\n");
+                LOGE("first, disable Qcom Time Daemon\n");
+                continue;
+            }
+            if (use_qcom_time_offset.value == 0 && use_qcom_time_data_files.value) {
+                LOGE("first, disable Parse Time Daemon Data\n");
                 continue;
             }
 

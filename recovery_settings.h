@@ -145,6 +145,7 @@ struct CWMSettingsIntValues wait_after_install;
 struct CWMSettingsLongIntValues t_zone;
 struct CWMSettingsLongIntValues t_zone_offset;
 struct CWMSettingsIntValues use_dst_time;
+struct CWMSettingsIntValues use_qcom_time_data_files;
 struct CWMSettingsIntValues use_qcom_time_daemon;
 struct CWMSettingsLongIntValues use_qcom_time_offset;
 
