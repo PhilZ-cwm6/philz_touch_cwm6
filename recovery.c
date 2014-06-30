@@ -486,7 +486,7 @@ copy_sideloaded_package(const char* original_path) {
   strcpy(copy_path, SIDELOAD_TEMP_DIR);
   strcat(copy_path, "/package.zip");
 
-  char* buffer = malloc(BUFSIZ);
+  char* buffer = (char*)malloc(BUFSIZ);
   if (buffer == NULL) {
     LOGE("Failed to allocate buffer\n");
     return NULL;
