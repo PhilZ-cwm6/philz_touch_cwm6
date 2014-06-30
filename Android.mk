@@ -78,7 +78,7 @@ endif
 endif
 
 # This should be the same line as upstream to not break makerecoveries.sh
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.9
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.5.0
 
 PHILZ_BUILD := 6.48.1
 CWM_BASE_VERSION := $(shell echo $(RECOVERY_VERSION) | cut -d ' ' -f 3)
