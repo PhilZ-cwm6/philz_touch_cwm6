@@ -147,4 +147,7 @@ int ui_get_background_icon();
 // call a clean reboot
 void reboot_main_system(int cmd, int flags, char *arg);
 
+// Show a stage indicator.
+void ui_SetStage(int current, int max);
+
 #endif
