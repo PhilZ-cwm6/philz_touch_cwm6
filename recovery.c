@@ -74,6 +74,7 @@ static const struct option OPTIONS[] = {
 };
 
 #define LAST_LOG_FILE "/cache/recovery/last_log"
+
 static const char *CACHE_LOG_DIR = "/cache/recovery";
 static const char *COMMAND_FILE = "/cache/recovery/command";
 static const char *INTENT_FILE = "/cache/recovery/intent";
@@ -98,6 +99,7 @@ extern UIParameters ui_parameters;    // from ui.c
  *   --wipe_data - erase user data (and cache), then reboot
  *   --wipe_cache - wipe cache (but not user data), then reboot
  *   --set_encrypted_filesystem=on|off - enables / diasables encrypted fs
+ *   --sideload - enter sideload mode
  *
  * After completing, we remove /cache/recovery/command and reboot.
  * Arguments may also be supplied in the bootloader control block (BCB).

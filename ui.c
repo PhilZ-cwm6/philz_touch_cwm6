@@ -75,19 +75,19 @@ static int ui_log_stdout = 1;
 int boardRepeatableKeys[64], boardNumRepeatableKeys = 0;
 
 struct bitmaps_array BITMAPS[] = {
-    { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING], "icon_installing" },
-    { &gBackgroundIcon[BACKGROUND_ICON_ERROR],      "icon_error" },
-    { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],  "icon_clockwork" },
-    { &gBackgroundIcon[BACKGROUND_ICON_CID],  "icon_cid" },
-    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING], "icon_firmware_install" },
-    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
-    { &gProgressBarEmpty,               "progress_empty" },
-    { &gProgressBarFill,                "progress_fill" },
+    { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING],             "icon_installing" },
+    { &gBackgroundIcon[BACKGROUND_ICON_ERROR],                  "icon_error" },
+    { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],              "icon_clockwork" },
+    { &gBackgroundIcon[BACKGROUND_ICON_CID],                    "icon_cid" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING],    "icon_firmware_install" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR],         "icon_firmware_error" },
+    { &gProgressBarEmpty,                                       "progress_empty" },
+    { &gProgressBarFill,                                        "progress_fill" },
 #ifdef PHILZ_TOUCH_RECOVERY
-    { &gVirtualKeys,                    "virtual_keys" },
+    { &gVirtualKeys,                                            "virtual_keys" },
 #endif
-    { &gBackground,                "stitch" },
-    { NULL,                             NULL },
+    { &gBackground,                                             "stitch" },
+    { NULL,                                                     NULL },
 };
 
 static int gCurrentIcon = 0;
@@ -165,18 +165,19 @@ static void draw_background_locked(int icon)
     // gr_color(0, 0, 0, 255);
     // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
-    {
-        int bw = gr_get_width(gBackground);
-        int bh = gr_get_height(gBackground);
-        int bx = 0;
-        int by = 0;
-        for (by = 0; by < gr_fb_height(); by += bh) {
-            for (bx = 0; bx < gr_fb_width(); bx += bw) {
-                gr_blit(gBackground, 0, 0, bw, bh, bx, by);
-            }
+    int bw = gr_get_width(gBackground);
+    int bh = gr_get_height(gBackground);
+    int bx = 0;
+    int by = 0;
+
+    // draw the background image as a mosaic if it is smaller than display
+    for (by = 0; by < gr_fb_height(); by += bh) {
+        for (bx = 0; bx < gr_fb_width(); bx += bw) {
+            gr_blit(gBackground, 0, 0, bw, bh, bx, by);
         }
     }
 
+    // draw the background icon if any
     if (icon) {
         gr_surface surface = gBackgroundIcon[icon];
         int iconWidth = gr_get_width(surface);
