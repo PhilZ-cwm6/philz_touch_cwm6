@@ -107,7 +107,7 @@ apply_from_adb() {
 
     struct sideload_waiter_data data;
     if ((data.child = fork()) == 0) {
-        execl("/sbin/recovery", "recovery", "adbd", NULL);
+        execl("/sbin/recovery", "recovery", "--adbd", NULL);
         _exit(-1);
     }
     

@@ -81,7 +81,6 @@ struct bitmaps_array BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING],             "icon_installing" },
     { &gBackgroundIcon[BACKGROUND_ICON_ERROR],                  "icon_error" },
     { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],              "icon_clockwork" },
-    { &gBackgroundIcon[BACKGROUND_ICON_CID],                    "icon_cid" },
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING],    "icon_firmware_install" },
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR],         "icon_firmware_error" },
     { &gProgressBarEmpty,                                       "progress_empty" },

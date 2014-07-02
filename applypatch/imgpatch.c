@@ -132,7 +132,7 @@ int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
 
             unsigned char* expanded_source = malloc(expanded_len);
             if (expanded_source == NULL) {
-                printf("failed to allocate %d bytes for expanded_source\n",
+                printf("failed to allocate %zu bytes for expanded_source\n",
                        expanded_len);
                 return -1;
             }
@@ -163,7 +163,7 @@ int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
             // We should have filled the output buffer exactly, except
             // for the bonus_size.
             if (strm.avail_out != bonus_size) {
-                printf("source inflation short by %d bytes\n", strm.avail_out-bonus_size);
+                printf("source inflation short by %zu bytes\n", strm.avail_out-bonus_size);
                 return -1;
             }
             inflateEnd(&strm);

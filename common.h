@@ -89,7 +89,6 @@ enum {
   BACKGROUND_ICON_INSTALLING,
   BACKGROUND_ICON_ERROR,
   BACKGROUND_ICON_CLOCKWORK,
-  BACKGROUND_ICON_CID,
   BACKGROUND_ICON_FIRMWARE_INSTALLING,
   BACKGROUND_ICON_FIRMWARE_ERROR,
   NUM_BACKGROUND_ICONS
@@ -161,7 +160,7 @@ typedef struct {
 // fopen a file, mounting volumes and making parent dirs as necessary.
 FILE* fopen_path(const char *path, const char *mode);
 
-void set_perf_mode(int on);
+// for nandroid cmd actions on voldmanaged devices (recovery.c)
 void vold_init();
 
 #endif  // RECOVERY_COMMON_H

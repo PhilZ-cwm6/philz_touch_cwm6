@@ -1841,7 +1841,7 @@ int show_advanced_menu() {
                 break;
             }
             case 1:
-                handle_failure(1);
+                handle_failure();
                 break;
             case 2: {
                 ui_print("Outputting key codes.\n");
@@ -2012,9 +2012,7 @@ void process_volumes() {
     return;
 }
 
-void handle_failure(int ret) {
-    if (ret == 0)
-        return;
+void handle_failure() {
     if (0 != ensure_path_mounted(get_primary_storage_path()))
         return;
     mkdir("/sdcard/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);

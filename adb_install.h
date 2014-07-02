@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
+#ifndef _ADB_INSTALL_H
+#define _ADB_INSTALL_H
 
 
 int apply_from_adb();
 
+#endif
