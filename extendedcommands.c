@@ -1693,6 +1693,7 @@ void show_advanced_power_menu() {
 
     char* list[] = { "Reboot Recovery",
                      "Reboot to Bootloader",
+                     "Reboot to FlashMode",
                      "Power Off",
                      NULL };
 
@@ -1717,6 +1718,10 @@ void show_advanced_power_menu() {
             reboot_main_system(ANDROID_RB_RESTART2, 0, bootloader_mode);
             break;
         case 2:
+            ui_print("Rebooting FlashMode...\n");
+            reboot_main_system(ANDROID_RB_RESTART2, 0, "oem-53");
+            break;
+        case 3:
             ui_print("Shutting down...\n");
             reboot_main_system(ANDROID_RB_POWEROFF, 0, 0);
             break;

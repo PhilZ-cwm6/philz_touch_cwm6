@@ -4011,6 +4011,7 @@ void show_philz_settings_menu()
                 ui_print(EXPAND(RECOVERY_MOD_VERSION) "\n");
                 ui_print("Build version: " EXPAND(PHILZ_BUILD) " - " EXPAND(TARGET_COMMON_NAME) "\n");
                 ui_print("CWM Base version: " EXPAND(CWM_BASE_VERSION) "\n");
+                built by Team Zeus
 #ifdef PHILZ_TOUCH_RECOVERY
                 print_libtouch_version(1);
 #endif
