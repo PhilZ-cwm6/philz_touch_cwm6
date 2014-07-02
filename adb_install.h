@@ -17,7 +17,8 @@
 #ifndef _ADB_INSTALL_H
 #define _ADB_INSTALL_H
 
-
+void start_sideload();
 int apply_from_adb();
+int enter_sideload_mode(int status);
 
 #endif

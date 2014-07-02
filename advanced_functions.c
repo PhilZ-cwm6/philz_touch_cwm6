@@ -1828,7 +1828,8 @@ int run_ors_script(const char* ors_script) {
             } else if (strcmp(command, "sideload") == 0) {
                 // Install zip from sideload
                 ui_print("Waiting for sideload...\n");
-                if (0 != (ret_val = apply_from_adb()))
+                ret_val = enter_sideload_mode(INSTALL_SUCCESS);
+                if (ret_val != INSTALL_SUCCESS)
                     LOGE("Error installing from sideload\n");
             } else {
                 LOGE("Unrecognized script command: '%s'\n", command);

@@ -819,27 +819,72 @@ wipe_data(int confirm) {
     ui_print("Data wipe complete.\n");
 }
 
+int enter_sideload_mode(int status) {
+
+    ensure_path_mounted(CACHE_ROOT);
+    start_sideload();
+
+    static const char* headers[] = {  "ADB Sideload",
+                                "",
+                                NULL
+    };
+
+    static char* list[] = { "Cancel sideload", NULL };
+    int icon = ui_get_background_icon();
+
+    get_menu_selection(headers, list, 0, 0);
+    int ret = apply_from_adb();
+
+    // if item < 0 (cancel), apply_from_adb() will return INSTALL_NONE with appropriate log message
+    if (ret != INSTALL_NONE) {
+        status = ret;
+#ifdef ENABLE_LOKI
+        if (status == INSTALL_SUCCESS && loki_support_enabled() > 0) {
+            ui_print("Checking if loki-fying is needed\n");
+            status = loki_check();
+        }
+#endif
+        if (status != INSTALL_SUCCESS) {
+            ui_set_background(BACKGROUND_ICON_ERROR);
+            ui_print("Installation aborted.\n");
+        } else if (!ui_text_visible()) {
+            return status;  // recovery start command: reboot if logs aren't visible
+        } else {
+            ui_set_background(icon);
+            ui_print("\nInstall from ADB complete.\n");
+        }
+    }
+    return status;
+}
+
+static int
+show_apply_update_menu() {
+/* legacy - update later */
+}
+
 int ui_root_menu = 0;
+
 static void
 prompt_and_wait(int status) {
     const char** headers = prepend_title((const char**)MENU_HEADERS);
 
+    switch (status) {
+        case INSTALL_SUCCESS:
+        case INSTALL_NONE:
+#ifndef PHILZ_TOUCH_RECOVERY
+            ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+#endif
+            break;
+
+        case INSTALL_ERROR:
+        case INSTALL_CORRUPT:
+            ui_set_background(BACKGROUND_ICON_ERROR);
+            break;
+    }
+
     for (;;) {
         finish_recovery(NULL);
         ui_root_menu = 1;
-        switch (status) {
-            case INSTALL_SUCCESS:
-            case INSTALL_NONE:
-#ifndef PHILZ_TOUCH_RECOVERY
-                ui_set_background(BACKGROUND_ICON_CLOCKWORK);
-#endif
-                break;
-
-            case INSTALL_ERROR:
-            case INSTALL_CORRUPT:
-                ui_set_background(BACKGROUND_ICON_ERROR);
-                break;
-        }
         ui_reset_progress();
 
         int chosen_item = get_menu_selection(headers, MENU_ITEMS, 0, 0);
@@ -990,6 +1035,7 @@ static struct vold_callbacks v_callbacks = {
     .disk_removed = handle_volume_hotswap,
 };
 
+// used by nandroid cmd commands to support voldmanaged devices
 void vold_init() {
     vold_client_start(&v_callbacks, 0);
     vold_set_automount(1);
@@ -1191,9 +1237,7 @@ main(int argc, char **argv) {
         // we need show_text to show adb sideload cancel menu
         int text_visible = ui_text_visible();
         ui_set_show_text(1);
-        if (0 == apply_from_adb()) {
-            status = INSTALL_SUCCESS;
-        }
+        status = enter_sideload_mode(status);
         ui_set_show_text(text_visible);
     } else if (!just_exit) {
         // let's check recovery start up scripts (openrecoveryscript and ROM Manager extendedcommands)
@@ -1201,7 +1245,7 @@ main(int argc, char **argv) {
 
         LOGI("Checking for extendedcommand & OpenRecoveryScript...\n");
 
-        // we need show_text to show boot scripts log
+        // we need show_text to show boot scripts log and sideload menu in ors scripts
         int text_visible = ui_text_visible();
         ui_set_show_text(1);
         if (0 == check_boot_script_file(EXTENDEDCOMMAND_SCRIPT)) {
