@@ -859,7 +859,8 @@ int enter_sideload_mode(int status) {
 
 static int
 show_apply_update_menu() {
-/* legacy - update later */
+    /* legacy - update later */
+    return 0;
 }
 
 int ui_root_menu = 0;
