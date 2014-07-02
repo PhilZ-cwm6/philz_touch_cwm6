@@ -117,7 +117,7 @@ struct CWMSettingsLongIntValues t_zone_offset = { "t_zone_offset", 0 };
 struct CWMSettingsIntValues use_dst_time = { "use_dst_time", 0 };
 struct CWMSettingsIntValues use_qcom_time_data_files = { "use_qcom_time_data_files", 0 };
 struct CWMSettingsIntValues use_qcom_time_daemon = { "use_qcom_time_daemon", 0 };
-struct CWMSettingsLongIntValues use_qcom_time_offset = { "use_qcom_time_offset", 0 };
+struct CWMSettingsLongIntValues use_qcom_time_offset = { "use_qcom_time_offset", 1 };
 
 //----- End initialize touch recovery key/value settings
 

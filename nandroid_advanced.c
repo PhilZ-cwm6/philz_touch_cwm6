@@ -27,7 +27,7 @@ void finish_nandroid_job() {
     ui_print("Finalizing, please wait...\n");
     sync();
 #ifdef PHILZ_TOUCH_RECOVERY
-    vibrate_device(1500);
+    vibrate_device(320);
     if (show_background_icon.value)
         ui_set_background(BACKGROUND_ICON_CLOCKWORK);
     else
