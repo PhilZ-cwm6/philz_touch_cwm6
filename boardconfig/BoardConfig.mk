@@ -894,6 +894,30 @@ else ifeq ($(TARGET_PRODUCT), cm_honami)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
 
+#Sony Xperia Z2 (sirius)
+else ifeq ($(TARGET_PRODUCT), cm_sirius)
+    TARGET_COMMON_NAME := Xperia Z2
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
+
+#Sony Xperia Tablet Z2 (castor)
+else ifeq ($(TARGET_PRODUCT), cm_castor)
+    TARGET_COMMON_NAME := Xperia Tablet Z2
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1200
+    TARGET_SCREEN_WIDTH := 1920
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
+
+#Sony Xperia Tablet Z2 LTE (castor_windy)
+else ifeq ($(TARGET_PRODUCT), cm_castor_windy)
+    TARGET_COMMON_NAME := Xperia Tablet Z2 LTE
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1200
+    TARGET_SCREEN_WIDTH := 1920
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/wled:backlight/brightness"
+
 #Sony Xperia ZU (togari)
 else ifeq ($(TARGET_PRODUCT), cm_togari)
     TARGET_COMMON_NAME := Xperia ZU
@@ -932,7 +956,7 @@ else ifeq ($(TARGET_PRODUCT), cm_odin)
     KERNEL_EXFAT_MODULE_NAME := "texfat"
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
-    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lm3533-lcd-bl-1/brightness"
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lm3533-lcd-bl/brightness"
 
 #Sony Xperia ZR (dogo)
 else ifeq ($(TARGET_PRODUCT), cm_dogo)
@@ -945,6 +969,14 @@ else ifeq ($(TARGET_PRODUCT), cm_dogo)
 #Sony Xperia Tablet Z (pollux)
 else ifeq ($(TARGET_PRODUCT), cm_pollux)
     TARGET_COMMON_NAME := Xperia Tablet Z
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 1200
+    TARGET_SCREEN_WIDTH := 1920
+    BRIGHTNESS_SYS_FILE := "/sys/devices/i2c-0/0-002c/backlight/lcd-backlight/brightness"
+
+#Sony Xperia Tablet Z LTE (pollux_windy)
+else ifeq ($(TARGET_PRODUCT), cm_pollux_windy)
+    TARGET_COMMON_NAME := Xperia Tablet Z LTE
     #KERNEL_EXFAT_MODULE_NAME := "texfat"
     TARGET_SCREEN_HEIGHT := 1200
     TARGET_SCREEN_WIDTH := 1920
