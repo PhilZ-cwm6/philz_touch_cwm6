@@ -210,7 +210,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
     if (updaterfile == NULL) {
         LOGE("Can't find %s for validation\n", ASSUMED_UPDATE_BINARY_NAME);
         mzCloseZipArchive(zip);
-        return 1;
+        return INSTALL_ERROR;
     }
     fseek(updaterfile, 0, SEEK_SET);
     while (!feof(updaterfile)) {
