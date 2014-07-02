@@ -962,7 +962,7 @@ Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
 
     buffer = malloc(st.st_size+1);
     if (buffer == NULL) {
-        ErrorAbort(state, "%s: failed to alloc %lld bytes", name, st.st_size+1);
+        ErrorAbort(state, "%s: failed to alloc %lld bytes", name, (long long)st.st_size+1);
         goto done;
     }
 
@@ -975,7 +975,7 @@ Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
 
     if (fread(buffer, 1, st.st_size, f) != st.st_size) {
         ErrorAbort(state, "%s: failed to read %lld bytes from %s",
-                   name, st.st_size+1, filename);
+                   name, (long long)st.st_size+1, filename);
         fclose(f);
         goto done;
     }
@@ -1048,11 +1048,12 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         return NULL;
     }
 
+    char* partition = NULL;
     if (partition_value->type != VAL_STRING) {
         ErrorAbort(state, "partition argument to %s must be string", name);
         goto done;
     }
-    char* partition = partition_value->data;
+    partition = partition_value->data;
     if (strlen(partition) == 0) {
         ErrorAbort(state, "partition argument to %s can't be empty", name);
         goto done;

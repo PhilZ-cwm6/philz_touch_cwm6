@@ -165,20 +165,20 @@ try_update_binary(const char *path, ZipArchive *zip) {
             ui_print("Amend scripting was deprecated by Google in Android 1.5.\n");
             ui_print("It was necessary to remove it when upgrading to the ClockworkMod 3.0 Gingerbread based recovery.\n");
             ui_print("Please switch to Edify scripting (updater-script and update-binary) to create working update zip packages.\n");
-            return INSTALL_UPDATE_BINARY_MISSING;
+            return INSTALL_CORRUPT;
         }
 
         mzCloseZipArchive(zip);
-        return INSTALL_UPDATE_BINARY_MISSING;
+        return INSTALL_CORRUPT;
     }
 
     char* binary = "/tmp/update_binary";
     unlink(binary);
     int fd = creat(binary, 0755);
     if (fd < 0) {
-        mzCloseZipArchive(zip);
         LOGE("Can't make %s\n", binary);
-        return 1;
+        mzCloseZipArchive(zip);
+        return INSTALL_ERROR;
     }
     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
     close(fd);
@@ -186,7 +186,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
     if (!ok) {
         LOGE("Can't copy %s\n", ASSUMED_UPDATE_BINARY_NAME);
         mzCloseZipArchive(zip);
-        return 1;
+        return INSTALL_ERROR;
     }
 
     /* Make sure the update binary is compatible with this recovery
@@ -209,6 +209,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
 
     if (updaterfile == NULL) {
         LOGE("Can't find %s for validation\n", ASSUMED_UPDATE_BINARY_NAME);
+        mzCloseZipArchive(zip);
         return 1;
     }
     fseek(updaterfile, 0, SEEK_SET);
@@ -283,19 +284,21 @@ try_update_binary(const char *path, ZipArchive *zip) {
     //   - the name of the package zip file.
     //
 
-    char** args = malloc(sizeof(char*) * 5);
+    const char** args = (const char**)malloc(sizeof(char*) * 5);
     args[0] = binary;
     args[1] = EXPAND(RECOVERY_API_VERSION);   // defined in Android.mk
-    args[2] = malloc(10);
-    sprintf(args[2], "%d", pipefd[1]);
+    char* temp = (char*)malloc(10);
+    sprintf(temp, "%d", pipefd[1]);
+    args[2] = temp;
     args[3] = (char*)path;
     args[4] = NULL;
 
     pid_t pid = fork();
     if (pid == 0) {
+        // set the env for UPDATE_PACKAGE (the source zip) for update-binary. This allows shell scripts to use the source zip.
         setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
-        execve(binary, args, environ);
+        execve(binary, (char* const*)args, environ);
         fprintf(stdout, "E:Can't run %s (%s)\n", binary, strerror(errno));
         _exit(-1);
     }
@@ -317,8 +320,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
             float fraction = strtof(fraction_s, NULL);
             int seconds = strtol(seconds_s, NULL, 10);
 
-            ui_show_progress(fraction * (1-VERIFICATION_PROGRESS_FRACTION),
-                             seconds);
+            ui_show_progress(fraction * (1-VERIFICATION_PROGRESS_FRACTION), seconds);
         } else if (strcmp(command, "set_progress") == 0) {
             char* fraction_s = strtok(NULL, " \n");
             float fraction = strtof(fraction_s, NULL);
@@ -390,7 +392,7 @@ really_install_package(const char *path)
         if (rest != NULL) {
             int readlink_length;
             int root_length = rest - path;
-            char *root = malloc(root_length + 1);
+            char *root = (char *)malloc(root_length + 1);
             strncpy(root, path, root_length);
             root[root_length] = 0;
             readlink_length = readlink(root, new_path, PATH_MAX);
@@ -424,9 +426,7 @@ really_install_package(const char *path)
 
         // Give verification half the progress bar...
         ui_print("Verifying update package...\n");
-        ui_show_progress(
-                VERIFICATION_PROGRESS_FRACTION,
-                VERIFICATION_PROGRESS_TIME);
+        ui_show_progress(VERIFICATION_PROGRESS_FRACTION, VERIFICATION_PROGRESS_TIME);
 
         err = verify_file(path, loadedKeys, numKeys);
         free(loadedKeys);
@@ -472,4 +472,9 @@ install_package(const char* path)
         chmod(LAST_INSTALL_FILE, 0644);
     }
     return result;
+}
+
+void
+set_perf_mode(bool enable) {
+    property_set("recovery.perf.mode", enable ? "1" : "0");
 }
