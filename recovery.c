@@ -735,10 +735,12 @@ update_directory(const char* path, const char* unmount_when_done) {
     int chosen_item = 0;
     do {
         chosen_item = get_menu_selection(headers, zips, 1, chosen_item);
+        if (chosen_item < 0) // GO_BACK / REFRESH
+            chosen_item = 0;
 
         char* item = zips[chosen_item];
         int item_len = strlen(item);
-        if (chosen_item <= 0) {          // item 0 is always "../" and item -1 is GO_BACK
+        if (chosen_item == 0) {          // item 0 is always "../"
             // go up but continue browsing (if the caller is update_directory)
             result = -1;
             break;
