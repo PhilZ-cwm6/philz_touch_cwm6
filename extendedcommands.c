@@ -289,7 +289,7 @@ int show_install_update_menu() {
             else
                 show_choose_zip_menu(last_path_used);
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 2) {
-            apply_from_adb();
+            enter_sideload_mode(INSTALL_SUCCESS);
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 3) {
             show_multi_flash_menu();
         } else if (chosen_item == FIXED_TOP_INSTALL_ZIP_MENUS + num_extra_volumes + 4) {
