@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
+#include <stdio.h> // for legacy properties (rename)
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -35,78 +35,27 @@
 #include "verifier.h"
 #include "recovery_ui.h"
 
-#include "firmware.h"
+#include "cutils/properties.h"
 
 #include "extendedcommands.h"
-#include "propsrvc/legacy_property_service.h"
 #include "recovery_settings.h"
 
+#include "propsrvc/legacy_property_service.h" // legacy update-binary compatibility
+
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
-#define ASSUMED_UPDATE_SCRIPT_NAME  "META-INF/com/google/android/update-script"
 #define PUBLIC_KEYS_FILE "/res/keys"
 
-// The update binary ask us to install a firmware file on reboot.  Set
-// that up.  Takes ownership of type and filename.
-static int
-handle_firmware_update(char* type, char* filename, ZipArchive* zip) {
-    unsigned int data_size;
-    const ZipEntry* entry = NULL;
-
-    if (strncmp(filename, "PACKAGE:", 8) == 0) {
-        entry = mzFindZipEntry(zip, filename+8);
-        if (entry == NULL) {
-            LOGE("Failed to find \"%s\" in package", filename+8);
-            return INSTALL_ERROR;
-        }
-        data_size = entry->uncompLen;
-    } else {
-        struct stat st_data;
-        if (stat(filename, &st_data) < 0) {
-            LOGE("Error stat'ing %s: %s\n", filename, strerror(errno));
-            return INSTALL_ERROR;
-        }
-        data_size = st_data.st_size;
-    }
-
-    LOGI("type is %s; size is %d; file is %s\n",
-         type, data_size, filename);
-
-    char* data = malloc(data_size);
-    if (data == NULL) {
-        LOGI("Can't allocate %d bytes for firmware data\n", data_size);
-        return INSTALL_ERROR;
-    }
-
-    if (entry) {
-        if (mzReadZipEntry(zip, entry, data, data_size) == false) {
-            LOGE("Failed to read \"%s\" from package", filename+8);
-            return INSTALL_ERROR;
-        }
-    } else {
-        FILE* f = fopen(filename, "rb");
-        if (f == NULL) {
-            LOGE("Failed to open %s: %s\n", filename, strerror(errno));
-            return INSTALL_ERROR;
-        }
-        if (fread(data, 1, data_size, f) != data_size) {
-            LOGE("Failed to read firmware data: %s\n", strerror(errno));
-            return INSTALL_ERROR;
-        }
-        fclose(f);
-    }
-
-    if (remember_firmware_update(type, data, data_size)) {
-        LOGE("Can't store %s image\n", type);
-        free(data);
-        return INSTALL_ERROR;
-    }
-
-    free(filename);
-
-    return INSTALL_SUCCESS;
-}
+// Default allocation of progress bar segments to operations
+static const int VERIFICATION_PROGRESS_TIME = 60;
+static const float VERIFICATION_PROGRESS_FRACTION = 0.25;
+static const float DEFAULT_FILES_PROGRESS_FRACTION = 0.4;
+static const float DEFAULT_IMAGE_PROGRESS_FRACTION = 0.1;
 
 static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
+
+// Use legacy property environment if old update-binary
+// https://github.com/CyanogenMod/android_bootable_recovery/commit/2371d9dcd5d44b6954f5981e90e409fbd3ac1b02
+// https://github.com/CyanogenMod/android_bootable_recovery/commit/da36597955e30b8139f2c64ecb9687fac898c1b2
 static const char *DEV_PROP_PATH = "/dev/__properties__";
 static const char *DEV_PROP_BACKUP_PATH = "/dev/__properties_backup__";
 static bool legacy_props_env_initd = false;
@@ -158,34 +107,24 @@ try_update_binary(const char *path, ZipArchive *zip) {
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     if (binary_entry == NULL) {
-        const ZipEntry* update_script_entry =
-                mzFindZipEntry(zip, ASSUMED_UPDATE_SCRIPT_NAME);
-        if (update_script_entry != NULL) {
-            ui_print("Amend scripting (update-script) is no longer supported.\n");
-            ui_print("Amend scripting was deprecated by Google in Android 1.5.\n");
-            ui_print("It was necessary to remove it when upgrading to the ClockworkMod 3.0 Gingerbread based recovery.\n");
-            ui_print("Please switch to Edify scripting (updater-script and update-binary) to create working update zip packages.\n");
-            return INSTALL_CORRUPT;
-        }
-
         mzCloseZipArchive(zip);
         return INSTALL_CORRUPT;
     }
 
-    char* binary = "/tmp/update_binary";
+    const char* binary = "/tmp/update_binary";
     unlink(binary);
     int fd = creat(binary, 0755);
     if (fd < 0) {
-        LOGE("Can't make %s\n", binary);
         mzCloseZipArchive(zip);
+        LOGE("Can't make %s\n", binary);
         return INSTALL_ERROR;
     }
     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
     close(fd);
+    mzCloseZipArchive(zip);
 
     if (!ok) {
         LOGE("Can't copy %s\n", ASSUMED_UPDATE_BINARY_NAME);
-        mzCloseZipArchive(zip);
         return INSTALL_ERROR;
     }
 
@@ -209,7 +148,6 @@ try_update_binary(const char *path, ZipArchive *zip) {
 
     if (updaterfile == NULL) {
         LOGE("Can't find %s for validation\n", ASSUMED_UPDATE_BINARY_NAME);
-        mzCloseZipArchive(zip);
         return INSTALL_ERROR;
     }
     fseek(updaterfile, 0, SEEK_SET);
@@ -296,6 +234,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
     pid_t pid = fork();
     if (pid == 0) {
         // set the env for UPDATE_PACKAGE (the source zip) for update-binary. This allows shell scripts to use the source zip.
+		// https://github.com/CyanogenMod/android_bootable_recovery/commit/20b516a408adebcad06e03f12516e70b8998c38f
         setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
         execve(binary, (char* const*)args, environ);
@@ -303,9 +242,6 @@ try_update_binary(const char *path, ZipArchive *zip) {
         _exit(-1);
     }
     close(pipefd[1]);
-
-    char* firmware_type = NULL;
-    char* firmware_filename = NULL;
 
     char buffer[1024];
     FILE* from_child = fdopen(pipefd[0], "r");
@@ -325,18 +261,6 @@ try_update_binary(const char *path, ZipArchive *zip) {
             char* fraction_s = strtok(NULL, " \n");
             float fraction = strtof(fraction_s, NULL);
             ui_set_progress(fraction);
-        } else if (strcmp(command, "firmware") == 0) {
-            char* type = strtok(NULL, " \n");
-            char* filename = strtok(NULL, " \n");
-
-            if (type != NULL && filename != NULL) {
-                if (firmware_type != NULL) {
-                    LOGE("ignoring attempt to do multiple firmware updates");
-                } else {
-                    firmware_type = strdup(type);
-                    firmware_filename = strdup(filename);
-                }
-            }
         } else if (strcmp(command, "ui_print") == 0) {
             char* str = strtok(NULL, "\n");
             if (str) {
@@ -344,6 +268,7 @@ try_update_binary(const char *path, ZipArchive *zip) {
             } else {
                 ui_print("\n");
             }
+            fflush(stdout);
         } else {
             LOGE("unknown command [%s]\n", command);
         }
@@ -364,16 +289,9 @@ try_update_binary(const char *path, ZipArchive *zip) {
 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         LOGE("Error in %s\n(Status %d)\n", path, WEXITSTATUS(status));
-        mzCloseZipArchive(zip);
         return INSTALL_ERROR;
     }
 
-    if (firmware_type != NULL) {
-        int ret = handle_firmware_update(firmware_type, firmware_filename, zip);
-        mzCloseZipArchive(zip);
-        return ret;
-    }
-    mzCloseZipArchive(zip);
     return INSTALL_SUCCESS;
 }
 
@@ -382,8 +300,9 @@ really_install_package(const char *path)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_print("Finding update package...\n");
-    ui_show_indeterminate_progress();
-
+    // Give verification half the progress bar...
+    ui_reset_progress();
+    ui_show_progress(VERIFICATION_PROGRESS_FRACTION, VERIFICATION_PROGRESS_TIME);
     LOGI("Update location: %s\n", path);
 
     if (ensure_path_mounted(path) != 0) {
@@ -404,18 +323,14 @@ really_install_package(const char *path)
         }
         LOGI("%d key(s) loaded from %s\n", numKeys, PUBLIC_KEYS_FILE);
 
-        // Give verification half the progress bar...
         ui_print("Verifying update package...\n");
-        ui_show_progress(VERIFICATION_PROGRESS_FRACTION, VERIFICATION_PROGRESS_TIME);
 
         err = verify_file(path, loadedKeys, numKeys);
         free(loadedKeys);
         LOGI("verify_file returned %d\n", err);
         if (err != VERIFY_SUCCESS) {
             LOGE("signature verification failed\n");
-            ui_show_text(1);
-            if (!confirm_selection("Install Untrusted Package?", "Yes - Install untrusted zip"))
-                return INSTALL_CORRUPT;
+            return  INSTALL_CORRUPT;
         }
     }
 
@@ -444,12 +359,17 @@ install_package(const char* path)
     } else {
         LOGE("failed to open last_install: %s\n", strerror(errno));
     }
-    int result = really_install_package(path);
+    int result;
+    if (setup_install_mounts() != 0) {
+        LOGE("failed to set up expected mounts for install; aborting\n");
+        result = INSTALL_ERROR;
+    } else {
+        result = really_install_package(path);
+    }
     if (install_log) {
         fputc(result == INSTALL_SUCCESS ? '1' : '0', install_log);
         fputc('\n', install_log);
         fclose(install_log);
-        chmod(LAST_INSTALL_FILE, 0644);
     }
     return result;
 }
