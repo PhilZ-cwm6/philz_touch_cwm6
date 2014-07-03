@@ -774,6 +774,27 @@ int format_volume(const char* volume) {
     return format_unknown_device(v->blk_device, volume, v->fs_type);
 }
 
+int setup_install_mounts() {
+    if (fstab == NULL) {
+        LOGE("can't set up install mounts: no fstab loaded\n");
+        return -1;
+    }
+
+    int i;
+    for (i = 0; i < fstab->num_entries; ++i) {
+        Volume* v = fstab->recs + i;
+
+        if (strcmp(v->mount_point, "/tmp") == 0 ||
+            strcmp(v->mount_point, "/cache") == 0) {
+            if (ensure_path_mounted(v->mount_point) != 0) return -1;
+
+        } else {
+            if (ensure_path_unmounted(v->mount_point) != 0) return -1;
+        }
+    }
+    return 0;
+}
+
 static int data_media_preserved_state = 1;
 void preserve_data_media(int val) {
     data_media_preserved_state = val;

@@ -106,12 +106,6 @@ char *ui_copy_image(int icon, int *width, int *height, int *bpp);
 void ui_show_progress(float portion, int seconds);
 void ui_set_progress(float fraction);  // 0.0 - 1.0 within the defined scope
 
-// Default allocation of progress bar segments to operations
-static const int VERIFICATION_PROGRESS_TIME = 60;
-static const float VERIFICATION_PROGRESS_FRACTION = 0.25;
-static const float DEFAULT_FILES_PROGRESS_FRACTION = 0.4;
-static const float DEFAULT_IMAGE_PROGRESS_FRACTION = 0.1;
-
 // Show a rotating "barberpole" for ongoing operations.  Updates automatically.
 void ui_show_indeterminate_progress();
 

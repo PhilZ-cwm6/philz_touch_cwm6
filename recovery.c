@@ -29,7 +29,6 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
 #include "bootloader.h"
 #include "common.h"
@@ -41,26 +40,23 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
+#include "voldclient/voldclient.h"
+
 #include "adb_install.h"
 #include "minadbd/adb.h"
+#include "recovery_cmds.h"
 
-#include "firmware.h"
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "advanced_functions.h"
-#include "flashutils/flashutils.h"
-#include "dedupe/dedupe.h"
-#include "voldclient/voldclient.h"
 
-#include "recovery_cmds.h"
+struct selabel_handle *sehandle;
 
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "libtouch_gui/gui_settings.h"
 #endif
 
 int no_wipe_confirm = 0; // 0 == script is not ors_boot_script, confirm on wipe
-
-struct selabel_handle *sehandle = NULL;
 
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
@@ -197,10 +193,8 @@ get_args(int *argc, char ***argv) {
         LOGI("Boot status: %.*s\n", (int)sizeof(boot.status), boot.status);
     }
 
-    struct stat file_info;
-
     // --- if arguments weren't supplied, look in the bootloader control block
-    if (*argc <= 1 && 0 != stat("/tmp/.ignorebootmessage", &file_info)) {
+    if (*argc <= 1 && !file_found("/tmp/.ignorebootmessage")) {
         boot.recovery[sizeof(boot.recovery) - 1] = '\0';  // Ensure termination
         const char *arg = strtok(boot.recovery, "\n");
         if (arg != NULL && !strcmp(arg, "recovery")) {
@@ -1282,10 +1276,6 @@ main(int argc, char **argv) {
     }
 
     // We reach here when in main menu we choose reboot main system or on success install of boot scripts and recovery commands
-    // If there is a radio image pending, reboot now to install it.
-    maybe_install_firmware_update(send_intent);
-
-    // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
     if (shutdown_after) {
         ui_print("Shutting down...\n");
