@@ -910,13 +910,12 @@ prompt_and_wait(int status) {
                     break;
 
                 case ITEM_WIPE_CACHE:
-                    if (confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
-                    {
-                        ui_print("\n-- Wiping cache...\n");
-                        erase_volume("/cache");
-                        ui_print("Cache wipe complete.\n");
-                        if (!ui_IsTextVisible()) return;
-                    }
+                    if (ui_IsTextVisible() && !confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
+                        break;
+                    ui_print("\n-- Wiping cache...\n");
+                    erase_volume("/cache");
+                    ui_print("Cache wipe complete.\n");
+                    if (!ui_IsTextVisible()) return;
                     break;
 
                 case ITEM_APPLY_ZIP:
