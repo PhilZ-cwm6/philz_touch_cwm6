@@ -998,7 +998,7 @@ void ui_refresh_display_state(int *screen_timeout) {
 
         // refresh clock and battery display if screen is not blanked
         // if text is not visible, no need to refresh clock/time (password prompt start up screen)
-        if (!is_blanked && ui_text_visible()) {
+        if (!is_blanked && ui_IsTextVisible()) {
             pthread_mutex_lock(&gUpdateMutex);
             update_screen_locked();
             pthread_mutex_unlock(&gUpdateMutex);

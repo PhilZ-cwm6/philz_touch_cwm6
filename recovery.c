@@ -566,10 +566,10 @@ get_menu_selection(const char** headers, char** items, int menu_only,
 
     while (chosen_item < 0 && chosen_item != GO_BACK) {
         int key = ui_wait_key();
-        int visible = ui_text_visible();
+        int visible = ui_IsTextVisible();
 
         if (key == -1) {   // ui_wait_key() timed out
-            if (ui_text_ever_visible()) {
+            if (ui_IsTextVisible()) {
                 continue;
             } else {
                 LOGI("timed out waiting for key input; rebooting.\n");
@@ -841,7 +841,7 @@ int enter_sideload_mode(int status) {
         if (status != INSTALL_SUCCESS) {
             ui_set_background(BACKGROUND_ICON_ERROR);
             ui_print("Installation aborted.\n");
-        } else if (!ui_text_visible()) {
+        } else if (!ui_IsTextVisible()) {
             return status;  // recovery start command: reboot if logs aren't visible
         } else {
             ui_set_background(icon);
@@ -898,11 +898,11 @@ prompt_and_wait(int status) {
                     return;
 
                 case ITEM_WIPE_DATA:
-                    if(ui_text_visible())
+                    if(ui_IsTextVisible())
                         wipe_data_menu();
                     else
-                        wipe_data(ui_text_visible());
-                    if (!ui_text_visible()) return;
+                        wipe_data(ui_IsTextVisible());
+                    if (!ui_IsTextVisible()) return;
                     break;
 
                 case ITEM_WIPE_CACHE:
@@ -911,7 +911,7 @@ prompt_and_wait(int status) {
                         ui_print("\n-- Wiping cache...\n");
                         erase_volume("/cache");
                         ui_print("Cache wipe complete.\n");
-                        if (!ui_text_visible()) return;
+                        if (!ui_IsTextVisible()) return;
                     }
                     break;
 
@@ -1173,7 +1173,7 @@ main(int argc, char **argv) {
     }
     // ui_SetStage(5, 8); // debug
 
-    if (show_text) ui_set_show_text(1);
+    if (show_text) ui_ShowText(true);
 
     struct selinux_opt seopts[] = {
       { SELABEL_OPT_PATH, "/file_contexts" }
@@ -1226,7 +1226,7 @@ main(int argc, char **argv) {
             char buffer[PROPERTY_VALUE_MAX+1];
             property_get("ro.build.fingerprint", buffer, "");
             if (strstr(buffer, ":userdebug/") || strstr(buffer, ":eng/")) {
-                ui_set_show_text(1);
+                ui_ShowText(true);
             }
         }
     } else if (wipe_data) {
@@ -1242,10 +1242,10 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Cache wipe failed.\n");
     } else if (sideload) {
         // we need show_text to show adb sideload cancel menu
-        int text_visible = ui_text_visible();
-        ui_set_show_text(1);
+        bool text_visible = ui_IsTextVisible();
+        ui_SetShowText(true);
         status = enter_sideload_mode(status);
-        ui_set_show_text(text_visible);
+        ui_SetShowText(text_visible);
     } else if (!just_exit) {
         // let's check recovery start up scripts (openrecoveryscript and ROM Manager extendedcommands)
         status = INSTALL_NONE; // No command specified, it is a normal recovery boot unless we find a boot script to run
@@ -1253,8 +1253,8 @@ main(int argc, char **argv) {
         LOGI("Checking for extendedcommand & OpenRecoveryScript...\n");
 
         // we need show_text to show boot scripts log and sideload menu in ors scripts
-        int text_visible = ui_text_visible();
-        ui_set_show_text(1);
+        bool text_visible = ui_IsTextVisible();
+        ui_SetShowText(true);
         if (0 == check_boot_script_file(EXTENDEDCOMMAND_SCRIPT)) {
             LOGI("Running extendedcommand...\n");
             status = INSTALL_ERROR;
@@ -1271,7 +1271,7 @@ main(int argc, char **argv) {
             no_wipe_confirm = 0; // script done, next ones cannot be bootscripts until we restart recovery
         }
 
-        ui_set_show_text(text_visible);
+        ui_SetShowText(text_visible);
     }
 
     if (status == INSTALL_ERROR || status == INSTALL_CORRUPT) {
@@ -1279,8 +1279,8 @@ main(int argc, char **argv) {
         // ui_set_background(BACKGROUND_ICON_ERROR); // will be set in prompt_and_wait() after recovery lock check
         handle_failure();
     }
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
-        ui_set_show_text(1);
+    if (status != INSTALL_SUCCESS || ui_IsTextVisible()) {
+        ui_SetShowText(true);
 #ifdef PHILZ_TOUCH_RECOVERY
         check_recovery_lock();
 #endif

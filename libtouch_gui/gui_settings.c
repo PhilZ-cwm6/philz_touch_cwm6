@@ -2841,9 +2841,9 @@ static void recovery_change_passkey() {
     char pass_string[128] = "";
     int i = 0;
     int key_match = 1;
-    ui_set_show_text(0);
 
     // type in new passkey
+    ui_SetShowText(false);
     ui_clear_key_queue();
     for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
         char tmp[64];
@@ -2895,7 +2895,7 @@ static void recovery_change_passkey() {
         ui_print("Recovery Lock is enabled\n");
     }
 
-    ui_set_show_text(1);
+    ui_SetShowText(true);
 }
 
 // check if recovery needs to be locked and prompt for a pass key if it is defined
@@ -2929,8 +2929,8 @@ void check_recovery_lock() {
 
     // hide screen menus and ui_print
     // this function can be called on recovery start (show_text == 0) or from menus (show_text == 1) to lock recovery or reset password
-    int visible = ui_text_visible();
-    ui_set_show_text(0);
+    bool visible = ui_IsTextVisible();
+    ui_SetShowText(false);
 
     // parse the password: "key1,key2,key3,key4..."
     int i = 0;
@@ -2958,10 +2958,10 @@ void check_recovery_lock() {
     char pass_display[128] = "";
     char trials_left_message[64];
 
-    // don't allow pass if key file was tempered with
-    // this will only allow passwords of RECOVERY_LOCK_MAX_CHARS characters
     if (pass_chars != RECOVERY_LOCK_MAX_CHARS) {
-        LOGE("unusual passkey length (%d)\n", pass_chars);
+        // don't allow pass if key file was tempered with
+        // this will only allow passwords of RECOVERY_LOCK_MAX_CHARS characters
+        LOGI("unusual passkey length (%d)\n", pass_chars);
         key_err = RECOVERY_LOCK_MAX_ERROR;
     }
 
@@ -3028,7 +3028,7 @@ void check_recovery_lock() {
 
     // unlock and continue
     LOGI("Recovery unlocked\n");
-    ui_set_show_text(visible);
+    ui_SetShowText(visible);
     property_set("sys.usb.recovery_lock", "0");
 }
 

@@ -2067,7 +2067,7 @@ int verify_root_and_recovery() {
         // check install-recovery.sh exists and is executable
         if (0 == lstat("/system/etc/install-recovery.sh", &st)) {
             if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-                ui_show_text(1);
+                ui_SetShowText(true);
                 if (confirm_selection("ROM may flash stock recovery on boot. Fix?", "Yes - Disable recovery flash")) {
                     __system("chmod -x /system/etc/install-recovery.sh");
                     ret = 1;
@@ -2094,7 +2094,7 @@ int verify_root_and_recovery() {
         if (S_ISREG(st.st_mode)) {
             su_nums += 1;
             if (needs_suid && (st.st_mode & (S_ISUID | S_ISGID)) != (S_ISUID | S_ISGID)) {
-                ui_show_text(1);
+                ui_SetShowText(true);
                 if (confirm_selection("Root access possibly lost. Fix?", "Yes - Fix root (/system/bin/su)")) {
                     __system("chmod 6755 /system/bin/su");
                     ret = 1;
@@ -2108,7 +2108,7 @@ int verify_root_and_recovery() {
         if (S_ISREG(st.st_mode)) {
             su_nums += 1;
             if (needs_suid && (st.st_mode & (S_ISUID | S_ISGID)) != (S_ISUID | S_ISGID)) {
-                ui_show_text(1);
+                ui_SetShowText(true);
                 if (confirm_selection("Root access possibly lost. Fix?", "Yes - Fix root (/system/xbin/su)")) {
                     __system("chmod 6755 /system/xbin/su");
                     ret = 1;
@@ -2119,7 +2119,7 @@ int verify_root_and_recovery() {
 
     // If we have no root (exists == 0) or we have two su instances (exists == 2), prompt to properly root the device
     if (!exists || su_nums != 1) {
-        ui_show_text(1);
+        ui_SetShowText(true);
         if (confirm_selection("Root access is missing/broken. Root device?", "Yes - Apply root (/system/xbin/su)")) {
             __system("/sbin/install-su.sh");
             ret = 2;
