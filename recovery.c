@@ -568,14 +568,13 @@ get_menu_selection(const char** headers, char** items, int menu_only,
         int key = ui_wait_key();
         int visible = ui_IsTextVisible();
 
-        if (key == -1) {   // ui_wait_key() timed out
-            if (ui_IsTextVisible()) {
-                continue;
-            } else {
-                LOGI("timed out waiting for key input; rebooting.\n");
-                ui_end_menu();
-                return ITEM_REBOOT;
-            }
+        if (key == -1) {   // ui_wait_key() timed out, always reboot to main system
+            LOGI("timed out waiting for key input; rebooting.\n");
+            ui_end_menu();
+            reboot_main_system(ANDROID_RB_RESTART, 0, 0);
+            sleep(5);
+            LOGE("Failed to reboot system on timed out key input!!\n");
+            return GO_BACK;
         }
         else if (key == -2) {   // we are returning from ui_cancel_wait_key(): trigger a GO_BACK
             return GO_BACK;
