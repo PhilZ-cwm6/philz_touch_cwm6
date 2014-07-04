@@ -63,6 +63,7 @@ static const struct option OPTIONS[] = {
   { "update_package", required_argument, NULL, 'u' },
   { "wipe_data", no_argument, NULL, 'w' },
   { "wipe_cache", no_argument, NULL, 'c' },
+  { "wipe_media", no_argument, NULL, 'm' },
   { "show_text", no_argument, NULL, 't' },
   { "just_exit", no_argument, NULL, 'x' },
   { "sideload", no_argument, NULL, 'a' },
@@ -652,6 +653,7 @@ static int compare_string(const void* a, const void* b) {
     return strcmp(*(const char**)a, *(const char**)b);
 }
 
+// legacy unused: we use gather_files() and choose_file_menu()
 static int
 update_directory(const char* path, const char* unmount_when_done) {
     ensure_path_mounted(path);
@@ -784,8 +786,9 @@ update_directory(const char* path, const char* unmount_when_done) {
 // remove static to be able to call it from ors menu
 void
 wipe_data(int confirm) {
-    if (confirm && !confirm_selection( "Confirm wipe of all user data?", "Yes - Wipe all user data"))
+    if (confirm && !confirm_selection( "Confirm wipe of all user data?", "Yes - Wipe all user data")) {
         return;
+    }
 
     ui_print("\n-- Wiping data...\n");
     device_wipe_data();
@@ -794,7 +797,9 @@ wipe_data(int confirm) {
     if (has_datadata()) {
         erase_volume("/datadata");
     }
+
     erase_volume("/sd-ext");
+
     // erase .android_secure from /sdcard or /storage/sdcard0
     erase_volume(get_android_secure_path());
 
@@ -886,7 +891,7 @@ prompt_and_wait(int status) {
 
         // device-specific code may take some action here.  It may
         // return one of the core actions handled in the switch
-        // statement below.
+        // statement below. (this can alter show_text state!!)
         chosen_item = device_perform_action(chosen_item);
 
         int ret = 0;
@@ -897,7 +902,7 @@ prompt_and_wait(int status) {
                     return;
 
                 case ITEM_WIPE_DATA:
-                    if(ui_IsTextVisible())
+                    if (ui_IsTextVisible())
                         wipe_data_menu();
                     else
                         wipe_data(ui_IsTextVisible());
@@ -1012,6 +1017,7 @@ void reboot_main_system(int cmd, int flags, char *arg) {
 
     // Attempt to reboot using older methods in case the recovery
     // that we are updating does not support init property reboot
+    // android_reboot() is defined in libcutils/android_reboot.c
     LOGI("trying to reboot old android_reboot() command\n");
     android_reboot(cmd, flags, arg);
 }
@@ -1121,7 +1127,7 @@ main(int argc, char **argv) {
 
     const char *send_intent = NULL;
     const char *update_package = NULL;
-    int wipe_data = 0, wipe_cache = 0, show_text = 0, sideload = 0;
+    int wipe_data = 0, wipe_cache = 0, wipe_media = 0, show_text = 0, sideload = 0;
     bool just_exit = false;
     bool shutdown_after = false;
 
@@ -1131,11 +1137,8 @@ main(int argc, char **argv) {
         switch (arg) {
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
-        case 'w':
-#ifndef BOARD_RECOVERY_ALWAYS_WIPES
-        wipe_data = wipe_cache = 1;
-#endif
-        break;
+        case 'w': wipe_data = wipe_cache = 1; break;
+        case 'm': wipe_media = 1; break;
         case 'c': wipe_cache = 1; break;
         case 't': show_text = 1; break;
         case 'x': just_exit = true; break;
@@ -1239,6 +1242,9 @@ main(int argc, char **argv) {
     } else if (wipe_cache) {
         if (wipe_cache && erase_volume("/cache")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) ui_print("Cache wipe failed.\n");
+    } else if (wipe_media) {
+        if (is_data_media() && erase_volume("/data/media")) status = INSTALL_ERROR;
+        if (status != INSTALL_SUCCESS) ui_print("Media wipe failed.\n");
     } else if (sideload) {
         // we need show_text to show adb sideload cancel menu
         bool text_visible = ui_IsTextVisible();
