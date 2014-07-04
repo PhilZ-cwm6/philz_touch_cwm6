@@ -25,12 +25,6 @@
 #include "dedupe/dedupe.h"
 
 extern int minizip_main(int argc, char **argv);
-extern int flash_image_main(int argc, char **argv);
-extern int edify_main(int argc, char **argv);
-extern int dump_image_main(int argc, char **argv);
-extern int erase_image_main(int argc, char **argv);
-extern int mkyaffs2image_main(int argc, char **argv);
-extern int unyaffs_main(int argc, char **argv);
 extern int make_ext4fs_main(int argc, char **argv);
 extern int reboot_main(int argc, char **argv);
 extern int poweroff_main(int argc, char **argv);
@@ -41,11 +35,25 @@ extern int newfs_msdos_main(int argc, char **argv);
 extern int vdc_main(int argc, char **argv);
 extern int pigz_main(int argc, char **argv);
 extern int sdcard_main(int argc, char **argv);
-#ifdef BOARD_RECOVERY_USE_LIBTAR
-extern int minitar_main(int argc, char **argv);
+
+#ifdef USE_F2FS
+int make_f2fs_main(int argc, char **argv);
+int fsck_f2fs_main(int argc, char **argv);
+int fibmap_main(int argc, char **argv);
 #endif
 
 extern int busybox_driver(int argc, char **argv);
+
+extern int flash_image_main(int argc, char **argv);
+extern int edify_main(int argc, char **argv);
+extern int dump_image_main(int argc, char **argv);
+extern int erase_image_main(int argc, char **argv);
+extern int mkyaffs2image_main(int argc, char **argv);
+extern int unyaffs_main(int argc, char **argv);
+
+#ifdef BOARD_RECOVERY_USE_LIBTAR
+extern int minitar_main(int argc, char **argv);
+#endif
 
 struct recovery_cmd {
     const char *name;
