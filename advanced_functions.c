@@ -1238,21 +1238,26 @@ void wipe_data_menu() {
                                 NULL
     };
 
-    char* list[] = { "Wipe Data/Factory Reset",
-                    "Clean to Install a New ROM",
-                    NULL
+    char* list[] = {
+        "Wipe Data/Factory Reset",
+        "Clean to Install a New ROM",
+        NULL,
+        NULL
     };
 
-    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    if (is_data_media())
+        list[2] = "Wipe user media (/data/media)";
+
+    int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
     switch (chosen_item) {
         case 0: {
-            wipe_data(1);
+            wipe_data(true);
             break;
         }
         case 1: {
             //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, .android_secure
             if (confirm_selection("Wipe data, system +/- preload?", "Yes, I will install a new ROM!")) {
-                wipe_data(0);
+                wipe_data(false);
                 ui_print("-- Wiping system...\n");
                 erase_volume("/system");
                 if (volume_for_path("/preload") != NULL) {
@@ -1260,6 +1265,14 @@ void wipe_data_menu() {
                     erase_volume("/preload");
                 }
                 ui_print("Now flash a new ROM!\n");
+            }
+            break;
+        }
+        case 2: {
+            if (confirm_selection("Confirm wipe of all user media?", "Yes - delete all user media")) {
+                ui_print("\n-- Wiping media...\n");
+                erase_volume("/data/media");
+                ui_print("Media wipe complete.\n");
             }
             break;
         }
