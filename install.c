@@ -301,8 +301,10 @@ really_install_package(const char *path)
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_print("Finding update package...\n");
     // Give verification half the progress bar...
-    ui_reset_progress();
-    ui_show_progress(VERIFICATION_PROGRESS_FRACTION, VERIFICATION_PROGRESS_TIME);
+    // ui_reset_progress();
+    // ui_show_progress(VERIFICATION_PROGRESS_FRACTION, VERIFICATION_PROGRESS_TIME);
+    ui_show_indeterminate_progress();
+
     LOGI("Update location: %s\n", path);
 
     if (ensure_path_mounted(path) != 0) {
