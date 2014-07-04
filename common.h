@@ -17,6 +17,7 @@
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <fs_mgr.h>
 
@@ -36,9 +37,10 @@ void ui_cancel_wait_key();
 int ui_wait_key();            // waits for a key/button press, returns the code
 int ui_wait_key_with_repeat();
 int ui_key_pressed(int key);  // returns >0 if the code is currently pressed
-int ui_text_visible();        // returns >0 if text log is currently visible
-int ui_text_ever_visible();   // returns >0 if text log was ever visible
-void ui_show_text(int visible);
+bool ui_IsTextVisible();        // true if text log is currently visible
+bool ui_WasTextEverVisible();   // true if text log was ever visible
+void ui_ShowText(bool visible);
+void ui_SetShowText(bool visible);
 void ui_clear_key_queue();
 
 // Write a message to the on-screen log shown with Alt-L (also to stderr).
@@ -47,7 +49,6 @@ void ui_clear_key_queue();
 void ui_print(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void ui_printlogtail(int nb_lines);
 
-void ui_set_show_text(int value);
 int ui_get_text_cols();
 void ui_setMenuTextColor(int r, int g, int b, int a);
 
