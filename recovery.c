@@ -1002,6 +1002,18 @@ void reboot_main_system(int cmd, int flags, char *arg) {
 
     finish_recovery(NULL); // sync() in here
     vold_unmount_all();
+
+    char buffer[80];
+    strcpy(buffer, "reboot,");
+    if (arg != NULL) {
+        strncat(buffer, arg, sizeof(buffer));
+    }
+    property_set(ANDROID_RB_PROPERTY, buffer);
+    sleep(5);
+
+    // Attempt to reboot using older methods in case the recovery
+    // that we are updating does not support init property reboot
+    LOGI("trying to reboot old android_reboot() command\n");
     android_reboot(cmd, flags, arg);
 }
 
