@@ -50,6 +50,8 @@
 #include "libtouch_gui/gui_settings.h"
 #endif
 
+extern struct selabel_handle *sehandle;
+
 int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count) {
     int index;
     int offset = 0;
@@ -725,25 +727,23 @@ int confirm_selection(const char* title, const char* confirm) {
     return ret;
 }
 
-// format_device() is called by nandroid_restore_partition_extended(), by format_ext4_or_f2fs() and by format_sdcard()
-extern struct selabel_handle *sehandle;
+// format to user choice fstype
+// called by nandroid_restore_partition_extended(), by format_ext4_or_f2fs() and by format_sdcard()
 int format_device(const char *device, const char *path, const char *fs_type) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if(device_truedualboot_format_device(device, path, fs_type) <= 0)
+    if (device_truedualboot_format_device(device, path, fs_type) <= 0)
         return 0;
 #endif
+
+    // check if we're formatting primary_storage (/sdcard) on /data/media device
+    // in that case, issue a rm -rf like command
     if (is_data_media_volume_path(path)) {
-        return format_unknown_device(NULL, path, NULL);
-    }
-    if (strstr(path, "/data") == path && is_data_media() && is_data_media_preserved()) {
         return format_unknown_device(NULL, path, NULL);
     }
 
     Volume* v = volume_for_path(path);
     if (v == NULL) {
-        // silent failure for sd-ext
-        if (strcmp(path, "/sd-ext") != 0)
-            LOGE("unknown volume '%s'\n", path);
+        LOGE("unknown volume \"%s\"\n", path);
         return -1;
     }
 
@@ -753,25 +753,31 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         return -1;
     }
 
-    if (strcmp(fs_type, "rfs") == 0) {
-        if (ensure_path_unmounted(path) != 0) {
-            LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
-            return -1;
-        }
-        if (0 != format_rfs_device(device, path)) {
-            LOGE("format_volume: format_rfs_device failed on %s\n", device);
-            return -1;
-        }
-        return 0;
-    }
-
+    // if we're formatting a path, this will act like 'rm -rf volume'
     if (strcmp(v->mount_point, path) != 0) {
         return format_unknown_device(v->blk_device, path, NULL);
+    }
+
+    // check to see if /data is being formatted, and if it is /data/media
+    // by default, is_data_media_preserved() == 1, so we will go to format_unknown_device()
+    // format_unknown_device() with null fstype will rm -rf /data, excluding /data/media path
+    // if preserve_data_media(0) is called, is_data_media_preserved() will return 0
+    // in that case, we will not use format_unknown_device() but proceed to below with a true format command issued
+    if (strcmp(path, "/data") == 0 && is_data_media() && is_data_media_preserved()) {
+        return format_unknown_device(NULL, path, NULL);
     }
 
     if (ensure_path_unmounted(path) != 0) {
         LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
         return -1;
+    }
+
+    if (strcmp(fs_type, "rfs") == 0) {
+        if (0 != format_rfs_device(device, path)) {
+            LOGE("format_volume: format_rfs_device failed on %s\n", device);
+            return -1;
+        }
+        return 0;
     }
 
     if (strcmp(fs_type, "yaffs2") == 0 || strcmp(fs_type, "mtd") == 0) {
@@ -811,6 +817,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         }
         return 0;
     }
+
 #ifdef USE_F2FS
     if (strcmp(fs_type, "f2fs") == 0) {
         char* args[] = { "mkfs.f2fs", v->blk_device };
@@ -824,9 +831,14 @@ int format_device(const char *device, const char *path, const char *fs_type) {
     return format_unknown_device(device, path, fs_type);
 }
 
+// support format MTD, MMC, BML, ext2, ext3 and directory rm -rf like
+// if fstype is NULL, it will continue with rm -rf "path" command ignoring 'device'
+// if it is /data on data media device, we'll exclude /data/media
+// on any other path or partition: rm -rf 'path'
 int format_unknown_device(const char *device, const char* path, const char *fs_type) {
     LOGI("Formatting unknown device.\n");
 
+    // format MTD, MMC, BML
     if (fs_type != NULL && get_flash_type(fs_type) != UNSUPPORTED)
         return erase_raw_partition(fs_type, device);
 
@@ -840,7 +852,7 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         }
     }
 
-    if (NULL != fs_type) {
+    if (fs_type != NULL) {
         if (strcmp("ext3", fs_type) == 0) {
             LOGI("Formatting ext3 device.\n");
             if (0 != ensure_path_unmounted(path)) {
@@ -861,35 +873,41 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
     }
 
     if (0 != ensure_path_mounted(path)) {
-        ui_print("Error mounting %s!\n", path);
-        ui_print("Skipping format...\n");
-        return 0;
+        LOGE("Error mounting %s!\n", path);
+        return -1;
     }
 
+    int ret;
     char tmp[PATH_MAX];
-    if (strcmp(path, "/data") == 0) {
-        sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
-        __system(tmp);
+    if (strcmp(path, "/data") == 0 && is_data_media() && is_data_media_preserved()) {
+        // Preserve .layout_version to avoid "nesting bug"
         // if the /data/media sdcard has already been migrated for android 4.2,
-        // prevent the migration from happening again by writing the .layout_version
-        struct stat st;
-        if (0 == lstat("/data/media/0", &st)) {
-            char* layout_version = "2";
-            FILE* f = fopen("/data/.layout_version", "wb");
-            if (NULL != f) {
-                fwrite(layout_version, 1, 2, f);
-                fclose(f);
-            } else {
-                LOGI("error opening /data/.layout_version for write.\n");
-            }
+        // prevent the migration from happening again by saving the .layout_version
+        LOGI("Preserving layout version\n");
+        unsigned char layout_buf[256];
+        ssize_t layout_buflen = -1;
+        int fd;
+        fd = open("/data/.layout_version", O_RDONLY);
+        if (fd != -1) {
+            layout_buflen = read(fd, layout_buf, sizeof(layout_buf));
+            close(fd);
         } else {
             LOGI("/data/media/0 not found. migration may occur.\n");
         }
+
+        ret = rmtree_except("/data", "media");
+
+        // Restore .layout_version
+        if (layout_buflen > 0) {
+            LOGI("Restoring layout version\n");
+            fd = open("/data/.layout_version", O_WRONLY | O_CREAT | O_EXCL, 0600);
+            if (fd != -1) {
+                write(fd, layout_buf, layout_buflen);
+                close(fd);
+            }
+        }
     } else {
-        sprintf(tmp, "rm -rf %s/*", path);
-        __system(tmp);
-        sprintf(tmp, "rm -rf %s/.*", path);
-        __system(tmp);
+        ret = rmtree_except(path, NULL);
     }
 
     ensure_path_unmounted(path);
@@ -1545,14 +1563,7 @@ void format_sdcard(const char* volume) {
             ret = format_unknown_device(device, v->mount_point, list[chosen_item]);
             break;
         }
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-#ifdef USE_F2FS
-        case 7:
-#endif
-        {
+        default: {
             if (fs_mgr_is_voldmanaged(v)) {
                 ret = vold_custom_format_volume(v->mount_point, list[chosen_item], 1) == CommandOkay ? 0 : -1;
             } else if (strcmp(list[chosen_item], "vfat") == 0) {
@@ -1576,7 +1587,8 @@ void format_sdcard(const char* volume) {
             }
 #ifdef USE_F2FS
             else if (strcmp(list[chosen_item], "f2fs") == 0) {
-                ret = format_device(v->blk_device, v->mount_point, "f2fs");;
+                char* args[] = { "mkfs.f2fs", v->blk_device };
+                ret = make_f2fs_main(2, args);
             }
 #endif
             break;

@@ -37,6 +37,9 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 // success (volume is unmounted);
 int ensure_path_unmounted(const char* path);
 
+// rm -rf like in c/c++
+int rmtree_except(const char* path, const char* except);
+
 // Reformat the given volume (must be the mount point only, eg
 // "/cache"), no paths permitted.  Attempts to unmount the volume if
 // it is mounted.

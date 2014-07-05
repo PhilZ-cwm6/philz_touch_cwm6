@@ -189,7 +189,7 @@ int format_rfs_device (const char *device, const char *path) {
     char cmd[PATH_MAX];
 
     sprintf(cmd, "/sbin/dd if=/dev/zero of=%s bs=4096 count=10", device);
-    if(__system(cmd)) {
+    if (__system(cmd)) {
         printf("failure while zeroing rfs partition.\n");
         return -1;
     }
