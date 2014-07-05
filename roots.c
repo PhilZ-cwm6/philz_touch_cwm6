@@ -712,10 +712,6 @@ int format_volume(const char* volume) {
         return -1;
     }
     if (strcmp(v->mount_point, volume) != 0) {
-#if 0
-        LOGE("can't give path \"%s\" to format_volume\n", volume);
-        return -1;
-#endif
         return format_unknown_device(v->blk_device, volume, NULL);
     }
 

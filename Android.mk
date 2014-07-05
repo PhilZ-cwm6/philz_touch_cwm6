@@ -78,7 +78,7 @@ endif
 # This should be the same line as upstream to not break makerecoveries.sh
 RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.5.0
 
-PHILZ_BUILD := 6.48.9
+PHILZ_BUILD := 6.49.0
 CWM_BASE_VERSION := $(shell echo $(RECOVERY_VERSION) | cut -d ' ' -f 3)
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 
@@ -102,12 +102,6 @@ LOCAL_CFLAGS += -DRECOVERY_MOD_VERSION_BUILD="$(RECOVERY_MOD_VERSION_BUILD)"
 LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
 #LOCAL_CFLAGS += -DBUILD_DATE="\"`date`\""
-
-#debug and calibration logging for touch code
-#RECOVERY_TOUCH_DEBUG := true
-ifeq ($(RECOVERY_TOUCH_DEBUG),true)
-LOCAL_CFLAGS += -DRECOVERY_TOUCH_DEBUG
-endif
 
 ifdef PHILZ_TOUCH_RECOVERY
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
