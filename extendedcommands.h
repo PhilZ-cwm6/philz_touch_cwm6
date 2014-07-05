@@ -51,6 +51,7 @@ show_advanced_menu();
 
 int format_device(const char *device, const char *path, const char *fs_type);
 
+// support format MTD, MMC, BML, ext2, ext3 and directory rm -rf like if a path is passed
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
 
 void format_sdcard(const char* volume);

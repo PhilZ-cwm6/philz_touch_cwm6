@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <dirent.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mounts.h"
@@ -37,6 +38,10 @@
 
 #include "voldclient/voldclient.h"
 #include "libcrecovery/common.h" // __popen / __pclose
+
+static struct fstab *fstab = NULL;
+
+extern struct selabel_handle *sehandle;
 
 /*
  get actual fstype from device (modified code from @kumajaya)
@@ -67,8 +72,6 @@ char* get_real_fstype(const char* device) {
 
     return real_device_fstype;
 }
-
-static struct fstab *fstab = NULL;
 
 /* 
 system/core/fs_mgr/include/fs_mgr.h
@@ -659,7 +662,46 @@ int ensure_path_unmounted(const char* path) {
     return unmount_mounted_volume(mv);
 }
 
-extern struct selabel_handle *sehandle;
+// recursively deletes path except 'except' path
+// this will preserve the /path dir and leave it empty
+int rmtree_except(const char* path, const char* except)
+{
+    char pathbuf[PATH_MAX];
+    int rc = 0;
+    DIR* dp = opendir(path);
+    if (dp == NULL) {
+        return -1;
+    }
+    struct dirent* de;
+    while ((de = readdir(dp)) != NULL) {
+        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, ".."))
+            continue;
+        if (except && !strcmp(de->d_name, except))
+            continue;
+        struct stat st;
+        snprintf(pathbuf, sizeof(pathbuf), "%s/%s", path, de->d_name);
+        rc = lstat(pathbuf, &st);
+        if (rc != 0) {
+            LOGE("Failed to stat %s\n", pathbuf);
+            break;
+        }
+        if (S_ISDIR(st.st_mode)) {
+            rc = rmtree_except(pathbuf, NULL);
+            if (rc != 0)
+                break;
+            rc = rmdir(pathbuf);
+        }
+        else {
+            rc = unlink(pathbuf);
+        }
+        if (rc != 0) {
+            LOGI("Failed to remove %s: %s\n", pathbuf, strerror(errno));
+            break;
+        }
+    }
+    closedir(dp);
+    return rc;
+}
 
 int format_volume(const char* volume) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
@@ -667,27 +709,20 @@ int format_volume(const char* volume) {
         return 0;
 #endif
 
+    // check if we're formatting primary_storage (/sdcard) on /data/media device
+    // in that case, issue a rm -rf like command
     if (is_data_media_volume_path(volume)) {
-        // format_unknown_device() with NULL as fstype will end to a rm -rf command issued on path /sdcard, that is /data/media folder
-        return format_unknown_device(NULL, volume, NULL);
-    }
-    // check to see if /data is being formatted, and if it is /data/media
-    // Note: the /sdcard check is redundant probably, just being safe.
-    // by default, is_data_media_preserved() == 1, so we will go to format_unknown_device()
-    // format_unknown_device() with null fstype will rm -rf /data, excluding /data/media path
-    // if preserve_data_media(0) is called, is_data_media_preserved() will return 0
-    // in that case, we will not use format_unknown_device() but proceed to below with a true format command issued
-    if (strstr(volume, "/data") == volume && is_data_media() && is_data_media_preserved()) {
         return format_unknown_device(NULL, volume, NULL);
     }
 
     Volume* v = volume_for_path(volume);
+    // silent failure for non existing sd-ext (when we factory reset)
     if (v == NULL) {
-        // silent failure for sd-ext
         if (strcmp(volume, "/sd-ext") != 0)
-            LOGE("unknown volume '%s'\n", volume);
+            LOGE("unknown volume \"%s\"\n", volume);
         return -1;
     }
+
     // silent failure to format non existing sd-ext when defined in recovery.fstab
     if (strcmp(volume, "/sd-ext") == 0) {
         struct stat s;
@@ -697,27 +732,39 @@ int format_volume(const char* volume) {
         }
     }
 
-    // Only use vold format for exact matches otherwise /sdcard will be
-    // formatted instead of /storage/sdcard0/.android_secure
-    if (fs_mgr_is_voldmanaged(v) && strcmp(volume, v->mount_point) == 0) {
-        if (ensure_path_unmounted(volume) != 0) {
-            LOGE("format_volume failed to unmount %s", v->mount_point);
-        }
-        return vold_format_volume(v->mount_point, 1) == CommandOkay ? 0 : -1;
-    }
-
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // you can't format the ramdisk.
         LOGE("can't format_volume \"%s\"", volume);
         return -1;
     }
+
+    // if we're formatting a path, this will act like 'rm -rf volume'
     if (strcmp(v->mount_point, volume) != 0) {
         return format_unknown_device(v->blk_device, volume, NULL);
+    }
+
+    // check to see if /data is being formatted, and if it is /data/media
+    // by default, is_data_media_preserved() == 1, so we will go to format_unknown_device()
+    // format_unknown_device() with null fstype will rm -rf /data, excluding /data/media path
+    // if preserve_data_media(0) is called, is_data_media_preserved() will return 0
+    // in that case, we will not use format_unknown_device() but proceed to below with a true format command issued
+    if (strcmp(volume, "/data") == 0 && is_data_media() && is_data_media_preserved()) {
+        return format_unknown_device(NULL, volume, NULL);
     }
 
     if (ensure_path_unmounted(volume) != 0) {
         LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
         return -1;
+    }
+
+    // Only use vold format for exact matches otherwise /sdcard will be
+    // formatted instead of /storage/sdcard0/.android_secure
+    // this check is redundant as we excluded above the (volume != v->mount_point) case
+    if (fs_mgr_is_voldmanaged(v) && strcmp(volume, v->mount_point) == 0) {
+        if (ensure_path_unmounted(volume) != 0) {
+            LOGE("format_volume failed to unmount %s", v->mount_point);
+        }
+        return vold_format_volume(v->mount_point, 1) == CommandOkay ? 0 : -1;
     }
 
     if (strcmp(v->fs_type, "yaffs2") == 0 || strcmp(v->fs_type, "mtd") == 0) {
@@ -746,7 +793,7 @@ int format_volume(const char* volume) {
     if (strcmp(v->fs_type, "ext4") == 0) {
         int result = make_ext4fs(v->blk_device, v->length, volume, sehandle);
         if (result != 0) {
-            LOGE("format_volume: make_extf4fs failed on %s\n", v->blk_device);
+            LOGE("format_volume: make_ext4fs failed on %s\n", v->blk_device);
             return -1;
         }
         return 0;
@@ -763,10 +810,6 @@ int format_volume(const char* volume) {
     }
 #endif
 
-#if 0
-    LOGE("format_volume: fs_type \"%s\" unsupported\n", v->fs_type);
-    return -1;
-#endif
     return format_unknown_device(v->blk_device, volume, v->fs_type);
 }
 
