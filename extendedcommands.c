@@ -728,7 +728,7 @@ int confirm_selection(const char* title, const char* confirm) {
 }
 
 // format to user choice fstype
-// called by nandroid_restore_partition_extended(), by format_ext4_or_f2fs() and by format_sdcard()
+// called by nandroid_restore_partition_extended() and format_ext4_or_f2fs()
 int format_device(const char *device, const char *path, const char *fs_type) {
 #ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
     if (device_truedualboot_format_device(device, path, fs_type) <= 0)
