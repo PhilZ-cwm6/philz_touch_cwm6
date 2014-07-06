@@ -559,6 +559,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_crespo cm_crespo4g),)
 #Google Nexus 4 (LGE) - mako
 else ifeq ($(TARGET_PRODUCT), cm_mako)
     TARGET_COMMON_NAME := Nexus 4
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 768
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
@@ -581,6 +583,8 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_tilapia cm_grouper),)
 #Google Nexus 7 (ASUS) 2013 (flo), LTE (deb)
 else ifneq ($(filter $(TARGET_PRODUCT),cm_flo cm_deb),)
     TARGET_COMMON_NAME := Nexus 7 (2013 $(TARGET_PRODUCT))
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1200
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
