@@ -500,14 +500,18 @@ void setup_data_media(int mount) {
     if (!is_data_media())
         return;
 
-    int count = 5;
     if (mount) {
-        while (count > 0 && ensure_path_mounted("/data")) {
-            usleep(500000);
-            count--;
+        int count = 0;
+        int ret = -1;
+        while (count < 5 && ret != 0) {
+            usleep(500000); // wait before first trial to avoid busy device on recovery start
+            ret = ensure_path_mounted("/data");
+            ++count;
         }
-        if (count == 0) // internal storage will be linked to /data/media if we later get /data mounted
+        if (ret != 0) {
             LOGE("could not mount /data to setup /data/media path!\n");
+            return;
+        }
     }
 
     int i;
@@ -532,15 +536,17 @@ void setup_data_media(int mount) {
     }
     symlink(path, mount_point);
 
-    if (mount && count != 0) {
-        count = 5;
+    if (mount) {
+        int count = 0;
+        int ret = -1;
         preserve_data_media(0);
-        while (count > 0 && ensure_path_unmounted("/data") != 0) {
+        while (count < 5 && ret != 0) {
+            ret = ensure_path_unmounted("/data");
             usleep(500000);
-            count--;
+            ++count;
         }
         preserve_data_media(1);
-        if (count == 0)
+        if (ret != 0)
             LOGE("could not unmount /data after /data/media setup\n");
     }
 /*
@@ -683,7 +689,7 @@ int ensure_path_unmounted(const char* path) {
         return 0;
 #endif
 
-    // if we are using /data/media, do not ever unmount volumes /data or /sdcard
+    // if we are using /data/media, do not unmount volumes /data or /sdcard until !is_data_media_preserved()
     if (is_data_media_volume_path(path)) {
         return ensure_path_unmounted("/data");
     }
