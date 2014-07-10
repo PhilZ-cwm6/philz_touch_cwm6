@@ -33,7 +33,7 @@ static int set_bootloader_message_block(const struct bootloader_message *in, con
 int get_bootloader_message(struct bootloader_message *out) {
     Volume* v = volume_for_path("/misc");
     if (v == NULL) {
-        LOGI("Cannot load volume /misc.\n");
+        LOGI("skiping get_bootloader_message: no /misc\n");
         return -1;
     }
     if (strcmp(v->fs_type, "mtd") == 0) {
@@ -48,7 +48,7 @@ int get_bootloader_message(struct bootloader_message *out) {
 int set_bootloader_message(const struct bootloader_message *in) {
     Volume* v = volume_for_path("/misc");
     if (v == NULL) {
-        LOGI("Cannot load volume /misc.\n");
+        LOGI("skiping set_bootloader_message: no /misc\n");
         return -1;
     }
     if (strcmp(v->fs_type, "mtd") == 0) {
