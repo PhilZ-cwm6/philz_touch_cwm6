@@ -43,7 +43,7 @@
 
 #ifdef BOARD_USE_MTK_LAYOUT
 // for MTK board defines and for Find_Partition_Size()
-#include "../flashutils/flashutils.h"
+#include "../nandroid.h"
 #include "../advanced_functions.h"
 #endif
 

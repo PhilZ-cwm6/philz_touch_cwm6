@@ -19,10 +19,11 @@
 
 #include <signal.h>
 #include <sys/wait.h>
+#include <libgen.h>
+#include <sys/vfs.h>
 
 #include "libcrecovery/common.h"
-
-#include "bootloader.h"
+#include "flashutils/flashutils.h" // backup_raw_partition() and restore_raw_partition()
 #include "common.h"
 #include "cutils/properties.h"
 #include "install.h"
@@ -31,7 +32,6 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
-#include <sys/vfs.h>
 #include "cutils/android_reboot.h"
 
 #include "extendedcommands.h"
@@ -39,9 +39,6 @@
 #include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
-
-#include "flashutils/flashutils.h"
-#include <libgen.h>
 
 #ifdef PHILZ_TOUCH_RECOVERY
 #include "libtouch_gui/nandroid_gui.h"
@@ -1322,6 +1319,7 @@ static int bu_usage() {
 
 int bu_main(int argc, char** argv) {
     load_volume_table();
+    setup_data_media(1);
 
     if (strcmp(argv[2], "backup") == 0) {
         if (argc != 4) {
@@ -1377,6 +1375,7 @@ int bu_main(int argc, char** argv) {
 
 int nandroid_main(int argc, char** argv) {
     load_volume_table();
+    setup_data_media(1);
     vold_init();
     char backup_path[PATH_MAX];
 
