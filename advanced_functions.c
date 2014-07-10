@@ -750,9 +750,7 @@ int Find_Partition_Size(const char* Path) {
     int ret = -1;
     fp = fopen("/proc/partitions", "rt");
     if (fp != NULL) {
-        // try to read blk_device link target for devices not using /dev/block/xxx in recovery.fstab
-        char* mmcblk_from_link = readlink_device_blk(Path);
-        while (fgets(line, sizeof(line), fp) != NULL) {
+        while (ret && fgets(line, sizeof(line), fp) != NULL) {
             unsigned long major, minor, blocks;
             char device[512];
 
@@ -770,11 +768,16 @@ int Find_Partition_Size(const char* Path) {
             } else if (volume->blk_device2 != NULL && strcmp(tmpdevice, volume->blk_device2) == 0) {
                 Total_Size = blocks * 1024ULL;
                 ret = 0;
-            } else if (mmcblk_from_link != NULL && strcmp(tmpdevice, mmcblk_from_link) == 0) {
-                // get size from blk_device symlink to /dev/block/xxx
-                free(mmcblk_from_link);
-                Total_Size = blocks * 1024ULL;
-                ret = 0;
+            } else {
+                // try to read blk_device link target for devices not using /dev/block/xxx in recovery.fstab
+                char* mmcblk_from_link = readlink_device_blk(Path);
+                if (mmcblk_from_link != NULL) {
+                    if (strcmp(tmpdevice, mmcblk_from_link) == 0) {
+                        Total_Size = blocks * 1024ULL;
+                        ret = 0;
+                    }
+                    free(mmcblk_from_link);
+                }
             }
         }
 
