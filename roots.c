@@ -879,6 +879,7 @@ int format_volume(const char* volume) {
     return format_unknown_device(v->blk_device, volume, v->fs_type);
 }
 
+// mount /cache and unmount all other partitions before installing zip file
 int setup_install_mounts() {
     if (fstab == NULL) {
         LOGE("can't set up install mounts: no fstab loaded\n");
@@ -889,6 +890,9 @@ int setup_install_mounts() {
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = fstab->recs + i;
 
+        // do not unmount vold managed devices (we need this for aroma file manager zip installer to be able to see the vold devices)
+        if (fs_mgr_is_voldmanaged(v))
+            continue;
         if (strcmp(v->mount_point, "/tmp") == 0 ||
             strcmp(v->mount_point, "/cache") == 0) {
             if (ensure_path_mounted(v->mount_point) != 0) return -1;
