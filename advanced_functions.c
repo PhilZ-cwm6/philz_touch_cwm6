@@ -43,8 +43,8 @@
 
 #include <signal.h>
 #include <sys/wait.h>
+#include <libgen.h>
 
-#include "bootloader.h"
 #include "common.h"
 #include "cutils/properties.h"
 #include "install.h"
@@ -59,13 +59,8 @@
 #include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
-#include "flashutils/flashutils.h"
 #include "edify/expr.h"
-#include <libgen.h>
-#include "mtdutils/mtdutils.h"
-#include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
-#include "mmcutils/mmcutils.h"
 #include "voldclient/voldclient.h"
 
 #include "adb_install.h"

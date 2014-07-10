@@ -22,12 +22,6 @@ get_filtered_menu_selection(const char** headers, char** items, int menu_only, i
 int
 write_string_to_file(const char* filename, const char* string);
 
-int
-do_nandroid_backup(const char* backup_name);
-
-int
-do_nandroid_restore();
-
 void
 show_nandroid_restore_menu(const char* path);
 
@@ -49,22 +43,11 @@ __system(const char *command);
 int
 show_advanced_menu();
 
-int format_device(const char *device, const char *path, const char *fs_type);
-
-// support format MTD, MMC, BML, ext2, ext3 and directory rm -rf like if a path is passed
-int format_unknown_device(const char *device, const char* path, const char *fs_type);
-
-void format_sdcard(const char* volume);
-
-void partition_sdcard(const char* volume);
-
-void create_fstab();
+void show_format_sdcard_menu(const char* volume);
 
 int has_datadata();
 
 void handle_failure();
-
-void process_volumes();
 
 int show_install_update_menu();
 
@@ -77,8 +60,6 @@ int verify_root_and_recovery();
 void write_recovery_version();
 
 void free_string_array(char** array);
-
-int can_partition(const char* volume);
 
 static int is_path_mounted(const char* path);
 

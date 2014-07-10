@@ -8,18 +8,6 @@ int erase_partition(const char *partition, const char *filesystem);
 int mount_partition(const char *partition, const char *mount_point, const char *filesystem, int read_only);
 int get_partition_device(const char *partition, char *device);
 
-
-// MTK devices support
-#ifndef BOARD_USE_MTK_LAYOUT
-#define BOOT_PARTITION_MOUNT_POINT "/boot"
-#else
-    #ifndef BOARD_MTK_BOOT_LABEL
-    #define BOOT_PARTITION_MOUNT_POINT "/bootimg"
-    #else
-    #define BOOT_PARTITION_MOUNT_POINT BOARD_MTK_BOOT_LABEL
-    #endif
-#endif
-
 #define FLASH_MTD 0
 #define FLASH_MMC 1
 #define FLASH_BML 2

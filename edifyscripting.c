@@ -36,7 +36,6 @@
 #include <sys/wait.h>
 #include <libgen.h> // basename
 
-#include "bootloader.h"
 #include "common.h"
 #include "cutils/properties.h"
 #include "install.h"
@@ -49,10 +48,7 @@
 #include "recovery_settings.h"
 #include "nandroid.h"
 #include "mounts.h"
-#include "flashutils/flashutils.h"
 #include "edify/expr.h"
-#include "mtdutils/mtdutils.h"
-#include "mmcutils/mmcutils.h"
 
 extern int yyparse();
 extern int yy_scan_bytes();
@@ -312,7 +308,7 @@ int run_script_from_buffer(char* script_data, int script_len, char* filename)
 
 int edify_main(int argc, char** argv) {
     load_volume_table();
-    process_volumes();
+    setup_data_media(1);
     RegisterBuiltins();
     RegisterRecoveryHooks();
     FinishRegistration();
