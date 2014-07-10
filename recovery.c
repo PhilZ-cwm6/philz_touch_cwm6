@@ -1007,7 +1007,11 @@ void reboot_main_system(int cmd, int flags, char *arg) {
     vold_unmount_all();
 
     char buffer[80];
-    strcpy(buffer, "reboot,");
+    if ((unsigned)cmd == ANDROID_RB_POWEROFF) {
+        strcpy(buffer, "shutdown,");
+    } else {
+        strcpy(buffer, "reboot,");
+    }
     if (arg != NULL) {
         strncat(buffer, arg, sizeof(buffer));
     }
@@ -1017,7 +1021,7 @@ void reboot_main_system(int cmd, int flags, char *arg) {
     // Attempt to reboot using older methods in case the recovery
     // that we are updating does not support init property reboot
     // android_reboot() is defined in libcutils/android_reboot.c
-    LOGI("trying to reboot old android_reboot() command\n");
+    LOGI("trying legacy android_reboot() command\n");
     android_reboot(cmd, flags, arg);
 }
 
