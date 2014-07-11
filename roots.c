@@ -162,6 +162,8 @@ Support additional extra.fstab entries and add device2
 */
 static struct fstab *fstab_extra = NULL;
 static void add_extra_fstab_entries(int index) {
+    if (!fstab_extra)
+        return;
     int i;
     Volume* vol = &fstab->recs[index];
     for(i = 0; i < fstab_extra->num_entries; ++i) {
