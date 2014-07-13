@@ -1744,7 +1744,7 @@ void handle_failure() {
     ui_print("Send file to Phil3759 @xda\n");
 }
 
-static int is_path_mounted(const char* path) {
+int is_path_mounted(const char* path) {
     Volume* v = volume_for_path(path);
     if (v == NULL) {
         return 0;

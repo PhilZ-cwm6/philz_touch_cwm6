@@ -666,9 +666,8 @@ int twrp_backup_wrapper(const char* backup_path, const char* backup_file_image, 
         return -1;
     }
 
-    const MountedVolume *mv = find_mounted_volume_by_mount_point(v->mount_point);
-    if (mv == NULL) {
-        ui_print("Unable to find mounted volume: %s\n", v->mount_point);
+    if (!is_path_mounted(backup_path)) {
+        LOGE("Unable to find mounted volume: '%s'\n", v->mount_point);
         return -1;
     }
 

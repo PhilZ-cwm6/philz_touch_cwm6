@@ -61,7 +61,7 @@ void write_recovery_version();
 
 void free_string_array(char** array);
 
-static int is_path_mounted(const char* path);
+int is_path_mounted(const char* path);
 
 int volume_main(int argc, char **argv);
 
