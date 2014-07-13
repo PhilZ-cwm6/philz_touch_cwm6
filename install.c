@@ -29,7 +29,7 @@
 #include "minui/minui.h"
 #include "minzip/SysUtil.h"
 #include "minzip/Zip.h"
-#include "mounts.h"
+#include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "roots.h"
 #include "verifier.h"

@@ -37,7 +37,6 @@
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
 #include "flashutils/flashutils.h"
 #include "edify/expr.h"
 #include <libgen.h>

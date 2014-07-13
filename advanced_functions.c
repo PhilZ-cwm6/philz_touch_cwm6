@@ -58,7 +58,6 @@
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
 #include "edify/expr.h"
 #include "cutils/android_reboot.h"
 #include "voldclient/voldclient.h"

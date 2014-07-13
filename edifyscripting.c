@@ -47,7 +47,6 @@
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
 #include "edify/expr.h"
 
 extern int yyparse();

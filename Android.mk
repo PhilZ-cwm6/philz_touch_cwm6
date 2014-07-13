@@ -42,7 +42,6 @@ LOCAL_SRC_FILES := \
     install.c \
     roots.c \
     ui.c \
-    mounts.c \
     extendedcommands.c \
     advanced_functions.c \
     digest/md5.c \

@@ -28,6 +28,13 @@
 
 #include "mtdutils.h"
 
+struct MtdPartition {
+    int device_index;
+    unsigned int size;
+    unsigned int erase_size;
+    char *name;
+};
+
 struct MtdReadContext {
     const MtdPartition *partition;
     char *buffer;

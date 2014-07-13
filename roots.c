@@ -24,7 +24,7 @@
 #include <dirent.h>
 
 #include "mtdutils/mtdutils.h"
-#include "mounts.h"
+#include "mtdutils/mounts.h"
 #include "roots.h"
 #include "common.h"
 #include "make_ext4fs.h"

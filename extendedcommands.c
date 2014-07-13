@@ -38,7 +38,7 @@
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
+#include "mtdutils/mounts.h"
 #include "edify/expr.h"
 
 
