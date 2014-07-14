@@ -828,7 +828,11 @@ int enter_sideload_mode(int status) {
     static char* list[] = { "Cancel sideload", NULL };
     int icon = ui_get_background_icon();
 
+    // we need show_text to show adb sideload cancel menu (get_menu_selection())
+    bool text_visible = ui_IsTextVisible();
+    ui_SetShowText(true);
     get_menu_selection(headers, list, 0, 0);
+    ui_SetShowText(text_visible);
     int ret = apply_from_adb();
 
     // if item < 0 (cancel), apply_from_adb() will return INSTALL_NONE with appropriate log message
@@ -1241,18 +1245,14 @@ main(int argc, char **argv) {
         if (is_data_media() && erase_volume("/data/media")) status = INSTALL_ERROR;
         if (status != INSTALL_SUCCESS) ui_print("Media wipe failed.\n");
     } else if (sideload) {
-        // we need show_text to show adb sideload cancel menu
-        bool text_visible = ui_IsTextVisible();
-        ui_SetShowText(true);
         status = enter_sideload_mode(status);
-        ui_SetShowText(text_visible);
     } else if (!just_exit) {
         // let's check recovery start up scripts (openrecoveryscript and ROM Manager extendedcommands)
         status = INSTALL_NONE; // No command specified, it is a normal recovery boot unless we find a boot script to run
 
         LOGI("Checking for extendedcommand & OpenRecoveryScript...\n");
 
-        // we need show_text to show boot scripts log and sideload menu in ors scripts
+        // we need show_text to show boot scripts log
         bool text_visible = ui_IsTextVisible();
         ui_SetShowText(true);
         if (0 == check_boot_script_file(EXTENDEDCOMMAND_SCRIPT)) {
