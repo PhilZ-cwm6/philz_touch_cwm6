@@ -195,16 +195,6 @@ int install_zip(const char* packagefilepath) {
         ui_print("Installation aborted.\n");
         return 1;
     }
-#ifdef ENABLE_LOKI
-    if (loki_support_enabled() > 0) {
-        ui_print("Checking if loki-fying is needed\n");
-        status = loki_check();
-        if (status != INSTALL_SUCCESS) {
-            ui_set_background(BACKGROUND_ICON_ERROR);
-            return 1;
-        }
-    }
-#endif
 
 #ifdef PHILZ_TOUCH_RECOVERY
     if (show_background_icon.value)

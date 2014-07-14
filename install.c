@@ -42,6 +42,10 @@
 
 #include "propsrvc/legacy_property_service.h" // legacy update-binary compatibility
 
+#ifdef ENABLE_LOKI
+#include "loki/loki_recovery.h"
+#endif
+
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
 #define PUBLIC_KEYS_FILE "/res/keys"
 
@@ -368,11 +372,20 @@ install_package(const char* path)
     } else {
         result = really_install_package(path);
     }
+
+#ifdef ENABLE_LOKI
+    if (result == INSTALL_SUCCESS && loki_support_enabled() > 0) {
+        ui_print("Checking if loki-fying is needed\n");
+        result = loki_check();
+    }
+#endif
+
     if (install_log) {
         fputc(result == INSTALL_SUCCESS ? '1' : '0', install_log);
         fputc('\n', install_log);
         fclose(install_log);
     }
+
     return result;
 }
 
