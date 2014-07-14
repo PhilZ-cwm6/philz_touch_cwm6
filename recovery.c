@@ -836,12 +836,6 @@ int enter_sideload_mode(int status) {
     // if item < 0 (cancel), apply_from_adb() will return INSTALL_NONE with appropriate log message
     if (ret != INSTALL_NONE) {
         status = ret;
-#ifdef ENABLE_LOKI
-        if (status == INSTALL_SUCCESS && loki_support_enabled() > 0) {
-            ui_print("Checking if loki-fying is needed\n");
-            status = loki_check();
-        }
-#endif
         if (status != INSTALL_SUCCESS) {
             ui_set_background(BACKGROUND_ICON_ERROR);
             ui_print("Installation aborted.\n");
