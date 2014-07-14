@@ -35,9 +35,6 @@ int
 show_partition_menu();
 
 int
-install_zip(const char* packagefilepath);
-
-int
 __system(const char *command);
 
 int

@@ -159,7 +159,7 @@ static void toggle_loki_support() {
     // ui_print("Loki Support: %s\n", apply_loki_patch.value ? "Enabled" : "Disabled");
 }
 
-// this is called when we load recovery settings
+// this is called when we load recovery settings and when we istall_package()
 // it is needed when after recovery is booted, user wipes /data, then he installs a ROM: we can still return the user setting 
 int loki_support_enabled() {
     char no_loki_variant[PROPERTY_VALUE_MAX];
@@ -181,31 +181,6 @@ int loki_support_enabled() {
     return ret;
 }
 #endif
-
-int install_zip(const char* packagefilepath) {
-    ui_print("\n-- Installing: %s\n", packagefilepath);
-    set_sdcard_update_bootloader_message();
-
-    // will ensure_path_mounted(packagefilepath)
-    // will also set background icon to installing and indeterminate progress bar
-    int status = install_package(packagefilepath);
-    ui_reset_progress();
-    if (status != INSTALL_SUCCESS) {
-        ui_set_background(BACKGROUND_ICON_ERROR);
-        ui_print("Installation aborted.\n");
-        return 1;
-    }
-
-#ifdef PHILZ_TOUCH_RECOVERY
-    if (show_background_icon.value)
-        ui_set_background(BACKGROUND_ICON_CLOCKWORK);
-    else
-#endif
-        ui_set_background(BACKGROUND_ICON_NONE);
-
-    ui_print("\nInstall from sdcard complete.\n");
-    return 0;
-}
 
 // top fixed menu items, those before extra storage volumes
 #define FIXED_TOP_INSTALL_ZIP_MENUS 1

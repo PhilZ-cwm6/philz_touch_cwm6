@@ -153,4 +153,6 @@ FILE* fopen_path(const char *path, const char *mode);
 // for nandroid cmd actions on voldmanaged devices (recovery.c)
 void vold_init();
 
+int install_zip(const char* packagefilepath);
+
 #endif  // RECOVERY_COMMON_H

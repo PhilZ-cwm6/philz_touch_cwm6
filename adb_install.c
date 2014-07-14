@@ -109,7 +109,7 @@ start_sideload() {
 }
 
 int
-apply_from_adb() {
+apply_from_adb(int* wipe_cache, const char* install_file) {
 
     set_usb_driver(false);
     maybe_restart_adbd();
@@ -129,7 +129,7 @@ apply_from_adb() {
         return INSTALL_ERROR;
     }
 
-    int status = install_package(ADB_SIDELOAD_FILENAME);
+    int status = install_package(ADB_SIDELOAD_FILENAME, wipe_cache, install_file);
     ui_reset_progress(); // install_package will set indeterminate progress
 
     remove(ADB_SIDELOAD_FILENAME);

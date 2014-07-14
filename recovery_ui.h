@@ -133,9 +133,6 @@ extern int ui_root_menu;
 int
 get_menu_selection(const char** headers, char** items, int menu_only, int initial_selection);
 
-void
-set_sdcard_update_bootloader_message();
-
 extern int ui_handle_key(int key, int visible);
 
 int ui_is_initialized();

@@ -246,7 +246,7 @@ get_args(int *argc, char ***argv) {
     set_bootloader_message(&boot);
 }
 
-void
+static void
 set_sdcard_update_bootloader_message() {
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
@@ -653,7 +653,8 @@ static int compare_string(const void* a, const void* b) {
 
 // legacy unused: we use gather_files() and choose_file_menu()
 static int
-update_directory(const char* path, const char* unmount_when_done) {
+update_directory(const char* path, const char* unmount_when_done,
+                 int* wipe_cache) {
     ensure_path_mounted(path);
 
     const char* MENU_HEADERS[] = { "Choose a package to install:",
@@ -744,7 +745,7 @@ update_directory(const char* path, const char* unmount_when_done) {
             strlcat(new_path, "/", PATH_MAX);
             strlcat(new_path, item, PATH_MAX);
             new_path[strlen(new_path)-1] = '\0';  // truncate the trailing '/'
-            result = update_directory(new_path, unmount_when_done);
+            result = update_directory(new_path, unmount_when_done, wipe_cache);
             if (result >= 0) break;
         } else {
             // selected a zip file:  attempt to install it, and return
@@ -761,7 +762,7 @@ update_directory(const char* path, const char* unmount_when_done) {
                 ensure_path_unmounted(unmount_when_done);
             }
             if (copy) {
-                result = install_package(copy);
+                result = install_package(copy, wipe_cache, TEMPORARY_INSTALL_FILE);
                 free(copy);
             } else {
                 result = INSTALL_ERROR;
@@ -779,6 +780,35 @@ update_directory(const char* path, const char* unmount_when_done) {
         ensure_path_unmounted(unmount_when_done);
     }
     return result;
+}
+
+int install_zip(const char* packagefilepath) {
+    ui_print("\n-- Installing: %s\n", packagefilepath);
+    set_sdcard_update_bootloader_message();
+
+    // will ensure_path_mounted(packagefilepath)
+    // will also set background icon to installing and indeterminate progress bar
+    int wipe_cache = 0;
+    int status = install_package(packagefilepath, &wipe_cache, TEMPORARY_INSTALL_FILE);
+    ui_reset_progress();
+    if (status != INSTALL_SUCCESS) {
+        copy_logs();
+        ui_set_background(BACKGROUND_ICON_ERROR);
+        LOGE("Installation aborted.\n");
+        return 1;
+    } else if (wipe_cache && erase_volume("/cache")) {
+        LOGE("Cache wipe (requested by package) failed.\n");
+    }
+
+#ifdef PHILZ_TOUCH_RECOVERY
+    if (show_background_icon.value)
+        ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+    else
+#endif
+        ui_set_background(BACKGROUND_ICON_NONE);
+
+    ui_print("\nInstall from sdcard complete.\n");
+    return 0;
 }
 
 // remove static to be able to call it from ors menu
@@ -827,13 +857,14 @@ int enter_sideload_mode(int status) {
 
     static char* list[] = { "Cancel sideload", NULL };
     int icon = ui_get_background_icon();
+    int wipe_cache = 0;
 
     // we need show_text to show adb sideload cancel menu (get_menu_selection())
     bool text_visible = ui_IsTextVisible();
     ui_SetShowText(true);
     get_menu_selection(headers, list, 0, 0);
     ui_SetShowText(text_visible);
-    int ret = apply_from_adb();
+    int ret = apply_from_adb(&wipe_cache, TEMPORARY_INSTALL_FILE);
 
     // if item < 0 (cancel), apply_from_adb() will return INSTALL_NONE with appropriate log message
     if (ret != INSTALL_NONE) {
@@ -841,11 +872,14 @@ int enter_sideload_mode(int status) {
         if (status != INSTALL_SUCCESS) {
             ui_set_background(BACKGROUND_ICON_ERROR);
             ui_print("Installation aborted.\n");
-        } else if (!ui_IsTextVisible()) {
-            return status;  // recovery start command: reboot if logs aren't visible
         } else {
-            ui_set_background(icon);
-            ui_print("\nInstall from ADB complete.\n");
+            if (wipe_cache && erase_volume("/cache")) {
+                LOGE("Cache wipe (requested by package) failed.\n");
+            }
+            if (ui_IsTextVisible()) {
+                ui_set_background(icon);
+                ui_print("\nInstall from ADB complete.\n");
+            }
         }
     }
     return status;
@@ -1217,7 +1251,12 @@ main(int argc, char **argv) {
     int status = INSTALL_SUCCESS;
 
     if (update_package != NULL) {
-        status = install_package(update_package);
+        status = install_package(update_package, &wipe_cache, TEMPORARY_INSTALL_FILE);
+        if (status == INSTALL_SUCCESS && wipe_cache) {
+            if (erase_volume("/cache")) {
+                LOGE("Cache wipe (requested by package) failed.\n");
+            }
+        }
         if (status != INSTALL_SUCCESS) {
             ui_print("Installation aborted.\n");
 
