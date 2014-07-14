@@ -1387,7 +1387,7 @@ void show_multi_flash_menu() {
 #ifdef PHILZ_TOUCH_RECOVERY
                         force_wait = -1;
 #endif
-                        if (install_zip(files[i - 2]) != 0)
+                        if (install_zip(files[i - 2]) != INSTALL_SUCCESS)
                             break;
                     }
                 }
@@ -1872,7 +1872,7 @@ static void choose_default_ors_menu(const char* volume_path) {
         return;
     }
 
-    static const char* headers[] = {
+    const char* headers[] = {
         "Choose a script to run",
         "",
         NULL
@@ -1909,7 +1909,7 @@ static void choose_custom_ors_menu(const char* volume_path) {
         return;
     }
 
-    static const char* headers[] = {"Choose .ors script to run", NULL};
+    const char* headers[] = {"Choose .ors script to run", NULL};
 
     char* ors_file = choose_file_menu(volume_path, ".ors", headers);
     if (ors_file == NULL)
