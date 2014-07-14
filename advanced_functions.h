@@ -55,7 +55,6 @@ int Find_Partition_Size(const char* Path);
 //ors script support in recovery.c
 int erase_volume(const char *volume);
 void wipe_data(int confirm);
-extern int no_wipe_confirm;
 int check_boot_script_file(const char* boot_script);
 int run_ors_boot_script();
 int run_ors_script(const char* ors_script);

@@ -56,8 +56,6 @@ struct selabel_handle *sehandle;
 #include "libtouch_gui/gui_settings.h"
 #endif
 
-int no_wipe_confirm = 0; // 0 == script is not ors_boot_script, confirm on wipe
-
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
@@ -1267,10 +1265,8 @@ main(int argc, char **argv) {
         if (0 == check_boot_script_file(ORS_BOOT_SCRIPT_FILE)) {
             LOGI("Running openrecoveryscript....\n");
             status = INSTALL_ERROR;
-            no_wipe_confirm = 1; // this is a script started at boot, do not confirm wipe operations
             if (0 == run_ors_boot_script())
                 status = INSTALL_SUCCESS;
-            no_wipe_confirm = 0; // script done, next ones cannot be bootscripts until we restart recovery
         }
 
         ui_SetShowText(text_visible);
