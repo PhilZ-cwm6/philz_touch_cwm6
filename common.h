@@ -21,14 +21,6 @@
 #include <stdio.h>
 #include <fs_mgr.h>
 
-#ifndef PHILZ_TOUCH_RECOVERY
-//#define MENU_TEXT_COLOR 255, 160, 49, 255
-#define MENU_TEXT_COLOR 0, 191, 255, 255
-#define NORMAL_TEXT_COLOR 200, 200, 200, 255
-#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
-#endif
-#define MENU_TEXT_COLOR_RED 255, 0, 0, 255
-
 // Initialize the graphics system.
 void ui_init();
 
@@ -50,7 +42,6 @@ void ui_print(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void ui_printlogtail(int nb_lines);
 
 int ui_get_text_cols();
-void ui_setMenuTextColor(int r, int g, int b, int a);
 
 // Display some header text followed by a menu of items, which appears
 // at the top of the screen (in place of any scrolling ui_print()

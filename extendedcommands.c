@@ -643,12 +643,6 @@ int confirm_selection(const char* title, const char* confirm) {
     if (0 == stat(path, &info))
         return 1;
 
-#ifdef BOARD_NATIVE_DUALBOOT
-    char buf[PATH_MAX];
-    device_build_selection_title(buf, title);
-    title = (char*)&buf;
-#endif
-
     int many_confirm;
     char* confirm_str = strdup(confirm);
     const char* confirm_headers[] = { title, "  THIS CAN NOT BE UNDONE.", "", NULL };
@@ -1201,11 +1195,6 @@ int show_nandroid_menu() {
     list[offset + 2] = "Misc Nandroid Settings";
     offset += NANDROID_FIXED_ENTRIES;
 
-#ifdef RECOVERY_EXTEND_NANDROID_MENU
-    extend_nandroid_menu(list, offset, sizeof(list) / sizeof(char*));
-    offset++;
-#endif
-
     // extra NULL for GO_BACK
     list[offset] = NULL;
     offset++;
@@ -1273,9 +1262,6 @@ int show_nandroid_menu() {
                     break;
             }
         } else {
-#ifdef RECOVERY_EXTEND_NANDROID_MENU
-            handle_nandroid_menu(action_entries_num + NANDROID_FIXED_ENTRIES, chosen_item);
-#endif
             goto out;
         }
     }
@@ -1515,26 +1501,14 @@ void show_advanced_power_menu() {
 }
 
 #ifdef ENABLE_LOKI
-
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-#define FIXED_ADVANCED_ENTRIES 8
-#else
 #define FIXED_ADVANCED_ENTRIES 6
-#endif
-
-#else
-
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-#define FIXED_ADVANCED_ENTRIES 7
 #else
 #define FIXED_ADVANCED_ENTRIES 5
 #endif
 
-#endif
-
 int show_advanced_menu() {
     char buf[80];
-    int i = 0, j = 0, chosen_item = 0, list_index = 0;
+    int i = 0, j = 0, chosen_item = 0;
     /* Default number of entries if no compile-time extras are added */
     static char* list[MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1];
 
@@ -1546,20 +1520,14 @@ int show_advanced_menu() {
 
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1);
 
-    list[list_index++] = "Wipe Dalvik Cache";   // 0
-    list[list_index++] = "Report Error";        // 1
-    list[list_index++] = "Key Test";            // 2
-    list[list_index++] = "Show log";            // 3
-    list[list_index++] = NULL;                  // 4 (/data/media/0 toggle)
-
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    int index_tdb = list_index++;
-    int index_bootmode = list_index++;
-#endif
+    list[0] = "Wipe Dalvik Cache";   // 0
+    list[1] = "Report Error";        // 1
+    list[2] = "Key Test";            // 2
+    list[3] = "Show log";            // 3
+    list[4] = NULL;                  // 4 (/data/media/0 toggle)
 
 #ifdef ENABLE_LOKI
-    int index_loki = list_index++;
-    list[index_loki] = NULL;
+    list[5] = NULL;
 #endif
 
     char list_prefix[] = "Partition ";
@@ -1588,27 +1556,17 @@ int show_advanced_menu() {
             else list[4] = "Sdcard target: /data/media";
         }
 
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-        char tdb_name[PATH_MAX];
-        device_get_truedualboot_entry(tdb_name);
-        list[index_tdb] = &tdb_name;
-
-        char bootmode_name[PATH_MAX];
-        device_get_bootmode(bootmode_name);
-        list[index_bootmode] = &bootmode_name;
-#endif
-
 #ifdef ENABLE_LOKI
         char item_loki_toggle_menu[MENU_MAX_COLS];
         int enabled = loki_support_enabled();
         if (enabled < 0) {
-            list[index_loki] = NULL;
+            list[5] = NULL;
         } else {
             if (enabled)
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "(x)");
             else
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
-            list[index_loki] = item_loki_toggle_menu;
+            list[5] = item_loki_toggle_menu;
         }
 #endif
 
@@ -1631,9 +1589,10 @@ int show_advanced_menu() {
                 ensure_path_unmounted("/data");
                 break;
             }
-            case 1:
+            case 1: {
                 handle_failure();
                 break;
+            }
             case 2: {
                 ui_print("Outputting key codes.\n");
                 ui_print("Go back to end debugging.\n");
@@ -1646,7 +1605,7 @@ int show_advanced_menu() {
                 } while (action != GO_BACK);
                 break;
             }
-            case 3:
+            case 3: {
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_log_menu();
 #else
@@ -1655,6 +1614,7 @@ int show_advanced_menu() {
                 ui_clear_key_queue();
 #endif
                 break;
+            }
             case 4: {
                 if (is_data_media()) {
                     // /data is mounted above in the for() loop: we can directly call use_migrated_storage()
@@ -1671,26 +1631,16 @@ int show_advanced_menu() {
                 }
                 break;
             }
-            default:
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-            if (chosen_item == index_tdb) {
-                device_toggle_truedualboot();
-                break;
-            }
-            if (chosen_item == index_bootmode) {
-                device_choose_bootmode();
-                break;
-            }
-#endif
-
 #ifdef ENABLE_LOKI
-            if (chosen_item == index_loki) {
+            case 5: {
                 toggle_loki_support();
                 break;
             }
 #endif
-            show_partition_sdcard_menu(list[chosen_item] + strlen(list_prefix));
-            break;
+            default: {
+                show_partition_sdcard_menu(list[chosen_item] + strlen(list_prefix));
+                break;
+            }
         }
     }
 

@@ -1027,11 +1027,7 @@ void reboot_main_system(int cmd, int flags, char *arg) {
     verify_settings_file();
     write_recovery_version();
 
-#ifdef BOARD_NATIVE_DUALBOOT
-    device_verify_root_and_recovery();
-#else
     verify_root_and_recovery();
-#endif
 
     finish_recovery(NULL); // sync() in here
     vold_unmount_all();

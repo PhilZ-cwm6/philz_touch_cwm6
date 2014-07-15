@@ -339,10 +339,6 @@ void load_volume_table()
     fprintf(stderr, "\n");
 #endif
 
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    device_truedualboot_after_load_volume_table();
-#endif
-
     // Create a boring /etc/fstab so tools like Busybox mount work
     FILE *file;
     file = fopen ("/etc/mtab","a");
@@ -583,11 +579,6 @@ int ensure_path_mounted(const char* path) {
 
 // not thread safe because of scan_mounted_volumes()
 int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point) {
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if (device_truedualboot_mount(path, mount_point) <= 0)
-        return 0;
-#endif
-
     if (is_data_media_volume_path(path)) {
         if (ui_should_log_stdout() && ui_is_initialized()) {
             // ui_is_initialized() check to limit output logging during "adb shell nandroid" commands
@@ -686,15 +677,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 
 // not thread safe because of scan_mounted_volumes()
 int ensure_path_unmounted(const char* path) {
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if (device_truedualboot_unmount(path) <= 0)
-        return 0;
-#endif
-
-    // if we are using /data/media, do not unmount volumes /data or /sdcard until !is_data_media_preserved()
     if (is_data_media_volume_path(path)) {
         return ensure_path_unmounted("/data");
     }
+
+    // if we are using /data/media, do not unmount volumes /data or /sdcard until !is_data_media_preserved()
     if (strstr(path, "/data") == path && is_data_media() && is_data_media_preserved()) {
         return 0;
     }
@@ -772,11 +759,6 @@ int rmtree_except(const char* path, const char* except)
 }
 
 int format_volume(const char* volume) {
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if (device_truedualboot_format_volume(volume) <= 0)
-        return 0;
-#endif
-
     // check if we're formatting primary_storage (/sdcard) on /data/media device
     // in that case, issue a rm -rf like command
     if (is_data_media_volume_path(volume)) {
@@ -927,14 +909,8 @@ void setup_legacy_storage_paths() {
 // format to user choice fstype
 // called by nandroid_restore_partition_extended() and format_ext4_or_f2fs()
 int format_device(const char *device, const char *path, const char *fs_type) {
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-    if (device_truedualboot_format_device(device, path, fs_type) <= 0)
-        return 0;
-#endif
-
-    // check if we're formatting primary_storage (/sdcard) on /data/media device
-    // in that case, issue a rm -rf like command
     if (is_data_media_volume_path(path)) {
+        // we're formatting primary_storage (/sdcard) on /data/media device: issue a rm -rf like command
         return format_unknown_device(NULL, path, NULL);
     }
 
