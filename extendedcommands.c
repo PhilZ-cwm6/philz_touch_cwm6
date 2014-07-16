@@ -1199,17 +1199,17 @@ out:
     return chosen_item;
 }
 
-int can_partition(const char* volume) {
-    if (is_data_media_volume_path(volume))
+int can_partition(const char* path) {
+    if (is_data_media_volume_path(path))
         return 0;
 
-    Volume *vol = volume_for_path(volume);
+    Volume *vol = volume_for_path(path);
     if (vol == NULL) {
-        LOGI("Can't format unknown volume: %s\n", volume);
+        LOGI("Can't format unknown volume: %s\n", path);
         return 0;
     }
     if (strcmp(vol->fs_type, "auto") != 0) {
-        LOGI("Can't partition non-vfat: %s (%s)\n", volume, vol->fs_type);
+        LOGI("Can't partition non-vfat: %s (%s)\n", path, vol->fs_type);
         return 0;
     }
 
@@ -1236,17 +1236,17 @@ int can_partition(const char* volume) {
 }
 
 // pass in mount point as argument
-void show_format_sdcard_menu(const char* volume) {
-    if (is_data_media_volume_path(volume))
+void show_format_sdcard_menu(const char* path) {
+    if (is_data_media_volume_path(path))
         return;
 
-    Volume *v = volume_for_path(volume);
+    Volume *v = volume_for_path(path);
     if (v == NULL || strcmp(v->fs_type, "auto") != 0)
         return;
-    if (!fs_mgr_is_voldmanaged(v) && !can_partition(volume))
+    if (!fs_mgr_is_voldmanaged(v) && !can_partition(path))
         return;
 
-    const char* headers[] = { "Format device:", volume, "", NULL };
+    const char* headers[] = { "Format device:", path, "", NULL };
 
     static char* list[] = {
         "default",
@@ -1303,9 +1303,9 @@ void show_format_sdcard_menu(const char* volume) {
                 char *secontext = NULL;
                 if (selabel_lookup(sehandle, &secontext, v->mount_point, S_IFDIR) < 0) {
                     LOGE("cannot lookup security context for %s\n", v->mount_point);
-                    ret = make_ext4fs(v->blk_device, v->length, volume, NULL);
+                    ret = make_ext4fs(v->blk_device, v->length, path, NULL);
                 } else {
-                    ret = make_ext4fs(v->blk_device, v->length, volume, sehandle);
+                    ret = make_ext4fs(v->blk_device, v->length, path, sehandle);
                     freecon(secontext);
                 }
             }
@@ -1320,14 +1320,14 @@ void show_format_sdcard_menu(const char* volume) {
     }
 
     if (ret)
-        ui_print("Could not format %s (%s)\n", volume, list[chosen_item]);
+        LOGE("Could not format %s (%s)\n", path, list[chosen_item]);
     else
-        ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
+        ui_print("Done formatting %s (%s)\n", path, list[chosen_item]);
 }
 
-static void show_partition_sdcard_menu(const char* volume) {
-    if (!can_partition(volume)) {
-        ui_print("Can't partition device: %s\n", volume);
+static void show_partition_sdcard_menu(const char* path) {
+    if (!can_partition(path)) {
+        ui_print("Can't partition device: %s\n", path);
         return;
     }
 
@@ -1374,7 +1374,7 @@ static void show_partition_sdcard_menu(const char* volume) {
 
     char cmd[PATH_MAX];
     char sddevice[256];
-    Volume *vol = volume_for_path(volume);
+    Volume *vol = volume_for_path(path);
 
     // can_partition() ensured either blk_device or blk_device2 has /dev/block/mmcblk format
     if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL)
@@ -1390,7 +1390,7 @@ static void show_partition_sdcard_menu(const char* volume) {
     if (0 == __system(cmd))
         ui_print("Done!\n");
     else
-        ui_print("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
+        LOGE("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
 }
 
 void show_advanced_power_menu() {

@@ -43,7 +43,8 @@ __system(const char *command);
 int
 show_advanced_menu();
 
-void show_format_sdcard_menu(const char* volume);
+void
+show_format_sdcard_menu(const char* path);
 
 int
 has_datadata();
