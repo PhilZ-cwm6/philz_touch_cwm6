@@ -1301,7 +1301,7 @@ int can_partition(const char* path) {
 
     // do not allow partitioning of a device that isn't mmcblkX or mmcblkXp1
     // needed with new vold managed volumes and virtual device path links
-    int vol_len;
+    size_t vol_len;
     char *device = NULL;
     if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL) {
         device = vol->blk_device;
@@ -1586,7 +1586,7 @@ int show_advanced_menu() {
 #endif
 
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
-        if (chosen_item == GO_BACK || chosen_item == REFRESH)
+        if (chosen_item < 0) // GO_BACK || REFRESH
             break;
         switch (chosen_item) {
             case 0: {
