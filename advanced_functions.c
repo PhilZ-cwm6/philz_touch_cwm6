@@ -1388,7 +1388,8 @@ void show_multi_flash_menu() {
         ui_print("No zip files found under %s\n", zip_folder);
     } else {
         // start showing multi-zip menu
-        char** list = (char**) malloc((numFiles + 3) * sizeof(char*));
+        char** list = (char**)malloc((numFiles + 3) * sizeof(char*));
+        memset(list, 0, sizeof(list));
         list[0] = strdup("Select/Unselect All");
         list[1] = strdup(">> Flash Selected Files <<");
         list[numFiles+2] = NULL; // Go Back Menu
@@ -1517,7 +1518,7 @@ static void choose_ors_volume() {
     const char* headers[] = { "Save ors backups to:", NULL };
 
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     list[0] = strdup(primary_path);
 
     char buf[80];
@@ -1967,7 +1968,7 @@ static void show_custom_ors_menu() {
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Search ";
     char buf[256];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2064,7 +2065,7 @@ static void regenerate_md5_sum_menu() {
     char buf[80];
     const char* headers[] = {"Regenerate md5 sum", "Select a backup to regenerate", NULL};
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2321,7 +2322,7 @@ void set_custom_zip_path() {
     char list_prefix[] = "Start Folder in ";
     char* list_main[MAX_NUM_MANAGED_VOLUMES + list_top_items + 1];
     char buf[80];
-    memset(list_main, 0, MAX_NUM_MANAGED_VOLUMES + list_top_items + 1);
+    memset(list_main, 0, sizeof(list_main));
     list_main[0] = "Disable Free Browse Mode";
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list_main[1] = strdup(buf);
@@ -2376,7 +2377,8 @@ void set_custom_zip_path() {
     int dir_len = strlen(custom_path);
     int numDirs = 0;
     char** dirs = gather_files(custom_path, NULL, &numDirs);
-    char** list = (char**) malloc((numDirs + 3) * sizeof(char*));
+    char** list = (char**)malloc((numDirs + 3) * sizeof(char*));
+    memset(list, 0, sizeof(list));
     list[0] = strdup("../");
     list[1] = strdup(">> Set current folder as default <<");
     list[numDirs + 2] = NULL; // Go Back Menu
@@ -2503,7 +2505,8 @@ int show_custom_zip_menu() {
     char** dirs = gather_files(custom_path, NULL, &numDirs);
     char** files = gather_files(custom_path, ".zip", &numFiles);
     total = numFiles + numDirs;
-    char** list = (char**) malloc((total + 2) * sizeof(char*));
+    char** list = (char**)malloc((total + 2) * sizeof(char*));
+    memset(list, 0, sizeof(list));
     list[0] = strdup("../");
     list[total + 1] = NULL;
 

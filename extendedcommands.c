@@ -198,7 +198,7 @@ int show_install_update_menu() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    memset(install_menu_items, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1);
+    memset(install_menu_items, 0, sizeof(install_menu_items));
 
     const char* headers[] = { "Install update from zip file", "", NULL };
 
@@ -1189,6 +1189,7 @@ int show_nandroid_menu() {
     // (MAX_NUM_MANAGED_VOLUMES + 1) for primary_path (/sdcard)
     // + 1 for extra NULL entry
     char* list[((MAX_NUM_MANAGED_VOLUMES + 1) * NANDROID_ACTIONS_NUM) + NANDROID_FIXED_ENTRIES + 1];
+    memset(list, 0, sizeof(list));
 
     // actions for primary_path
     add_nandroid_options_for_volume(list, primary_path, offset);
@@ -1533,7 +1534,7 @@ int show_advanced_menu() {
 
     const char* headers[] = { "Advanced Menu", NULL };
 
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1);
+    memset(list, 0, sizeof(list));
 
     // FIXED_ADVANCED_ENTRIES
     list[0] = "Report Error";        // 0

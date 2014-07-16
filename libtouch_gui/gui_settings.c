@@ -1257,7 +1257,7 @@ static void browse_background_image() {
     char list_prefix[] = "Image from ";
     char* list[MAX_NUM_MANAGED_VOLUMES + list_top_items + 1];
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + list_top_items + 1);
+    memset(list, 0, sizeof(list));
     list[0] = "Solid Color Background";
     list[1] = "Reset Koush Background";
     list[2] = "Reset PhilZ Touch Background";
@@ -2692,7 +2692,7 @@ static void custom_rom_target_volume(const char* source_path) {
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Create ROM in ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2731,7 +2731,7 @@ static void choose_nandroid_menu() {
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Choose from ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2935,7 +2935,7 @@ void check_recovery_lock() {
     int i = 0;
     int pass_chars = 0;
     char** pass_key = (char**) malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
-    memset(pass_key, 0, RECOVERY_LOCK_MAX_CHARS);
+    memset(pass_key, 0, sizeof(pass_key));
     ptr = strtok(line, ", \n");
     while (i < RECOVERY_LOCK_MAX_CHARS && ptr != NULL) {
         pass_key[i] = strdup(ptr);
