@@ -634,45 +634,47 @@ void show_mount_usb_storage_menu() {
 }
 
 int confirm_selection(const char* title, const char* confirm) {
-    struct stat info;
-    int ret = 0;
-
+    // check if recovery needs no confirm, many confirm or a few confirm menus
     char path[PATH_MAX];
+    int many_confirm;
     sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_NO_CONFIRM_FILE);
-    ensure_path_mounted(path);
-    if (0 == stat(path, &info))
+    if (file_found(path))
         return 1;
 
-    int many_confirm;
+    sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_MANY_CONFIRM_FILE);
+    many_confirm = file_found(path);
+
     char* confirm_str = strdup(confirm);
     const char* confirm_headers[] = { title, "  THIS CAN NOT BE UNDONE.", "", NULL };
+    int ret = 0;
+
     int old_val = ui_is_showing_back_button();
     ui_set_showing_back_button(0);
 
-    sprintf(path, "%s/%s", get_primary_storage_path(), RECOVERY_MANY_CONFIRM_FILE);
-    // ensure_path_mounted(path);
-    many_confirm = 0 == stat(path, &info);
-
     if (many_confirm) {
-        char* items[] = { "No",
-                          "No",
-                          "No",
-                          "No",
-                          "No",
-                          "No",
-                          "No",
-                          confirm_str, //" Yes -- wipe partition",   // [7]
-                          "No",
-                          "No",
-                          "No",
-                          NULL };
+        char* items[] = {
+            "No",
+            "No",
+            "No",
+            "No",
+            "No",
+            "No",
+            "No",
+            confirm_str, //" Yes -- wipe partition",   // [7]
+            "No",
+            "No",
+            "No",
+            NULL
+        };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         ret = (chosen_item == 7);
     } else {
-        char* items[] = { "No",
-                          confirm_str, //" Yes -- wipe partition",   // [1]
-                          "No",
-                          NULL };
+        char* items[] = {
+            "No",
+            confirm_str, //" Yes -- wipe partition",   // [1]
+            "No",
+            NULL
+        };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         ret = (chosen_item == 1);
     }
