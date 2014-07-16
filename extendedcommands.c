@@ -821,15 +821,15 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
 }
 
 int show_partition_menu() {
-    static const char* headers[] = { "Mounts and Storage Menu", NULL };
+    const char* headers[] = { "Mounts and Storage Menu", NULL };
 
-    static char* confirm_format = "Confirm format?";
-    static char* confirm = "Yes - Format";
+    char* confirm_format = "Confirm format?";
+    char* confirm = "Yes - Format";
     char confirm_string[255];
 
-    static MountMenuEntry* mount_menu = NULL;
-    static FormatMenuEntry* format_menu = NULL;
-    static char* list[256];
+    MountMenuEntry* mount_menu = NULL;
+    FormatMenuEntry* format_menu = NULL;
+    char* list[256];
 
     int i, mountable_volumes, formatable_volumes;
     int num_volumes;
@@ -993,82 +993,6 @@ int show_partition_menu() {
     return chosen_item;
 }
 
-#if 0
-void show_nandroid_advanced_restore_menu(const char* path) {
-    if (ensure_path_mounted(path) != 0) {
-        LOGE("Can't mount sdcard\n");
-        return;
-    }
-
-    static const char* advancedheaders[] = { "Choose an image to restore",
-                                             "",
-                                             "Choose an image to restore",
-                                             "first. The next menu will",
-                                             "show you more options.",
-                                             "",
-                                             NULL };
-
-    char tmp[PATH_MAX];
-    sprintf(tmp, "%s/clockworkmod/backup/", path);
-    char* file = choose_file_menu(tmp, NULL, advancedheaders);
-    if (file == NULL)
-        return;
-
-    static const char* headers[] = { "Advanced Restore", "", NULL };
-
-    static char* list[] = { "Restore boot",
-                            "Restore system (+/- preload)",
-                            "Restore data",
-                            "Restore cache",
-                            "Restore sd-ext",
-                            "Restore wimax",
-                            NULL };
-
-    if (0 != get_partition_device("wimax", tmp)) {
-        // disable wimax restore option
-        list[5] = NULL;
-    }
-
-    static char* confirm_restore = "Confirm restore?";
-
-    int chosen_item = get_menu_selection(headers, list, 0, 0);
-    switch (chosen_item) {
-        case 0: {
-            if (confirm_selection(confirm_restore, "Yes - Restore boot"))
-                nandroid_restore(file, 1, 0, 0, 0, 0, 0);
-            break;
-        }
-        case 1: {
-            if (confirm_selection(confirm_restore, "Yes - Restore system +/- preload"))
-                nandroid_restore(file, 0, 1, 0, 0, 0, 0);
-            break;
-        }
-        case 2: {
-            if (confirm_selection(confirm_restore, "Yes - Restore data"))
-                nandroid_restore(file, 0, 0, 1, 0, 0, 0);
-            break;
-        }
-        case 3: {
-            if (confirm_selection(confirm_restore, "Yes - Restore cache"))
-                nandroid_restore(file, 0, 0, 0, 1, 0, 0);
-            break;
-        }
-        case 4: {
-            if (confirm_selection(confirm_restore, "Yes - Restore sd-ext"))
-                nandroid_restore(file, 0, 0, 0, 0, 1, 0);
-            break;
-        }
-        case 5: {
-            if (confirm_selection(confirm_restore, "Yes - Restore wimax"))
-                nandroid_restore(file, 0, 0, 0, 0, 0, 1);
-            break;
-        }
-    }
-
-    free(file);
-}
-#endif
-
 static void run_dedupe_gc() {
     char path[PATH_MAX];
     char* fmt = "%s/clockworkmod/blobs";
@@ -1090,7 +1014,7 @@ static void run_dedupe_gc() {
 }
 
 void choose_default_backup_format() {
-    static const char* headers[] = { "Default Backup Format", "", NULL };
+    const char* headers[] = { "Default Backup Format", "", NULL };
 
     int fmt = nandroid_get_default_backup_format();
 
@@ -1171,11 +1095,11 @@ int show_nandroid_menu() {
     char* chosen_path = NULL;
     int action_entries_num = (num_extra_volumes + 1) * NANDROID_ACTIONS_NUM;
                                    // +1 for primary_path
-    static const char* headers[] = { "Backup and Restore", NULL };
+    const char* headers[] = { "Backup and Restore", NULL };
 
     // (MAX_NUM_MANAGED_VOLUMES + 1) for primary_path (/sdcard)
     // + 1 for extra NULL entry
-    static char* list[((MAX_NUM_MANAGED_VOLUMES + 1) * NANDROID_ACTIONS_NUM) + NANDROID_FIXED_ENTRIES + 1];
+    char* list[((MAX_NUM_MANAGED_VOLUMES + 1) * NANDROID_ACTIONS_NUM) + NANDROID_FIXED_ENTRIES + 1];
 
     // actions for primary_path
     add_nandroid_options_for_volume(list, primary_path, offset);
