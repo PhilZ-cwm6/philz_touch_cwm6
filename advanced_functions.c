@@ -88,8 +88,6 @@
 #include <selinux/label.h>
 #include <selinux/android.h>
 
-static int nochange;
-static int verbose;
 int bakupcon_to_file(const char *pathname, const char *filename)
 {
     int ret = 0;
@@ -145,7 +143,7 @@ int bakupcon_to_file(const char *pathname, const char *filename)
 }
 
 void create_external_selinux_container() {
-    static const char* headers[] = { "Choose a backup path", NULL };
+    const char* headers[] = { "Choose a backup path", NULL };
     char path[PATH_MAX];
     char* file;
 
@@ -1323,8 +1321,8 @@ void wipe_data_menu() {
 /*      Original code by PhilZ @xda      */
 /*****************************************/
 void show_multi_flash_menu() {
-    static const char* headers_dir[] = {"Choose a set of zip files", NULL};
-    static const char* headers[] = {"Select files to install...", NULL};
+    const char* headers_dir[] = { "Choose a set of zip files", NULL };
+    const char* headers[] = { "Select files to install...", NULL };
 
     char tmp[PATH_MAX];
     char* zip_folder = NULL;
@@ -1510,11 +1508,9 @@ static void choose_ors_volume() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {  "Save ors backups to:",
-                                NULL
-    };
+    const char* headers[] = { "Save ors backups to:", NULL };
 
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
     list[0] = strdup(primary_path);
 
@@ -1960,12 +1956,9 @@ static void show_custom_ors_menu() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {  "Search .ors script to run",
-                                "",
-                                NULL
-    };
+    const char* headers[] = { "Search .ors script to run", "", NULL };
 
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Search ";
     char buf[256];
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
@@ -2316,7 +2309,7 @@ void set_custom_zip_path() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = { "Setup Free Browse Mode", NULL };
+    const char* headers[] = { "Setup Free Browse Mode", NULL };
 
     int list_top_items = 2;
     char list_prefix[] = "Start Folder in ";
@@ -2457,10 +2450,7 @@ out:
 }
 
 int show_custom_zip_menu() {
-    static const char* headers[] = {
-        "Choose a zip to apply",
-        NULL
-    };
+    const char* headers[] = { "Choose a zip to apply", NULL };
 
     int ret = 0;
     read_config_file(PHILZ_SETTINGS_FILE, user_zip_folder.key, user_zip_folder.value, "");
@@ -2833,10 +2823,7 @@ void show_twrp_restore_menu(const char* backup_volume) {
         return;
     }
 
-    static const char* headers[] = {
-        "Choose a backup to restore",
-        NULL
-    };
+    const char* headers[] = { "Choose a backup to restore", NULL };
 
     char device_id[PROPERTY_VALUE_MAX];
     get_device_id(device_id);
@@ -2867,7 +2854,7 @@ static void custom_restore_handler(const char* backup_volume, const char* backup
     char backup_source[PATH_MAX];
     char* file = NULL;
     char* confirm_install = "Restore from this backup?";
-    static const char* headers[] = {"Choose a backup to restore", NULL};
+    const char* headers[] = { "Choose a backup to restore", NULL };
 
     sprintf(backup_path, "%s/%s", backup_volume, backup_folder);
     if (ensure_path_mounted(backup_path) != 0) {
@@ -3604,17 +3591,17 @@ int gen_twrp_md5sum(const char* backup_path) {
 
 // Device ID functions
 static void sanitize_device_id(char *device_id) {
-    const char* whitelist ="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._";
+    const char* whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-._";
+    char tmp[PROPERTY_VALUE_MAX];
     char str[PROPERTY_VALUE_MAX];
     char* c = str;
 
     strcpy(str, device_id);
-    char tmp[PROPERTY_VALUE_MAX];
     memset(tmp, 0, sizeof(tmp));
     while (*c) {
         if (strchr(whitelist, *c))
             strncat(tmp, c, 1);
-        c++;
+        ++c;
     }
     strcpy(device_id, tmp);
     return;
@@ -3833,11 +3820,7 @@ static void load_theme_settings() {
 #ifdef PHILZ_TOUCH_RECOVERY
     selective_load_theme_settings();
 #else
-    static const char* headers[] = {
-        "Select a theme to load",
-        "",
-        NULL
-    };
+    const char* headers[] = { "Select a theme to load", "", NULL };
 
     char themes_dir[PATH_MAX];
     char* theme_file;
@@ -3863,13 +3846,9 @@ static void load_theme_settings() {
 }
 
 static void import_export_settings() {
-    static const char* headers[] = {
-        "Save / Restore Settings",
-        "",
-        NULL
-    };
+    const char* headers[] = { "Save / Restore Settings", "", NULL };
 
-    static char* list[] = {
+    char* list[] = {
         "Backup Recovery Settings to sdcard",
         "Restore Recovery Settings from sdcard",
         "Save Current Theme to sdcard",
@@ -3939,7 +3918,7 @@ static void import_export_settings() {
 
 void show_philz_settings_menu()
 {
-    static const char* headers[] = {"PhilZ Settings", NULL};
+    const char* headers[] = { "PhilZ Settings", NULL };
 
     char item_check_root_and_recovery[MENU_MAX_COLS];
     char item_auto_restore[MENU_MAX_COLS];

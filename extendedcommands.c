@@ -192,7 +192,7 @@ int show_install_update_menu() {
     char buf[100];
     int i = 0, chosen_item = 0;
     // + 1 for last NULL item
-    static char* install_menu_items[MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1];
+    char* install_menu_items[MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1];
 
     char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
@@ -200,7 +200,7 @@ int show_install_update_menu() {
 
     memset(install_menu_items, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_INSTALL_ZIP_MENUS + 1);
 
-    static const char* headers[] = { "Install update from zip file", "", NULL };
+    const char* headers[] = { "Install update from zip file", "", NULL };
 
     // FIXED_TOP_INSTALL_ZIP_MENUS
     sprintf(buf, "Choose zip from %s", primary_path);
@@ -509,7 +509,7 @@ void show_choose_zip_menu(const char *mount_point) {
         return;
     }
 
-    static const char* headers[] = { "Choose a zip to apply", NULL };
+    const char* headers[] = { "Choose a zip to apply", NULL };
 
     char* file = choose_file_menu(mount_point, ".zip", headers);
     if (file == NULL)
@@ -542,7 +542,7 @@ void show_nandroid_restore_menu(const char* path) {
         return;
     }
 
-    static const char* headers[] = { "Choose an image to restore", NULL };
+    const char* headers[] = { "Choose an image to restore", NULL };
 
     char tmp[PATH_MAX];
     sprintf(tmp, "%s/clockworkmod/backup/", path);
@@ -562,7 +562,7 @@ void show_nandroid_delete_menu(const char* volume_path) {
         return;
     }
 
-    static const char* headers[] = { "Choose a backup to delete", NULL };
+    const char* headers[] = { "Choose a backup to delete", NULL };
     char path[PATH_MAX];
     char tmp[PATH_MAX];
     char* file;
@@ -614,14 +614,15 @@ void show_mount_usb_storage_menu() {
     if (!control_usb_storage(true))
         return;
 
-    static const char* headers[] = { "USB Mass Storage device",
-                                     "Leaving this menu unmounts",
-                                     "your SD card from your PC.",
-                                     "",
-                                     NULL
+    const char* headers[] = {
+        "USB Mass Storage device",
+        "Leaving this menu unmounts",
+        "your SD card from your PC.",
+        "",
+        NULL
     };
 
-    static char* list[] = { "Unmount", NULL };
+    char* list[] = { "Unmount", NULL };
 
     for (;;) {
         int chosen_item = get_menu_selection(headers, list, 0, 0);
@@ -1396,7 +1397,7 @@ void show_format_sdcard_menu(const char* path) {
 
     const char* headers[] = { "Format device:", path, "", NULL };
 
-    static char* list[] = {
+    char* list[] = {
         "default",
         "ext2",
         "ext3",
@@ -1475,7 +1476,7 @@ void show_format_sdcard_menu(const char* path) {
 
 static void show_partition_sdcard_menu(const char* path) {
     if (!can_partition(path)) {
-        ui_print("Can't partition device: %s\n", path);
+        LOGE("Can't partition device: %s\n", path);
         return;
     }
 
@@ -1517,7 +1518,7 @@ static void show_partition_sdcard_menu(const char* path) {
         return;
 
     int partition_type = get_menu_selection(fstype_headers, partition_types, 0, 0);
-    if (partition_type < 0)
+    if (partition_type < 0) // GO_BACK / REFRESH
         return;
 
     char cmd[PATH_MAX];
@@ -1542,12 +1543,14 @@ static void show_partition_sdcard_menu(const char* path) {
 }
 
 void show_advanced_power_menu() {
-    static const char* headers[] = { "Advanced power options", "", NULL };
+    const char* headers[] = { "Advanced power options", "", NULL };
 
-    char* list[] = { "Reboot Recovery",
-                     "Reboot to Bootloader",
-                     "Power Off",
-                     NULL };
+    char* list[] = {
+        "Reboot Recovery",
+        "Reboot to Bootloader",
+        "Power Off",
+        NULL
+    };
 
     char bootloader_mode[PROPERTY_VALUE_MAX];
 #ifdef BOOTLOADER_CMD_ARG
@@ -1586,13 +1589,13 @@ int show_advanced_menu() {
     char buf[80];
     int i = 0, j = 0, chosen_item = 0;
     /* Default number of entries if no compile-time extras are added */
-    static char* list[MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1];
+    char* list[MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1];
 
     char* primary_path = get_primary_storage_path();
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = { "Advanced Menu", NULL };
+    const char* headers[] = { "Advanced Menu", NULL };
 
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1);
 

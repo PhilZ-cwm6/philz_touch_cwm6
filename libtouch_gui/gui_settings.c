@@ -1373,21 +1373,20 @@ void refresh_touch_gui_settings(int on_start) {
 
 //start show GUI Preferences menu
 static void change_menu_color() {
-    const char* headers[] = {  "Change Menu Colors",
-                                NULL
-    };
+    const char* headers[] = { "Change Menu Colors", NULL };
 
-    char* list[] = { "Change Menu Text Color",
-                            "Change Menu Background Color",
-                            "Change Menu Background Alpha",
-                            "Change Menu Highlight Color",
-                            "Change Menu Highlight Alpha",
-                            "Change Menu Separator Color",
-                            "Change Menu Separator Alpha",
-                            "Change Log and Prints Color",
-                            "Change Header Text Color",
-                            "Change Battery and Clock Color",
-                            NULL
+    char* list[] = {
+        "Change Menu Text Color",
+        "Change Menu Background Color",
+        "Change Menu Background Alpha",
+        "Change Menu Highlight Color",
+        "Change Menu Highlight Alpha",
+        "Change Menu Separator Color",
+        "Change Menu Separator Alpha",
+        "Change Log and Prints Color",
+        "Change Header Text Color",
+        "Change Battery and Clock Color",
+        NULL
     };
 
     for (;;) {
@@ -1468,7 +1467,7 @@ static void change_menu_color() {
 // prefer second storage paths first, then primary storage
 static void fb2png_shot() {
     if (!libtouch_flags.board_use_fb2png) {
-        ui_print("fb2png not supported on this device!\n");
+        LOGE("fb2png not supported on this device!\n");
         return;
     }
 
@@ -1578,9 +1577,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 }
 
 static void gestures_action_setup() {
-    const char* headers[] = {  "Gesture Action Setup",
-                                NULL
-    };
+    const char* headers[] = { "Gesture Action Setup", NULL };
 
     char item_slide_left[MENU_MAX_COLS];
     char item_slide_right[MENU_MAX_COLS];
@@ -1588,21 +1585,23 @@ static void gestures_action_setup() {
     char item_press_lift[MENU_MAX_COLS];
     char item_press_move[MENU_MAX_COLS];
 
-    char* list[] = { item_slide_left,
-                    item_slide_right,
-                    item_double_tap,
-                    item_press_lift,
-                    item_press_move,
-                    NULL
+    char* list[] = {
+        item_slide_left,
+        item_slide_right,
+        item_double_tap,
+        item_press_lift,
+        item_press_move,
+        NULL
     };
 
-    char* gesture_action[] = { "disabled",
-                                      "screen shot", 
-                                      "aroma browser",
-                                      "set brightness",
-                                      "show log",
-                                      "toggle screen",
-                                      NULL
+    char* gesture_action[] = {
+        "disabled",
+        "screen shot", 
+        "aroma browser",
+        "set brightness",
+        "show log",
+        "toggle screen",
+        NULL
     };
 
     for (;;) {
@@ -2622,12 +2621,13 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
         ui_print("Can't mount %s\n", target_volume);
         return -1;
     }
+
     int ret = 0;
+    char cmd[PATH_MAX];
     char tmp_path[PATH_MAX];
     sprintf(tmp_path, "%s/%s/tmp", target_volume, CUSTOM_ROM_PATH);
 
     ui_print("\nPreparing ROM structure...\n");
-    char cmd[PATH_MAX];
     sprintf(cmd, "rm -rf %s", tmp_path);
     __system(cmd);
     sprintf(cmd, "mkdir -p %s/META-INF/com/google/android", tmp_path);
