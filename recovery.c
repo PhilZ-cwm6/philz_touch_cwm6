@@ -815,7 +815,7 @@ int install_zip(const char* packagefilepath) {
 void
 wipe_data(int confirm) {
     const char* headers[] = {
-        "Wipe all user data:",
+        "Wipe all user data ?",
         "   data | cache | datadata",
         "   sd-ext| android_secure",
         NULL

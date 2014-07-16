@@ -26,7 +26,7 @@ char* MENU_HEADERS[] = { NULL };
 
 char* MENU_ITEMS[] = { "Reboot System",
                        "Install Zip",
-                       "Wipe Options",
+                       "Wipe and Format Options",
                        "Backup and Restore",
                        "Mounts and Storage",
                        "Advanced",

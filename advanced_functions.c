@@ -1238,7 +1238,7 @@ void wipe_data_menu() {
         "Wipe Dalvik Cache",
         "Wipe Data|Cache|System",
         NULL,
-        "Wipe Custom Partitions",
+        "Custom Format Options",
         NULL
     };
 
@@ -1280,7 +1280,7 @@ void wipe_data_menu() {
             }
             case 3: {
                 const char* headers[] = {
-                    "Wipe user and system data:",
+                    "Wipe user and system data ?",
                     "   data | cache | datadata",
                     "   sd-ext | android_secure",
                     "   system | preload",
@@ -1301,7 +1301,7 @@ void wipe_data_menu() {
             }
             case 4: {
                 const char* headers[] = {
-                    "Wipe all user media:",
+                    "Wipe all user media ?",
                     "   /sdcard (/data/media)",
                     NULL
                 };
