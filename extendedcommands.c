@@ -682,6 +682,60 @@ int confirm_selection(const char* title, const char* confirm) {
     return ret;
 }
 
+#ifdef USE_F2FS
+static void format_ext4_or_f2fs(const char* volume) {
+    if (is_data_media_volume_path(volume))
+        return;
+
+    Volume* v = volume_for_path(volume);
+    if (v == NULL)
+        return;
+
+    const char* headers[] = { "Format device:", v->mount_point, "", NULL };
+
+    char* list[] = {
+        "default",
+        "ext4",
+        "f2fs",
+        NULL
+    };
+
+    char cmd[PATH_MAX];
+    char confirm[128];
+    int ret = -1;
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+
+    if (chosen_item < 0) // REFRESH or GO_BACK
+        return;
+
+    sprintf(confirm, "Format %s (%s) ?", v->mount_point, list[chosen_item]);
+    if (!confirm_selection(confirm, "Yes - Format device"))
+        return;
+
+    if (ensure_path_unmounted(v->mount_point) != 0)
+        return;
+
+    switch (chosen_item) {
+        case 0:
+            ret = format_volume(v->mount_point);
+            break;
+        case 1:
+        case 2:
+            ret = format_device(v->blk_device, v->mount_point, list[chosen_item]);
+            break;
+    }
+
+    // refresh volume table (Volume*) and recreate the /etc/fstab file for proper system mount command function
+    load_volume_table();
+    setup_data_media(1);
+
+    if (ret)
+        LOGE("Could not format %s (%s)\n", volume, list[chosen_item]);
+    else
+        ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
+}
+#endif
+
 typedef struct {
     char mount[255];
     char unmount[255];
@@ -765,60 +819,6 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
 
     return mfm;
 }
-
-#ifdef USE_F2FS
-static void format_ext4_or_f2fs(const char* volume) {
-    if (is_data_media_volume_path(volume))
-        return;
-
-    Volume* v = volume_for_path(volume);
-    if (v == NULL)
-        return;
-
-    const char* headers[] = { "Format device:", v->mount_point, "", NULL };
-
-    char* list[] = {
-        "default",
-        "ext4",
-        "f2fs",
-        NULL
-    };
-
-    char cmd[PATH_MAX];
-    char confirm[128];
-    int ret = -1;
-    int chosen_item = get_menu_selection(headers, list, 0, 0);
-
-    if (chosen_item < 0) // REFRESH or GO_BACK
-        return;
-
-    sprintf(confirm, "Format %s (%s) ?", v->mount_point, list[chosen_item]);
-    if (!confirm_selection(confirm, "Yes - Format device"))
-        return;
-
-    if (ensure_path_unmounted(v->mount_point) != 0)
-        return;
-
-    switch (chosen_item) {
-        case 0:
-            ret = format_volume(v->mount_point);
-            break;
-        case 1:
-        case 2:
-            ret = format_device(v->blk_device, v->mount_point, list[chosen_item]);
-            break;
-    }
-
-    // refresh volume table (Volume*) and recreate the /etc/fstab file for proper system mount command function
-    load_volume_table();
-    setup_data_media(1);
-
-    if (ret)
-        LOGE("Could not format %s (%s)\n", volume, list[chosen_item]);
-    else
-        ui_print("Done formatting %s (%s)\n", volume, list[chosen_item]);
-}
-#endif
 
 int show_partition_menu() {
     static const char* headers[] = { "Mounts and Storage Menu", NULL };
