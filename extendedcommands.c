@@ -954,9 +954,13 @@ int show_partition_menu() {
 
             // support user choice fstype when formatting external storage
             // ensure fstype==auto because most devices with internal vfat storage cannot be formatted to other types
+            // if e->type == auto and it is not an extra storage, it will be wiped using format_volume() below (rm -rf like)
             if (strcmp(e->type, "auto") == 0) {
-                show_format_sdcard_menu(e->path);
-                continue;
+                Volume* v = volume_for_path(e->path);
+                if (fs_mgr_is_voldmanaged(v) || can_partition(e->path)) {
+                    show_format_sdcard_menu(e->path);
+                    continue;
+                }
             }
 
 #ifdef USE_F2FS
@@ -1195,7 +1199,7 @@ out:
     return chosen_item;
 }
 
-static int can_partition(const char* volume) {
+int can_partition(const char* volume) {
     if (is_data_media_volume_path(volume))
         return 0;
 

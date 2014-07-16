@@ -35,6 +35,9 @@ int
 show_partition_menu();
 
 int
+can_partition(const char* path);
+
+int
 __system(const char *command);
 
 int
