@@ -59,6 +59,9 @@ int
 confirm_selection(const char* title, const char* confirm);
 
 int
+confirm_with_headers(const char** confirm_headers, const char* confirm);
+
+int
 run_and_remove_extendedcommand();
 
 int
