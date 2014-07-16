@@ -81,18 +81,15 @@ int device_wipe_data();
 
 // main menu items for prompt_and_wait()
 #define ITEM_REBOOT          0
-#define ITEM_APPLY_EXT       1
-#define ITEM_APPLY_SDCARD    1  // historical synonym for ITEM_APPLY_EXT
-#define ITEM_APPLY_ZIP       1  // used for installing an update from a zip
+#define ITEM_APPLY_ZIP       1
 #define ITEM_WIPE_DATA       2
-#define ITEM_WIPE_CACHE      3
-// unused in cwr
-#define ITEM_APPLY_CACHE     4
-#define ITEM_NANDROID        4
-#define ITEM_PARTITION       5
-#define ITEM_ADVANCED        6
-#define ITEM_PHILZ_MENU      7
-#define ITEM_POWEROFF        8
+#define ITEM_NANDROID        3
+#define ITEM_PARTITION       4
+#define ITEM_ADVANCED        5
+#define ITEM_PHILZ_MENU      6
+#define ITEM_POWEROFF        7
+#define ITEM_WIPE_CACHE      8  // optional device menu action
+
 
 // Header text to display above the main menu.
 extern char* MENU_HEADERS[];

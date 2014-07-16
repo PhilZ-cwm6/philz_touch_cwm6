@@ -24,10 +24,9 @@
 
 char* MENU_HEADERS[] = { NULL };
 
-char* MENU_ITEMS[] = { "Reboot System Now",
+char* MENU_ITEMS[] = { "Reboot System",
                        "Install Zip",
-                       "Wipe Data/Factory Reset",
-                       "Wipe Cache Partition",
+                       "Wipe Options",
                        "Backup and Restore",
                        "Mounts and Storage",
                        "Advanced",

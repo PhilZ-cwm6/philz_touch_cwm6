@@ -34,6 +34,9 @@ show_nandroid_menu();
 int
 show_partition_menu();
 
+void
+show_partition_format_menu();
+
 int
 can_partition(const char* path);
 

@@ -1232,19 +1232,20 @@ int write_config_file(const char* config_file, const char* key, const char* valu
 
 // start wipe data and system options and menu
 void wipe_data_menu() {
-    static const char* headers[] = {  "Choose wipe option",
-                                NULL
-    };
+    const char* headers[] = { "Choose wipe option", NULL };
 
     char* list[] = {
-        "Wipe Data/Factory Reset",
-        "Clean to Install a New ROM",
+        "Factory Reset",
+        "Wipe Cache",
+        "Wipe Dalvik Cache",
+        "Wipe Data|Cache|System",
         NULL,
+        "Wipe Custom Partitions",
         NULL
     };
 
     if (is_data_media())
-        list[2] = "Wipe user media (/data/media)";
+        list[4] = "Wipe User Media";
 
     int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
     switch (chosen_item) {
@@ -1253,8 +1254,37 @@ void wipe_data_menu() {
             break;
         }
         case 1: {
-            //clean for new ROM: formats /data, /datadata, /cache, /system, /preload, /sd-ext, .android_secure
-            if (confirm_selection("Wipe data, system +/- preload?", "Yes, I will install a new ROM!")) {
+            if (confirm_selection("Wipe cache partition ?", "Yes - Wipe cache")) {
+                ui_print("\n-- Wiping cache...\n");
+                if (erase_volume("/cache") == 0)
+                    ui_print("Cache wipe complete.\n");
+            }
+            break;
+        }
+        case 2: {
+            if (0 != ensure_path_mounted("/data"))
+                break;
+            if (volume_for_path("/sd-ext") != NULL)
+                ensure_path_mounted("/sd-ext");
+            ensure_path_mounted("/cache");
+            if (confirm_selection("Wipe dalvik cache ?", "Yes - Wipe dalvik cache")) {
+                __system("rm -r /data/dalvik-cache");
+                __system("rm -r /cache/dalvik-cache");
+                __system("rm -r /sd-ext/dalvik-cache");
+                ui_print("Dalvik Cache wiped.\n");
+            }
+            break;
+        }
+        case 3: {
+            const char* headers[] = {
+                "Wipe user and system data:",
+                "   data | cache | datadata",
+                "   sd-ext | android_secure",
+                "   system | preload",
+                NULL
+            };
+
+            if (confirm_with_headers(headers, "Yes - Wipe user & system data")) {
                 wipe_data(false);
                 ui_print("-- Wiping system...\n");
                 erase_volume("/system");
@@ -1262,16 +1292,26 @@ void wipe_data_menu() {
                     ui_print("-- Wiping preload...\n");
                     erase_volume("/preload");
                 }
-                ui_print("Now flash a new ROM!\n");
+                ui_print("Now flash a new ROM.\n");
             }
             break;
         }
-        case 2: {
-            if (confirm_selection("Confirm wipe of all user media?", "Yes - delete all user media")) {
+        case 4: {
+            const char* headers[] = {
+                "Wipe all user media:",
+                "   /sdcard (/data/media)",
+                NULL
+            };
+
+            if (confirm_with_headers(headers, "Yes - Wipe all user media")) {
                 ui_print("\n-- Wiping media...\n");
                 erase_volume("/data/media");
                 ui_print("Media wipe complete.\n");
             }
+            break;
+        }
+        case 5: {
+            show_partition_format_menu();
             break;
         }
     }

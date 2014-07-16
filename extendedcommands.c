@@ -872,6 +872,102 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
+// only show format options
+void show_partition_format_menu() {
+    const char* headers[] = { "Format partitions menu", NULL };
+
+    char* confirm_format = "Confirm format?";
+    char* confirm = "Yes - Format";
+    char confirm_string[255];
+
+    FormatMenuEntry* format_menu = NULL;
+    char* list[256];
+
+    int i = 0;
+    int formatable_volumes = 0;
+    int num_volumes;
+    int chosen_item = 0;
+
+    num_volumes = get_num_volumes();
+
+    if (!num_volumes)
+        return;
+
+    format_menu = malloc(num_volumes * sizeof(FormatMenuEntry));
+
+    for (i = 0; i < num_volumes; i++) {
+        Volume* v = get_device_volumes() + i;
+
+        if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point)) {
+            continue;
+        }
+
+        MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
+
+        if (mfm.can_format) {
+            sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
+            sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
+            sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
+            ++formatable_volumes;
+        }
+    }
+
+    for (;;) {
+        for (i = 0; i < formatable_volumes; i++) {
+            FormatMenuEntry* e = &format_menu[i];
+            list[i] = e->txt;
+        }
+
+        if (!is_data_media()) {
+            list[formatable_volumes] = NULL;
+        } else {
+            list[formatable_volumes] = "format /data and /data/media (/sdcard)";
+            list[formatable_volumes + 1] = NULL;
+        }
+
+        chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item < 0)    // GO_BACK / REFRESH
+            break;
+
+        if (is_data_media() && chosen_item == formatable_volumes) {
+            if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
+                continue;
+            preserve_data_media(0);
+            ui_print("Formatting /data...\n");
+            if (0 != format_volume("/data"))
+                LOGE("Error formatting /data!\n");
+            else
+                ui_print("Done.\n");
+            preserve_data_media(1);
+            setup_data_media(1); // recreate /data/media with proper permissions, mount /data and unmount when done
+        } else if (chosen_item < formatable_volumes) {
+            FormatMenuEntry* e = &format_menu[chosen_item];
+            sprintf(confirm_string, "%s - %s", e->path, confirm_format);
+
+            // support user choice fstype when formatting external storage
+            // ensure fstype==auto because most devices with internal vfat storage cannot be formatted to other types
+            // if e->type == auto and it is not an extra storage, it will be wiped using format_volume() below (rm -rf like)
+            if (strcmp(e->type, "auto") == 0) {
+                Volume* v = volume_for_path(e->path);
+                if (fs_mgr_is_voldmanaged(v) || can_partition(e->path)) {
+                    show_format_sdcard_menu(e->path);
+                    continue;
+                }
+            }
+
+            if (!confirm_selection(confirm_string, confirm))
+                continue;
+            ui_print("Formatting %s...\n", e->path);
+            if (0 != format_volume(e->path))
+                ui_print("Error formatting %s!\n", e->path);
+            else
+                ui_print("Done.\n");
+        }
+    }
+
+    free(format_menu);
+}
+
 int show_partition_menu() {
     const char* headers[] = { "Mounts and Storage Menu", NULL };
 
@@ -1481,9 +1577,9 @@ void show_advanced_power_menu() {
 }
 
 #ifdef ENABLE_LOKI
-#define FIXED_ADVANCED_ENTRIES 6
-#else
 #define FIXED_ADVANCED_ENTRIES 5
+#else
+#define FIXED_ADVANCED_ENTRIES 4
 #endif
 
 int show_advanced_menu() {
@@ -1500,14 +1596,13 @@ int show_advanced_menu() {
 
     memset(list, 0, MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1);
 
-    list[0] = "Wipe Dalvik Cache";   // 0
-    list[1] = "Report Error";        // 1
-    list[2] = "Key Test";            // 2
-    list[3] = "Show log";            // 3
-    list[4] = NULL;                  // 4 (/data/media/0 toggle)
-
+    // FIXED_ADVANCED_ENTRIES
+    list[0] = "Report Error";        // 0
+    list[1] = "Key Test";            // 1
+    list[2] = "Show log";            // 2
+    list[3] = NULL;                  // 3 (/data/media/0 toggle)
 #ifdef ENABLE_LOKI
-    list[5] = NULL;
+    list[4] = NULL;                  // 4
 #endif
 
     char list_prefix[] = "Partition ";
@@ -1532,21 +1627,21 @@ int show_advanced_menu() {
         if (is_data_media()) {
             ensure_path_mounted("/data");
             if (use_migrated_storage())
-                list[4] = "Sdcard target: /data/media/0";
-            else list[4] = "Sdcard target: /data/media";
+                list[3] = "Sdcard target: /data/media/0";
+            else list[3] = "Sdcard target: /data/media";
         }
 
 #ifdef ENABLE_LOKI
         char item_loki_toggle_menu[MENU_MAX_COLS];
         int enabled = loki_support_enabled();
         if (enabled < 0) {
-            list[5] = NULL;
+            list[4] = NULL;
         } else {
             if (enabled)
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "(x)");
             else
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
-            list[5] = item_loki_toggle_menu;
+            list[4] = item_loki_toggle_menu;
         }
 #endif
 
@@ -1555,25 +1650,10 @@ int show_advanced_menu() {
             break;
         switch (chosen_item) {
             case 0: {
-                if (0 != ensure_path_mounted("/data"))
-                    break;
-                if (volume_for_path("/sd-ext") != NULL)
-                    ensure_path_mounted("/sd-ext");
-                ensure_path_mounted("/cache");
-                if (confirm_selection("Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
-                    __system("rm -r /data/dalvik-cache");
-                    __system("rm -r /cache/dalvik-cache");
-                    __system("rm -r /sd-ext/dalvik-cache");
-                    ui_print("Dalvik Cache wiped.\n");
-                }
-                ensure_path_unmounted("/data");
-                break;
-            }
-            case 1: {
                 handle_failure();
                 break;
             }
-            case 2: {
+            case 1: {
                 ui_print("Outputting key codes.\n");
                 ui_print("Go back to end debugging.\n");
                 int key;
@@ -1585,7 +1665,7 @@ int show_advanced_menu() {
                 } while (action != GO_BACK);
                 break;
             }
-            case 3: {
+            case 2: {
 #ifdef PHILZ_TOUCH_RECOVERY
                 show_log_menu();
 #else
@@ -1595,7 +1675,7 @@ int show_advanced_menu() {
 #endif
                 break;
             }
-            case 4: {
+            case 3: {
                 if (is_data_media()) {
                     // /data is mounted above in the for() loop: we can directly call use_migrated_storage()
                     if (use_migrated_storage()) {
@@ -1612,7 +1692,7 @@ int show_advanced_menu() {
                 break;
             }
 #ifdef ENABLE_LOKI
-            case 5: {
+            case 4: {
                 toggle_loki_support();
                 break;
             }

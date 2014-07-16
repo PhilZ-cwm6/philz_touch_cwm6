@@ -814,7 +814,14 @@ int install_zip(const char* packagefilepath) {
 // remove static to be able to call it from ors menu
 void
 wipe_data(int confirm) {
-    if (confirm && !confirm_selection( "Confirm wipe of all user data?", "Yes - Wipe all user data")) {
+    const char* headers[] = {
+        "Wipe all user data:",
+        "   data | cache | datadata",
+        "   sd-ext| android_secure",
+        NULL
+    };
+
+    if (confirm && !confirm_with_headers(headers, "Yes - Wipe all user data")) {
         return;
     }
 
@@ -940,11 +947,13 @@ prompt_and_wait(int status) {
                     break;
 
                 case ITEM_WIPE_CACHE:
-                    if (ui_IsTextVisible() && !confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
-                        break;
-                    ui_print("\n-- Wiping cache...\n");
-                    erase_volume("/cache");
-                    ui_print("Cache wipe complete.\n");
+                    if (ui_IsTextVisible()) {
+                        wipe_data_menu();
+                    } else {
+                        ui_print("\n-- Wiping cache...\n");
+                        erase_volume("/cache");
+                        ui_print("Cache wipe complete.\n");
+                    }
                     if (!ui_IsTextVisible()) return;
                     break;
 
