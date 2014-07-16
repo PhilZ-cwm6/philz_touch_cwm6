@@ -45,36 +45,53 @@ show_advanced_menu();
 
 void show_format_sdcard_menu(const char* volume);
 
-int has_datadata();
+int
+has_datadata();
 
-void handle_failure();
+void
+handle_failure();
 
-int show_install_update_menu();
+int
+show_install_update_menu();
 
-int confirm_selection(const char* title, const char* confirm);
+int
+confirm_selection(const char* title, const char* confirm);
 
-int run_and_remove_extendedcommand();
+int
+run_and_remove_extendedcommand();
 
-int verify_root_and_recovery();
+int
+verify_root_and_recovery();
 
-void write_recovery_version();
+void
+write_recovery_version();
 
-void free_string_array(char** array);
+void
+free_string_array(char** array);
 
-int is_path_mounted(const char* path);
+int
+is_path_mounted(const char* path);
 
-int volume_main(int argc, char **argv);
+int
+volume_main(int argc, char **argv);
 
-void show_advanced_power_menu();
+void
+show_advanced_power_menu();
 
 #ifdef USE_F2FS
-extern int make_f2fs_main(int argc, char **argv);
-extern int fsck_f2fs_main(int argc, char **argv);
-extern int fibmap_main(int argc, char **argv);
+extern int
+make_f2fs_main(int argc, char **argv);
+
+extern int
+fsck_f2fs_main(int argc, char **argv);
+
+extern int
+fibmap_main(int argc, char **argv);
 #endif
 
 #ifdef ENABLE_LOKI
-int loki_support_enabled();
+int
+loki_support_enabled();
 #endif
 
 #endif  // __EXTENDEDCOMMANDS_H
