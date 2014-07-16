@@ -966,7 +966,7 @@ prompt_and_wait(int status) {
                     break;
 
                 case ITEM_PARTITION:
-                    ret = show_partition_menu();
+                    ret = show_partition_mounts_menu();
                     break;
 
                 case ITEM_ADVANCED:

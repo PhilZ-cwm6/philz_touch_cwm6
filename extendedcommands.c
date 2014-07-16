@@ -873,7 +873,7 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
-// only show format options
+// show format options menu
 void show_partition_format_menu() {
     const char* headers[] = { "Format partitions menu", NULL };
 
@@ -891,8 +891,10 @@ void show_partition_format_menu() {
 
     num_volumes = get_num_volumes();
 
-    if (!num_volumes)
+    if (!num_volumes) {
+        LOGE("empty fstab list!\n");
         return;
+    }
 
     format_menu = malloc(num_volumes * sizeof(FormatMenuEntry));
 
@@ -905,111 +907,6 @@ void show_partition_format_menu() {
 
         MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
 
-        if (mfm.can_format) {
-            sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
-            sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
-            sprintf(format_menu[formatable_volumes].type, "%s", v->fs_type);
-            ++formatable_volumes;
-        }
-    }
-
-    for (;;) {
-        for (i = 0; i < formatable_volumes; i++) {
-            FormatMenuEntry* e = &format_menu[i];
-            list[i] = e->txt;
-        }
-
-        if (!is_data_media()) {
-            list[formatable_volumes] = NULL;
-        } else {
-            list[formatable_volumes] = "format /data and /data/media (/sdcard)";
-            list[formatable_volumes + 1] = NULL;
-        }
-
-        chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item < 0)    // GO_BACK / REFRESH
-            break;
-
-        if (is_data_media() && chosen_item == formatable_volumes) {
-            if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
-                continue;
-            preserve_data_media(0);
-            ui_print("Formatting /data...\n");
-            if (0 != format_volume("/data"))
-                LOGE("Error formatting /data!\n");
-            else
-                ui_print("Done.\n");
-            preserve_data_media(1);
-            setup_data_media(1); // recreate /data/media with proper permissions, mount /data and unmount when done
-        } else if (chosen_item < formatable_volumes) {
-            FormatMenuEntry* e = &format_menu[chosen_item];
-            sprintf(confirm_string, "%s - %s", e->path, confirm_format);
-
-            // support user choice fstype when formatting external storage
-            // ensure fstype==auto because most devices with internal vfat storage cannot be formatted to other types
-            // if e->type == auto and it is not an extra storage, it will be wiped using format_volume() below (rm -rf like)
-            if (strcmp(e->type, "auto") == 0) {
-                Volume* v = volume_for_path(e->path);
-                if (fs_mgr_is_voldmanaged(v) || can_partition(e->path)) {
-                    show_format_sdcard_menu(e->path);
-                    continue;
-                }
-            }
-
-            if (!confirm_selection(confirm_string, confirm))
-                continue;
-            ui_print("Formatting %s...\n", e->path);
-            if (0 != format_volume(e->path))
-                ui_print("Error formatting %s!\n", e->path);
-            else
-                ui_print("Done.\n");
-        }
-    }
-
-    free(format_menu);
-}
-
-int show_partition_menu() {
-    const char* headers[] = { "Mounts and Storage Menu", NULL };
-
-    char* confirm_format = "Confirm format?";
-    char* confirm = "Yes - Format";
-    char confirm_string[255];
-
-    MountMenuEntry* mount_menu = NULL;
-    FormatMenuEntry* format_menu = NULL;
-    char* list[256];
-
-    int i, mountable_volumes, formatable_volumes;
-    int num_volumes;
-    int chosen_item = 0;
-
-    num_volumes = get_num_volumes();
-
-    if (!num_volumes)
-        return 0;
-
-    mountable_volumes = 0;
-    formatable_volumes = 0;
-
-    mount_menu = malloc(num_volumes * sizeof(MountMenuEntry));
-    format_menu = malloc(num_volumes * sizeof(FormatMenuEntry));
-
-    for (i = 0; i < num_volumes; i++) {
-        Volume* v = get_device_volumes() + i;
-
-        if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point)) {
-            continue;
-        }
-
-        MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
-
-        if (mfm.can_mount) {
-            sprintf(mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
-            sprintf(mount_menu[mountable_volumes].unmount, "unmount %s", v->mount_point);
-            sprintf(mount_menu[mountable_volumes].path, "%s", v->mount_point);
-            ++mountable_volumes;
-        }
         if (mfm.can_format) {
             sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
             sprintf(format_menu[formatable_volumes].path, "%s", v->mount_point);
@@ -1022,83 +919,50 @@ int show_partition_menu() {
     int enable_f2fs_ext4_conversion = 0;
 #endif
     for (;;) {
-        for (i = 0; i < mountable_volumes; i++) {
-            MountMenuEntry* e = &mount_menu[i];
-            if (is_path_mounted(e->path))
-                list[i] = e->unmount;
-            else
-                list[i] = e->mount;
-        }
-
         for (i = 0; i < formatable_volumes; i++) {
             FormatMenuEntry* e = &format_menu[i];
-            list[mountable_volumes + i] = e->txt;
+            list[i] = e->txt;
         }
 
         if (!is_data_media()) {
-            list[mountable_volumes + formatable_volumes] = "mount USB storage";
-            list[mountable_volumes + formatable_volumes + 1] = NULL;
+            list[formatable_volumes] = NULL;
 #ifdef USE_F2FS
-            list[mountable_volumes + formatable_volumes + 1] = "toggle f2fs <-> ext4 migration";
-            list[mountable_volumes + formatable_volumes + 2] = NULL;
+            list[formatable_volumes] = "toggle f2fs <-> ext4 migration";
+            list[formatable_volumes + 1] = NULL;
 #endif
         } else {
-            list[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
-            list[mountable_volumes + formatable_volumes + 1] = "mount USB storage";
-            list[mountable_volumes + formatable_volumes + 2] = NULL;
+            list[formatable_volumes] = "format /data and /data/media (/sdcard)";
+            list[formatable_volumes + 1] = NULL;
 #ifdef USE_F2FS
-            list[mountable_volumes + formatable_volumes + 2] = "toggle f2fs <-> ext4 migration";
-            list[mountable_volumes + formatable_volumes + 3] = NULL;
+            list[formatable_volumes + 1] = "toggle f2fs <-> ext4 migration";
+            list[formatable_volumes + 2] = NULL;
 #endif
         }
 
         chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK || chosen_item == REFRESH)
+        if (chosen_item < 0)    // GO_BACK / REFRESH
             break;
-        if (chosen_item == (mountable_volumes + formatable_volumes)) {
-            if (!is_data_media()) {
-                show_mount_usb_storage_menu();
-            } else {
-                if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
-                    continue;
-                // sets is_data_media_preserved() to 0
-                // this will truly format /data as a partition (format_device() and format_volume())
-                preserve_data_media(0);
+
+        if (is_data_media() && chosen_item == formatable_volumes) {
+            if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
+                continue;
+            preserve_data_media(0);
 #ifdef USE_F2FS
-                if (enable_f2fs_ext4_conversion) {
-                    format_ext4_or_f2fs("/data");
-                } else
+            if (enable_f2fs_ext4_conversion) {
+                format_ext4_or_f2fs("/data");
+            } else
 #endif
-                {
-                    ui_print("Formatting /data...\n");
-                    if (0 != format_volume("/data"))
-                        ui_print("Error formatting /data!\n");
-                    else
-                        ui_print("Done.\n");
-                }
-                preserve_data_media(1);
-
-                // recreate /data/media with proper permissions, mount /data and unmount when done
-                setup_data_media(1);
+            {
+                ui_print("Formatting /data...\n");
+                if (0 != format_volume("/data"))
+                    LOGE("Error formatting /data!\n");
+                else
+                    ui_print("Done.\n");
             }
-        } else if (is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1)) {
-            show_mount_usb_storage_menu();
-        } else if (chosen_item < mountable_volumes) {
-            MountMenuEntry* e = &mount_menu[chosen_item];
-
-            if (is_path_mounted(e->path)) {
-                preserve_data_media(0);
-                if (0 != ensure_path_unmounted(e->path))
-                    ui_print("Error unmounting %s!\n", e->path);
-                preserve_data_media(1);
-            } else {
-                if (0 != ensure_path_mounted(e->path))
-                    ui_print("Error mounting %s!\n", e->path);
-            }
-        } else if (chosen_item < (mountable_volumes + formatable_volumes)) {
-            chosen_item = chosen_item - mountable_volumes;
+            preserve_data_media(1);
+            setup_data_media(1); // recreate /data/media with proper permissions, mount /data and unmount when done
+        } else if (chosen_item < formatable_volumes) {
             FormatMenuEntry* e = &format_menu[chosen_item];
-
             sprintf(confirm_string, "%s - %s", e->path, confirm_format);
 
             // support user choice fstype when formatting external storage
@@ -1127,22 +991,94 @@ int show_partition_menu() {
                     continue;
                 ui_print("Formatting %s...\n", e->path);
                 if (0 != format_volume(e->path))
-                    ui_print("Error formatting %s!\n", e->path);
+                    LOGE("Error formatting %s!\n", e->path);
                 else
                     ui_print("Done.\n");
             }
         }
 #ifdef USE_F2FS
-        else if ((is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 2)) ||
-                    (!is_data_media() && chosen_item == (mountable_volumes + formatable_volumes + 1))) {
+        else if ((is_data_media() && chosen_item == (formatable_volumes + 1)) ||
+                    (!is_data_media() && chosen_item == (formatable_volumes))) {
             enable_f2fs_ext4_conversion ^= 1;
             ui_print("ext4 <-> f2fs conversion %s\n", enable_f2fs_ext4_conversion ? "enabled" : "disabled");
         }
 #endif
     }
 
-    free(mount_menu);
     free(format_menu);
+}
+
+int show_partition_mounts_menu() {
+    const char* headers[] = { "Mounts and Storage Menu", NULL };
+
+    MountMenuEntry* mount_menu = NULL;
+    char* list[256];
+
+    int i = 0;
+    int mountable_volumes = 0;
+    int num_volumes;
+    int chosen_item = 0;
+
+    num_volumes = get_num_volumes();
+
+    if (!num_volumes) {
+        LOGE("empty fstab list!\n");
+        return GO_BACK;
+    }
+
+    mount_menu = malloc(num_volumes * sizeof(MountMenuEntry));
+
+    for (i = 0; i < num_volumes; i++) {
+        Volume* v = get_device_volumes() + i;
+
+        if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point)) {
+            continue;
+        }
+
+        MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
+
+        if (mfm.can_mount) {
+            sprintf(mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
+            sprintf(mount_menu[mountable_volumes].unmount, "unmount %s", v->mount_point);
+            sprintf(mount_menu[mountable_volumes].path, "%s", v->mount_point);
+            ++mountable_volumes;
+        }
+    }
+
+    for (;;) {
+        for (i = 0; i < mountable_volumes; i++) {
+            MountMenuEntry* e = &mount_menu[i];
+            if (is_path_mounted(e->path))
+                list[i] = e->unmount;
+            else
+                list[i] = e->mount;
+        }
+
+        list[mountable_volumes] = "mount USB storage";
+        list[mountable_volumes + 1] = NULL;
+
+        chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item < 0) // GO_BACK / REFRESH
+            break;
+
+        if (chosen_item == (mountable_volumes)) {
+            show_mount_usb_storage_menu();
+        } else if (chosen_item < mountable_volumes) {
+            MountMenuEntry* e = &mount_menu[chosen_item];
+
+            if (is_path_mounted(e->path)) {
+                preserve_data_media(0);
+                if (0 != ensure_path_unmounted(e->path))
+                    LOGE("Error unmounting %s!\n", e->path);
+                preserve_data_media(1);
+            } else {
+                if (0 != ensure_path_mounted(e->path))
+                    LOGE("Error mounting %s!\n", e->path);
+            }
+        }
+    }
+
+    free(mount_menu);
     return chosen_item;
 }
 
@@ -1278,7 +1214,7 @@ int show_nandroid_menu() {
 
     for (;;) {
         chosen_item = get_filtered_menu_selection(headers, list, 0, 0, offset);
-        if (chosen_item == GO_BACK || chosen_item == REFRESH)
+        if (chosen_item < 0) // GO_BACK / REFRESH
             break;
 
         // fixed bottom entries

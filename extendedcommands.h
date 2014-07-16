@@ -32,7 +32,7 @@ int
 show_nandroid_menu();
 
 int
-show_partition_menu();
+show_partition_mounts_menu();
 
 void
 show_partition_format_menu();
