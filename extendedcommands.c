@@ -590,50 +590,6 @@ void show_nandroid_delete_menu(const char* volume_path) {
     }
 }
 
-static int control_usb_storage(bool on) {
-    int i = 0;
-    int num = 0;
-
-    for (i = 0; i < get_num_volumes(); i++) {
-        Volume *v = get_device_volumes() + i;
-        if (fs_mgr_is_voldmanaged(v) && vold_is_volume_available(v->mount_point)) {
-            if (on) {
-                vold_share_volume(v->mount_point);
-            } else {
-                vold_unshare_volume(v->mount_point, 1);
-            }
-            property_set("sys.storage.ums_enabled", on ? "1" : "0");
-            num++;
-        }
-    }
-    return num;
-}
-
-void show_mount_usb_storage_menu() {
-    // Enable USB storage using vold
-    if (!control_usb_storage(true))
-        return;
-
-    const char* headers[] = {
-        "USB Mass Storage device",
-        "Leaving this menu unmounts",
-        "your SD card from your PC.",
-        "",
-        NULL
-    };
-
-    char* list[] = { "Unmount", NULL };
-
-    for (;;) {
-        int chosen_item = get_menu_selection(headers, list, 0, 0);
-        if (chosen_item == GO_BACK || chosen_item == 0)
-            break;
-    }
-
-    // Disable USB storage
-    control_usb_storage(false);
-}
-
 int confirm_selection(const char* title, const char* confirm) {
     // check if recovery needs no confirm, many confirm or a few confirm menus
     char path[PATH_MAX];
@@ -735,6 +691,55 @@ int confirm_with_headers(const char** confirm_headers, const char* confirm) {
     return ret;
 }
 
+/****************************/
+/* Format and mount options */
+/****************************/
+// mount usb storage
+static int control_usb_storage(bool on) {
+    int i = 0;
+    int num = 0;
+
+    for (i = 0; i < get_num_volumes(); i++) {
+        Volume *v = get_device_volumes() + i;
+        if (fs_mgr_is_voldmanaged(v) && vold_is_volume_available(v->mount_point)) {
+            if (on) {
+                vold_share_volume(v->mount_point);
+            } else {
+                vold_unshare_volume(v->mount_point, 1);
+            }
+            property_set("sys.storage.ums_enabled", on ? "1" : "0");
+            num++;
+        }
+    }
+    return num;
+}
+
+static void show_mount_usb_storage_menu() {
+    // Enable USB storage using vold
+    if (!control_usb_storage(true))
+        return;
+
+    const char* headers[] = {
+        "USB Mass Storage device",
+        "Leaving this menu unmounts",
+        "your SD card from your PC.",
+        "",
+        NULL
+    };
+
+    char* list[] = { "Unmount", NULL };
+
+    for (;;) {
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK || chosen_item == 0)
+            break;
+    }
+
+    // Disable USB storage
+    control_usb_storage(false);
+}
+
+// ext4 <-> f2fs conversion
 #ifdef USE_F2FS
 static void format_ext4_or_f2fs(const char* volume) {
     if (is_data_media_volume_path(volume))
@@ -873,7 +878,6 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
     return mfm;
 }
 
-// show format options menu
 void show_partition_format_menu() {
     const char* headers[] = { "Format partitions menu", NULL };
 
@@ -1081,6 +1085,7 @@ int show_partition_mounts_menu() {
     free(mount_menu);
     return chosen_item;
 }
+// ------ End Format and mount options
 
 static void run_dedupe_gc() {
     char path[PATH_MAX];
