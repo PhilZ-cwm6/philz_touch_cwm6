@@ -807,50 +807,47 @@ typedef struct {
 } FormatMenuEntry;
 
 typedef struct {
-    char *name;
+    char *path;
+    char *type;
     int can_mount;
     int can_format;
 } MFMatrix;
 
-MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
-    MFMatrix mfm = { mount_point, 1, 1 };
-
-    const int NUM_FS_TYPES = 6;
-    MFMatrix *fs_matrix = malloc(NUM_FS_TYPES * sizeof(MFMatrix));
-    // Defined capabilities:   fs_type     mnt fmt
-    fs_matrix[0] = (MFMatrix){ "bml",       0,  1 };
-    fs_matrix[1] = (MFMatrix){ "datamedia", 0,  1 };
-    fs_matrix[2] = (MFMatrix){ "emmc",      0,  1 };
-    fs_matrix[3] = (MFMatrix){ "mtd",       0,  0 };
-    fs_matrix[4] = (MFMatrix){ "ramdisk",   0,  0 };
-    fs_matrix[5] = (MFMatrix){ "swap",      0,  0 };
-
+static void get_mnt_fmt_capabilities(MFMatrix *mfm) {
     const int NUM_MNT_PNTS = 6;
-    MFMatrix *mp_matrix = malloc(NUM_MNT_PNTS * sizeof(MFMatrix));
+    const int NUM_FS_TYPES = 6;
+    MFMatrix mp_matrix[NUM_MNT_PNTS];
+    MFMatrix fs_matrix[NUM_FS_TYPES];
+
+    // Defined capabilities:   fs_type     mnt fmt
+    fs_matrix[0] = (MFMatrix){ NULL,  "bml",       0,  1 };
+    fs_matrix[1] = (MFMatrix){ NULL,  "datamedia", 0,  1 };
+    fs_matrix[2] = (MFMatrix){ NULL,  "emmc",      0,  1 };
+    fs_matrix[3] = (MFMatrix){ NULL,  "mtd",       0,  0 };
+    fs_matrix[4] = (MFMatrix){ NULL,  "ramdisk",   0,  0 };
+    fs_matrix[5] = (MFMatrix){ NULL,  "swap",      0,  0 };
+
     // Defined capabilities:   mount_point   mnt fmt
-    mp_matrix[0] = (MFMatrix){ "/misc",       0,  0 };
-    mp_matrix[1] = (MFMatrix){ "/radio",      0,  0 };
-    mp_matrix[2] = (MFMatrix){ "/bootloader", 0,  0 };
-    mp_matrix[3] = (MFMatrix){ "/recovery",   0,  0 };
-    mp_matrix[4] = (MFMatrix){ "/efs",        0,  0 };
-    mp_matrix[5] = (MFMatrix){ "/wimax",      0,  0 };
+    mp_matrix[0] = (MFMatrix){ "/misc",       NULL,   0,  0 };
+    mp_matrix[1] = (MFMatrix){ "/radio",      NULL,   0,  0 };
+    mp_matrix[2] = (MFMatrix){ "/bootloader", NULL,   0,  0 };
+    mp_matrix[3] = (MFMatrix){ "/recovery",   NULL,   0,  0 };
+    mp_matrix[4] = (MFMatrix){ "/efs",        NULL,   0,  0 };
+    mp_matrix[5] = (MFMatrix){ "/wimax",      NULL,   0,  0 };
 
     int i;
     for (i = 0; i < NUM_FS_TYPES; i++) {
-        if (strcmp(fs_type, fs_matrix[i].name) == 0) {
-            mfm.can_mount = fs_matrix[i].can_mount;
-            mfm.can_format = fs_matrix[i].can_format;
+        if (strcmp(mfm->type, fs_matrix[i].type) == 0) {
+            mfm->can_mount = fs_matrix[i].can_mount;
+            mfm->can_format = fs_matrix[i].can_format;
         }
     }
     for (i = 0; i < NUM_MNT_PNTS; i++) {
-        if (strcmp(mount_point, mp_matrix[i].name) == 0) {
-            mfm.can_mount = mp_matrix[i].can_mount;
-            mfm.can_format = mp_matrix[i].can_format;
+        if (strcmp(mfm->path, mp_matrix[i].path) == 0) {
+            mfm->can_mount = mp_matrix[i].can_mount;
+            mfm->can_format = mp_matrix[i].can_format;
         }
     }
-
-    free(fs_matrix);
-    free(mp_matrix);
 
     // User-defined capabilities
     char *custom_mp;
@@ -861,21 +858,19 @@ MFMatrix get_mnt_fmt_capabilities(char *fs_type, char *mount_point) {
 
     custom_mp = strtok(custom_forbidden_mount, ",");
     while (custom_mp != NULL) {
-        if (strcmp(mount_point, custom_mp) == 0) {
-            mfm.can_mount = 0;
+        if (strcmp(mfm->path, custom_mp) == 0) {
+            mfm->can_mount = 0;
         }
         custom_mp = strtok(NULL, ",");
     }
 
     custom_mp = strtok(custom_forbidden_format, ",");
     while (custom_mp != NULL) {
-        if (strcmp(mount_point, custom_mp) == 0) {
-            mfm.can_format = 0;
+        if (strcmp(mfm->path, custom_mp) == 0) {
+            mfm->can_format = 0;
         }
         custom_mp = strtok(NULL, ",");
     }
-
-    return mfm;
 }
 
 void show_partition_format_menu() {
@@ -900,7 +895,7 @@ void show_partition_format_menu() {
         return;
     }
 
-    format_menu = malloc(num_volumes * sizeof(FormatMenuEntry));
+    format_menu = (FormatMenuEntry*)malloc(num_volumes * sizeof(FormatMenuEntry));
 
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
@@ -909,7 +904,8 @@ void show_partition_format_menu() {
             continue;
         }
 
-        MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
+        MFMatrix mfm = { v->mount_point, v->fs_type, 1, 1 };
+        get_mnt_fmt_capabilities(&mfm);
 
         if (mfm.can_format) {
             sprintf(format_menu[formatable_volumes].txt, "format %s", v->mount_point);
@@ -1030,7 +1026,7 @@ int show_partition_mounts_menu() {
         return GO_BACK;
     }
 
-    mount_menu = malloc(num_volumes * sizeof(MountMenuEntry));
+    mount_menu = (MountMenuEntry*)malloc(num_volumes * sizeof(MountMenuEntry));
 
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
@@ -1039,7 +1035,8 @@ int show_partition_mounts_menu() {
             continue;
         }
 
-        MFMatrix mfm = get_mnt_fmt_capabilities(v->fs_type, v->mount_point);
+        MFMatrix mfm = { v->mount_point, v->fs_type, 1, 1 };
+        get_mnt_fmt_capabilities(&mfm);
 
         if (mfm.can_mount) {
             sprintf(mount_menu[mountable_volumes].mount, "mount %s", v->mount_point);
