@@ -965,7 +965,7 @@ prompt_and_wait(int status) {
                     ret = show_nandroid_menu();
                     break;
 
-                case ITEM_PARTITION:
+                case ITEM_MOUNTS:
                     ret = show_partition_mounts_menu();
                     break;
 

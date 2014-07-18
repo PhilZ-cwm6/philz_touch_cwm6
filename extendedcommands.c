@@ -1533,7 +1533,7 @@ int show_advanced_menu() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    const char* headers[] = { "Advanced Menu", NULL };
+    const char* headers[] = { "Advanced menu", NULL };
 
     memset(list, 0, sizeof(list));
 
