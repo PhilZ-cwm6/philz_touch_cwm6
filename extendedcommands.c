@@ -275,9 +275,22 @@ out:
     return chosen_item;
 }
 
+void free_array_contents(char** array) {
+    if (array == NULL)
+        return;
+
+    char* cursor = array[0];
+    int i = 0;
+    while (cursor != NULL) {
+        free(cursor);
+        cursor = array[++i];
+    }
+}
+
 void free_string_array(char** array) {
     if (array == NULL)
         return;
+
     char* cursor = array[0];
     int i = 0;
     while (cursor != NULL) {

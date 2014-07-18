@@ -76,6 +76,9 @@ write_recovery_version();
 void
 free_string_array(char** array);
 
+void
+free_array_contents(char** array);
+
 int
 is_path_mounted(const char* path);
 
