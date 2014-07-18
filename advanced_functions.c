@@ -1353,7 +1353,7 @@ void wipe_data_menu() {
         "Factory Reset",
         "Wipe Cache",
         "Wipe Dalvik/ART Cache",
-        "Clean to install a new ROM",
+        "Clean to Install a New ROM",
         NULL,
         "Custom Format Options",
         NULL,
