@@ -754,7 +754,7 @@ static void show_mount_usb_storage_menu() {
 
 // ext4 <-> f2fs conversion
 #ifdef USE_F2FS
-static void format_ext4_or_f2fs(const char* volume) {
+static void show_format_ext4_or_f2fs_menu(const char* volume) {
     if (is_data_media_volume_path(volume))
         return;
 
@@ -773,14 +773,33 @@ static void format_ext4_or_f2fs(const char* volume) {
 
     char cmd[PATH_MAX];
     char confirm[128];
-    int ret = -1;
+    int ret;
     int chosen_item = get_menu_selection(headers, list, 0, 0);
 
     if (chosen_item < 0) // REFRESH or GO_BACK
         return;
 
     sprintf(confirm, "Format %s (%s) ?", v->mount_point, list[chosen_item]);
-    if (!confirm_selection(confirm, "Yes - Format device"))
+    if (is_data_media() && strcmp(v->mount_point, "/data") == 0) {
+        if (is_data_media_preserved()) {
+            // code call error
+            LOGE("cannot convert partition without wiping whole data!");
+            return;
+        }
+
+        const char* confirm_headers[] = {
+            confirm,
+            "   this will wipe /sdcard",
+            "   (/data/media storage)",
+            "",
+            NULL
+        };
+        ret = confirm_with_headers(confirm_headers, "Yes - Format device");
+    } else {
+        ret = confirm_selection(confirm, "Yes - Format device");
+    }
+
+    if (ret != true)
         return;
 
     if (ensure_path_unmounted(v->mount_point) != 0)
@@ -954,22 +973,24 @@ void show_partition_format_menu() {
             break;
 
         if (is_data_media() && chosen_item == formatable_volumes) {
-            if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
-                continue;
-            preserve_data_media(0);
 #ifdef USE_F2FS
             if (enable_f2fs_ext4_conversion) {
-                format_ext4_or_f2fs("/data");
+                preserve_data_media(0);
+                show_format_ext4_or_f2fs_menu("/data");
+                preserve_data_media(1);
             } else
 #endif
             {
+                if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
+                    continue;
                 ui_print("Formatting /data...\n");
+                preserve_data_media(0);
                 if (0 != format_volume("/data"))
                     LOGE("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
+                preserve_data_media(1);
             }
-            preserve_data_media(1);
             setup_data_media(1); // recreate /data/media with proper permissions, mount /data and unmount when done
         } else if (chosen_item < formatable_volumes) {
             FormatMenuEntry* e = &format_menu[chosen_item];
@@ -989,7 +1010,7 @@ void show_partition_format_menu() {
 #ifdef USE_F2FS
             if (enable_f2fs_ext4_conversion && !(is_data_media() && strcmp(e->path, "/data") == 0)) {
                 if (strcmp(e->type, "ext4") == 0 || strcmp(e->type, "f2fs") == 0) {
-                    format_ext4_or_f2fs(e->path);
+                    show_format_ext4_or_f2fs_menu(e->path);
                     continue;
                 } else {
                     ui_print("unsupported file system (%s)\n", e->type);
