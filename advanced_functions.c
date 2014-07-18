@@ -318,7 +318,7 @@ char* BaseName(const char* path) {
     int ret;
 
     if (bname == NULL) {
-        bname = (char *)malloc(PATH_MAX);
+        bname = (char*)malloc(PATH_MAX);
         if (bname == NULL)
             return(NULL);
     }
@@ -390,7 +390,7 @@ char* DirName(const char* path) {
     int ret;
 
     if (bname == NULL) {
-        bname = (char *)malloc(PATH_MAX);
+        bname = (char*)malloc(PATH_MAX);
         if (bname == NULL)
             return(NULL);
     }
@@ -402,7 +402,7 @@ char* DirName(const char* path) {
 // thread safe dirname (free by caller)
 char* t_DirName(const char* path) {
     int ret;
-    char* bname = (char *)malloc(PATH_MAX);
+    char* bname = (char*)malloc(PATH_MAX);
     if (bname == NULL) {
         LOGE("t_DirName: memory error\n");
         return NULL;
@@ -420,7 +420,7 @@ char* t_DirName(const char* path) {
 // thread safe basename (free by caller)
 char* t_BaseName(const char* path) {
     int ret;
-    char* bname = (char *)malloc(PATH_MAX);
+    char* bname = (char*)malloc(PATH_MAX);
     if (bname == NULL) {
         LOGE("t_BaseName: memory error\n");
         return NULL;
@@ -2436,7 +2436,7 @@ void set_custom_zip_path() {
         free_string_array(list);
         free_string_array(dirs);
         dirs = gather_files(custom_path, NULL, &numDirs);
-        list = (char**) malloc((numDirs + 3) * sizeof(char*));
+        list = (char**)malloc((numDirs + 3) * sizeof(char*));
         list[0] = strdup("../");
         list[1] = strdup(">> Set current folder as default <<");
         list[numDirs+2] = NULL;
@@ -2579,7 +2579,7 @@ int show_custom_zip_menu() {
             dirs = gather_files(custom_path, NULL, &numDirs);
             files = gather_files(custom_path, ".zip", &numFiles);
             total = numFiles + numDirs;
-            list = (char**) malloc((total + 2) * sizeof(char*));
+            list = (char**)malloc((total + 2) * sizeof(char*));
             list[0] = strdup("../");
             list[total+1] = NULL;
                 

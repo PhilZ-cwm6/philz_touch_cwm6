@@ -2934,7 +2934,7 @@ void check_recovery_lock() {
     // parse the password: "key1,key2,key3,key4..."
     int i = 0;
     int pass_chars = 0;
-    char** pass_key = (char**) malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
+    char** pass_key = (char**)malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
     memset(pass_key, 0, sizeof(pass_key));
     ptr = strtok(line, ", \n");
     while (i < RECOVERY_LOCK_MAX_CHARS && ptr != NULL) {
