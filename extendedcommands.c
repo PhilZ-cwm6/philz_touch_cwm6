@@ -1011,6 +1011,7 @@ int show_partition_mounts_menu() {
     int mountable_volumes = 0;
     int num_volumes;
     int chosen_item = 0;
+    int is_vold_ums_capable = 0;
 
     num_volumes = get_num_volumes();
 
@@ -1024,8 +1025,10 @@ int show_partition_mounts_menu() {
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
 
-        if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point)) {
-            continue;
+        if (fs_mgr_is_voldmanaged(v)) {
+            if (!vold_is_volume_available(v->mount_point))
+                continue;
+            is_vold_ums_capable = 1;
         }
 
         MFMatrix mfm = { v->mount_point, v->fs_type, 1, 1 };
@@ -1047,16 +1050,18 @@ int show_partition_mounts_menu() {
                 list[i] = mount_menu[i].mount;
         }
 
-        list[mountable_volumes] = "mount USB storage";
-        list[mountable_volumes + 1] = NULL;
+        if (is_vold_ums_capable) {
+            list[mountable_volumes] = "mount USB storage";
+            list[mountable_volumes + 1] = NULL;
+        } else {
+            list[mountable_volumes] = NULL;
+        }
 
         chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item < 0) // GO_BACK / REFRESH
             break;
 
-        if (chosen_item == (mountable_volumes)) {
-            show_mount_usb_storage_menu();
-        } else if (chosen_item < mountable_volumes) {
+        if (chosen_item < mountable_volumes) {
             MountMenuEntry* e = &mount_menu[chosen_item];
 
             if (is_path_mounted(e->path)) {
@@ -1068,7 +1073,10 @@ int show_partition_mounts_menu() {
                 if (0 != ensure_path_mounted(e->path))
                     LOGE("Error mounting %s!\n", e->path);
             }
-        }
+        } else {
+            // chosen_item == mountable_volumes && is_vold_ums_capable
+            show_mount_usb_storage_menu();
+        } 
     }
 
     return chosen_item;
