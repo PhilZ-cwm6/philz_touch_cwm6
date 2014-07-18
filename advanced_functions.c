@@ -1228,22 +1228,160 @@ int write_config_file(const char* config_file, const char* key, const char* valu
 }
 //----- end file settings parser
 
-// start wipe data and system options and menu
+/***********************************************/
+/* start wipe data and system options and menu */
+/***********************************************/
+// partition sdcard menu allows use of sd-ext
+// it still must be defined in recovery.fstab to be properly used in recovery
+static void show_partition_sdcard_menu() {
+    const char* headers[] = { "Partition sdcard menu", "  enables sd-ext support", "", NULL };
+    char** list = (char**)malloc(((MAX_NUM_MANAGED_VOLUMES) + 1) * sizeof(char*)); // + 1 for last NULL (GO_BACK menu) entry
+
+    int i = 0;
+    int list_index = 0;
+    char buf[256];
+    const char list_prefix[] = "Partition ";
+
+    char* primary_path = get_primary_storage_path();
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+
+    if (can_partition(primary_path)) {
+        sprintf(buf, "%s%s", list_prefix, primary_path);
+        list[list_index] = strdup(buf);
+        ++list_index;
+    }
+
+    if (extra_paths != NULL) {
+        for (i = 0; i < num_extra_volumes; ++i) {
+            if (can_partition(extra_paths[i])) {
+                sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
+                list[list_index] = strdup(buf);
+                ++list_index;
+            }
+        }
+    }
+    list[list_index] = NULL;
+
+    if (list_index == 0) {
+        LOGE("no volumes found to partition.\n");
+        return;
+    }
+
+    if (volume_for_path("/sd-ext") == NULL)
+        ui_print("W: sd-ext missing in fstab!\n");
+
+    int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+    if (chosen_item < 0) // GO_BACK || REFRESH
+        goto out;
+
+    char* path = list[chosen_item] + strlen(list_prefix);
+    if (!can_partition(path)) {
+        LOGE("Can't partition device: %s\n", path);
+        goto out;
+    }
+
+    char* ext_sizes[] = {
+        "128M",
+        "256M",
+        "512M",
+        "1024M",
+        "2048M",
+        "4096M",
+        NULL
+    };
+
+    char* swap_sizes[] = {
+        "0M",
+        "32M",
+        "64M",
+        "128M",
+        "256M",
+        NULL
+    };
+
+    char* partition_types[] = {
+        "ext3",
+        "ext4",
+        NULL
+    };
+
+    const char* ext_headers[] = { "Ext Size", "", NULL };
+    const char* swap_headers[] = { "Swap Size", "", NULL };
+    const char* fstype_headers[] = { "Partition Type", "", NULL };
+
+    int ext_size = get_menu_selection(ext_headers, ext_sizes, 0, 0);
+    if (ext_size < 0)
+        goto out;
+
+    int swap_size = get_menu_selection(swap_headers, swap_sizes, 0, 0);
+    if (swap_size < 0)
+        goto out;
+
+    int partition_type = get_menu_selection(fstype_headers, partition_types, 0, 0);
+    if (partition_type < 0) // GO_BACK / REFRESH
+        goto out;
+
+    char cmd[PATH_MAX];
+    char sddevice[256];
+    Volume *vol = volume_for_path(path);
+
+    // can_partition() ensured either blk_device or blk_device2 has /dev/block/mmcblk format
+    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL)
+        strcpy(sddevice, vol->blk_device);
+    else
+        strcpy(sddevice, vol->blk_device2);
+
+    // we only want the mmcblk, not the partition
+    sddevice[strlen("/dev/block/mmcblkX")] = '\0';
+    setenv("SDPATH", sddevice, 1);
+    sprintf(cmd, "sdparted -es %s -ss %s -efs %s -s", ext_sizes[ext_size], swap_sizes[swap_size], partition_types[partition_type]);
+    ui_print("Partitioning SD Card... please wait...\n");
+    if (0 == __system(cmd))
+        ui_print("Done!\n");
+    else
+        LOGE("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
+
+out:
+    free_string_array(list);
+}
+
 void wipe_data_menu() {
     const char* headers[] = { "Choose wipe option", NULL };
 
     char* list[] = {
         "Factory Reset",
         "Wipe Cache",
-        "Wipe Dalvik Cache",
-        "Wipe Data|Cache|System",
+        "Wipe Dalvik/ART Cache",
+        "Clean to install a new ROM",
         NULL,
         "Custom Format Options",
+        NULL,
         NULL
     };
 
     if (is_data_media())
         list[4] = "Wipe User Media";
+
+    // check if we have a volume that can be partitionned (sd-ext support)
+    char* primary_path = get_primary_storage_path();
+    char** extra_paths = get_extra_storage_paths();
+    int num_extra_volumes = get_num_extra_volumes();
+    int can_partition_volumes = 0;
+
+    if (can_partition(primary_path)) {
+        can_partition_volumes = 1;
+    } else if (extra_paths != NULL) {
+        int i;
+        for (i = 0; i < num_extra_volumes; ++i) {
+            if (can_partition(extra_paths[i])) {
+                can_partition_volumes = 1;
+                break;
+            }
+        }
+    }
+    if (can_partition_volumes)
+        list[6] = "Partition sdcard (sd-ext support)";
 
     int chosen_item = 0;
     for (;;) {
@@ -1271,6 +1409,7 @@ void wipe_data_menu() {
                     ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection("Wipe dalvik cache ?", "Yes - Wipe dalvik cache")) {
+                    ui_print("\n-- Wiping dalvik cache...\n");
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
                     __system("rm -r /sd-ext/dalvik-cache");
@@ -1284,6 +1423,7 @@ void wipe_data_menu() {
                     "   data | cache | datadata",
                     "   sd-ext | android_secure",
                     "   system | preload",
+                    "",
                     NULL
                 };
 
@@ -1303,6 +1443,7 @@ void wipe_data_menu() {
                 const char* headers[] = {
                     "Wipe all user media ?",
                     "   /sdcard (/data/media)",
+                    "",
                     NULL
                 };
 
@@ -1317,10 +1458,14 @@ void wipe_data_menu() {
                 show_partition_format_menu();
                 break;
             }
+            case 6: {
+                show_partition_sdcard_menu();
+                break;
+            }
         }
     }
 }
-
+// ------ end wipe and format options
 
 /*****************************************/
 /*      Start Multi-Flash Zip code       */

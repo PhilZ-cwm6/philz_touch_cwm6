@@ -43,7 +43,7 @@ can_partition(const char* path);
 int
 __system(const char *command);
 
-int
+void
 show_advanced_menu();
 
 void

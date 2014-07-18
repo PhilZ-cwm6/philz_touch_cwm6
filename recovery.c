@@ -818,6 +818,7 @@ wipe_data(int confirm) {
         "Wipe all user data ?",
         "   data | cache | datadata",
         "   sd-ext| android_secure",
+        "",
         NULL
     };
 
@@ -970,7 +971,7 @@ prompt_and_wait(int status) {
                     break;
 
                 case ITEM_ADVANCED:
-                    ret = show_advanced_menu();
+                    show_advanced_menu();
                     break;
 
                 case ITEM_PHILZ_MENU:

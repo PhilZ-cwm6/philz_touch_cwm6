@@ -1412,74 +1412,6 @@ void show_format_sdcard_menu(const char* path) {
         ui_print("Done formatting %s (%s)\n", path, list[chosen_item]);
 }
 
-static void show_partition_sdcard_menu(const char* path) {
-    if (!can_partition(path)) {
-        LOGE("Can't partition device: %s\n", path);
-        return;
-    }
-
-    char* ext_sizes[] = {
-        "128M",
-        "256M",
-        "512M",
-        "1024M",
-        "2048M",
-        "4096M",
-        NULL
-    };
-
-    char* swap_sizes[] = {
-        "0M",
-        "32M",
-        "64M",
-        "128M",
-        "256M",
-        NULL
-    };
-
-    char* partition_types[] = {
-        "ext3",
-        "ext4",
-        NULL
-    };
-
-    const char* ext_headers[] = { "Ext Size", "", NULL };
-    const char* swap_headers[] = { "Swap Size", "", NULL };
-    const char* fstype_headers[] = { "Partition Type", "", NULL };
-
-    int ext_size = get_menu_selection(ext_headers, ext_sizes, 0, 0);
-    if (ext_size < 0)
-        return;
-
-    int swap_size = get_menu_selection(swap_headers, swap_sizes, 0, 0);
-    if (swap_size < 0)
-        return;
-
-    int partition_type = get_menu_selection(fstype_headers, partition_types, 0, 0);
-    if (partition_type < 0) // GO_BACK / REFRESH
-        return;
-
-    char cmd[PATH_MAX];
-    char sddevice[256];
-    Volume *vol = volume_for_path(path);
-
-    // can_partition() ensured either blk_device or blk_device2 has /dev/block/mmcblk format
-    if (strstr(vol->blk_device, "/dev/block/mmcblk") != NULL)
-        strcpy(sddevice, vol->blk_device);
-    else
-        strcpy(sddevice, vol->blk_device2);
-
-    // we only want the mmcblk, not the partition
-    sddevice[strlen("/dev/block/mmcblkX")] = '\0';
-    setenv("SDPATH", sddevice, 1);
-    sprintf(cmd, "sdparted -es %s -ss %s -efs %s -s", ext_sizes[ext_size], swap_sizes[swap_size], partition_types[partition_type]);
-    ui_print("Partitioning SD Card... please wait...\n");
-    if (0 == __system(cmd))
-        ui_print("Done!\n");
-    else
-        LOGE("An error occured while partitioning your SD Card. Please see /tmp/recovery.log for more details.\n");
-}
-
 void show_advanced_power_menu() {
     const char* headers[] = { "Advanced power options", "", NULL };
 
@@ -1517,52 +1449,17 @@ void show_advanced_power_menu() {
     }
 }
 
-#ifdef ENABLE_LOKI
-#define FIXED_ADVANCED_ENTRIES 5
-#else
-#define FIXED_ADVANCED_ENTRIES 4
-#endif
-
-int show_advanced_menu() {
-    char buf[80];
-    int i = 0, j = 0, chosen_item = 0;
-    /* Default number of entries if no compile-time extras are added */
-    char* list[MAX_NUM_MANAGED_VOLUMES + FIXED_ADVANCED_ENTRIES + 1];
-
-    char* primary_path = get_primary_storage_path();
-    char** extra_paths = get_extra_storage_paths();
-    int num_extra_volumes = get_num_extra_volumes();
-
+void show_advanced_menu() {
     const char* headers[] = { "Advanced menu", NULL };
+    char* list[6] = {
+        "Report Error",
+        "Key Test",
+        "Show log",
+        NULL,   // data/media toggle
+        NULL,   // loki toggle
+        NULL
+    };
 
-    memset(list, 0, sizeof(list));
-
-    // FIXED_ADVANCED_ENTRIES
-    list[0] = "Report Error";        // 0
-    list[1] = "Key Test";            // 1
-    list[2] = "Show log";            // 2
-    list[3] = NULL;                  // 3 (/data/media/0 toggle)
-#ifdef ENABLE_LOKI
-    list[4] = NULL;                  // 4
-#endif
-
-    char list_prefix[] = "Partition ";
-    if (can_partition(primary_path)) {
-        sprintf(buf, "%s%s", list_prefix, primary_path);
-        list[FIXED_ADVANCED_ENTRIES] = strdup(buf);
-        j++;
-    }
-
-    if (extra_paths != NULL) {
-        for (i = 0; i < num_extra_volumes; i++) {
-            if (can_partition(extra_paths[i])) {
-                sprintf(buf, "%s%s", list_prefix, extra_paths[i]);
-                list[FIXED_ADVANCED_ENTRIES + j] = strdup(buf);
-                j++;
-            }
-        }
-    }
-    list[FIXED_ADVANCED_ENTRIES + j] = NULL;
 
     for (;;) {
         if (is_data_media()) {
@@ -1586,9 +1483,10 @@ int show_advanced_menu() {
         }
 #endif
 
-        chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
+        int chosen_item = get_filtered_menu_selection(headers, list, 0, 0, sizeof(list) / sizeof(char*));
         if (chosen_item < 0) // GO_BACK || REFRESH
             break;
+
         switch (chosen_item) {
             case 0: {
                 handle_failure();
@@ -1632,23 +1530,14 @@ int show_advanced_menu() {
                 }
                 break;
             }
-#ifdef ENABLE_LOKI
             case 4: {
+#ifdef ENABLE_LOKI
                 toggle_loki_support();
                 break;
-            }
 #endif
-            default: {
-                show_partition_sdcard_menu(list[chosen_item] + strlen(list_prefix));
-                break;
             }
         }
     }
-
-    for (; j > 0; --j) {
-        free(list[FIXED_ADVANCED_ENTRIES + j - 1]);
-    }
-    return chosen_item;
 }
 
 void handle_failure() {
