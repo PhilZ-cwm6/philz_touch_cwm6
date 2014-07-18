@@ -879,8 +879,6 @@ void show_partition_format_menu() {
     char* confirm_format = "Confirm format?";
     char* confirm = "Yes - Format";
     char confirm_string[255];
-
-    FormatMenuEntry* format_menu = NULL;
     char* list[256];
 
     int i = 0;
@@ -895,7 +893,7 @@ void show_partition_format_menu() {
         return;
     }
 
-    format_menu = (FormatMenuEntry*)malloc(num_volumes * sizeof(FormatMenuEntry));
+    FormatMenuEntry format_menu[num_volumes];
 
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
@@ -920,8 +918,7 @@ void show_partition_format_menu() {
 #endif
     for (;;) {
         for (i = 0; i < formatable_volumes; i++) {
-            FormatMenuEntry* e = &format_menu[i];
-            list[i] = e->txt;
+            list[i] = format_menu[i].txt;
         }
 
         if (!is_data_media()) {
@@ -1004,14 +1001,10 @@ void show_partition_format_menu() {
         }
 #endif
     }
-
-    free(format_menu);
 }
 
 int show_partition_mounts_menu() {
     const char* headers[] = { "Mounts and Storage Menu", NULL };
-
-    MountMenuEntry* mount_menu = NULL;
     char* list[256];
 
     int i = 0;
@@ -1026,7 +1019,7 @@ int show_partition_mounts_menu() {
         return GO_BACK;
     }
 
-    mount_menu = (MountMenuEntry*)malloc(num_volumes * sizeof(MountMenuEntry));
+    MountMenuEntry mount_menu[num_volumes];
 
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
@@ -1048,11 +1041,10 @@ int show_partition_mounts_menu() {
 
     for (;;) {
         for (i = 0; i < mountable_volumes; i++) {
-            MountMenuEntry* e = &mount_menu[i];
-            if (is_path_mounted(e->path))
-                list[i] = e->unmount;
+            if (is_path_mounted(mount_menu[i].path))
+                list[i] = mount_menu[i].unmount;
             else
-                list[i] = e->mount;
+                list[i] = mount_menu[i].mount;
         }
 
         list[mountable_volumes] = "mount USB storage";
@@ -1079,7 +1071,6 @@ int show_partition_mounts_menu() {
         }
     }
 
-    free(mount_menu);
     return chosen_item;
 }
 // ------ End Format and mount options
