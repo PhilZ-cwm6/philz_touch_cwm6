@@ -209,7 +209,7 @@ static void write_fstab_entry(Volume *v, FILE *file)
     // mtdutils.c/cmd_bml_get_partition_device() always returns -1
     char device[200];
     if (strncmp(v->blk_device, "/", 1) != 0 && get_partition_device(v->blk_device, device) != 0) {
-        fprintf(stderr, "    E: invalid device, skipping /etc/fstab entry\n");
+        fprintf(stderr, "    invalid device, skipping /etc/fstab entry\n");
         return;
     } else {
         strcpy(device, v->blk_device);
