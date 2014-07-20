@@ -756,8 +756,10 @@ void ui_print(const char *fmt, ...)
     if (ui_log_stdout)
         fputs(buf, stdout);
 
+    if (!ui_has_initialized)
+        return;
+
     // now, we write log to screen
-    // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
     if (ui_print_replace_lines) {
         int i;
