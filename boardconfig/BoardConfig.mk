@@ -417,6 +417,16 @@ else ifneq ($(filter $(TARGET_PRODUCT),cm_lt03wifi cm_lt03wifiue),)
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Note 10.1 - i925
+else ifneq ($(TARGET_PRODUCT),cm_i925)
+    TARGET_COMMON_NAME := Note 10.1 2014 ($(TARGET_PRODUCT))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 800
+    BRIGHTNESS_SYS_FILE := "/sys/class/backlight/panel/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy S4 Exynos - i9500
 else ifeq ($(TARGET_PRODUCT), cm_i9500)
     TARGET_COMMON_NAME := i9500
