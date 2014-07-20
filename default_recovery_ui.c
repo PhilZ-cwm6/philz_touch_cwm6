@@ -16,7 +16,7 @@
 
 #include <linux/input.h>
 
-#include "recovery_ui.h"
+#include "recovery.h"
 #include "common.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
@@ -30,8 +30,8 @@ char* MENU_ITEMS[] = {
     "Wipe and Format Options",
     "Backup and Restore",
     "Mounts and Storage",
-    "Advanced",
-    "PhilZ Settings",
+    "Advanced Functions",
+    "Recovery Settings",
     "Power Options",
     NULL
 };

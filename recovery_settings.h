@@ -170,11 +170,21 @@ struct CompilerFlagsUI libtouch_flags;
 
 // load settings from config.ini file
 void refresh_touch_gui_settings(int on_start);
-#endif                                              // PHILZ_TOUCH_RECOVERY
+#endif    // PHILZ_TOUCH_RECOVERY
 void refresh_recovery_settings(int on_start);
 
 // check settings file on start and prompt to restore it if absent AND a backup is found: called by recovery.c
 void verify_settings_file();
+
+void toggle_signature_check();
+void toggle_install_zip_verify_md5();
+#ifdef ENABLE_LOKI
+void toggle_loki_support();
+int loki_support_enabled();
+#endif
+
+int read_config_file(const char* config_file, const char *key, char *value, const char *value_def);
+int write_config_file(const char* config_file, const char* key, const char* value);
 
 /*
 properties reference:

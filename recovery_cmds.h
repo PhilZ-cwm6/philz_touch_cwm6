@@ -20,9 +20,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "dedupe/dedupe.h"
+#include "edifyscripting.h"
 #include "extendedcommands.h"
 #include "nandroid.h"
-#include "dedupe/dedupe.h"
 
 extern int minizip_main(int argc, char **argv);
 extern int make_ext4fs_main(int argc, char **argv);
@@ -37,9 +38,9 @@ extern int pigz_main(int argc, char **argv);
 extern int sdcard_main(int argc, char **argv);
 
 #ifdef USE_F2FS
-int make_f2fs_main(int argc, char **argv);
-int fsck_f2fs_main(int argc, char **argv);
-int fibmap_main(int argc, char **argv);
+extern int make_f2fs_main(int argc, char **argv);
+extern int fsck_f2fs_main(int argc, char **argv);
+extern int fibmap_main(int argc, char **argv);
 #endif
 
 extern int busybox_driver(int argc, char **argv);

@@ -27,14 +27,13 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "common.h"
 #include <cutils/android_reboot.h>
 #include <cutils/properties.h>
-#include "minui/minui.h"
-#include "recovery_ui.h"
-#include "voldclient/voldclient.h"
 
+#include "voldclient/voldclient.h"
+#include "minui/minui.h"
+#include "common.h"
+#include "recovery.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "ui.h"

@@ -1,107 +1,105 @@
-#ifndef __EXTENDEDCOMMANDS_H
-#define __EXTENDEDCOMMANDS_H
+/*
+    PhilZ Touch - touch_gui library
+    Copyright (C) <2014>  <phytowardt@gmail.com>
 
-void
-toggle_signature_check();
+    This file is part of PhilZ Touch Recovery
 
-void
-show_choose_zip_menu();
+    PhilZ Touch is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-void
-set_gather_hidden_files(int enable);
+    PhilZ Touch is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-char**
-gather_files(const char* basedir, const char* fileExtensionOrDirectory, int* numFiles);
+    You should have received a copy of the GNU General Public License
+    along with PhilZ Touch.  If not, see <http://www.gnu.org/licenses/>.
 
-char*
-choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]);
+*/
 
-int
-get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count);
 
-int
-write_string_to_file(const char* filename, const char* string);
+// PhilZ Touch config file
 
-void
-show_nandroid_restore_menu(const char* path);
+#ifndef __ADVANCED_FUNCTIONS_H
+#define __ADVANCED_FUNCTIONS_H
 
-void
-choose_default_backup_format();
 
-int
-show_nandroid_menu();
+#include <linux/limits.h>   // PATH_MAX
+#include "ui_defines.h" // MENU_MAX_COLS, CHAR_HEIGHT, CHAR_WIDTH
 
-int
-show_partition_mounts_menu();
+// print custom logtail (detailed logging report in raw-backup.sh...)
+void ui_print_custom_logtail(const char* filename, int nb_lines);
 
-void
-show_partition_format_menu();
+void show_nandroid_restore_menu(const char* path);
+void show_choose_zip_menu();
+void choose_default_backup_format();
+int show_nandroid_menu();
+int show_partition_mounts_menu();
+void show_partition_format_menu();
+void show_advanced_menu();
+void show_format_sdcard_menu(const char* path);
+int can_partition(const char* path);
+int show_install_update_menu();
+void show_advanced_power_menu();
 
-int
-can_partition(const char* path);
+void show_philz_settings_menu();
+void wipe_data_menu();
 
-int
-__system(const char *command);
+// aroma launcher
+void run_aroma_browser();
 
-void
-show_advanced_menu();
+//ors script support in recovery.c
+int check_boot_script_file(const char* boot_script);
+int run_ors_boot_script();
+int run_ors_script(const char* ors_script);
+int ors_backup_command(const char* backup_path, const char* options);
 
-void
-show_format_sdcard_menu(const char* path);
+// export recovery log to sdcard
+void handle_failure();
 
-int
-has_datadata();
+int verify_root_and_recovery();
+void write_recovery_version();
 
-void
-handle_failure();
+int confirm_selection(const char* title, const char* confirm);
+int confirm_with_headers(const char** confirm_headers, const char* confirm);
+int get_filtered_menu_selection(const char** headers, char** items, int menu_only, int initial_selection, int items_count);
+extern int no_files_found;
+char* choose_file_menu(const char* basedir, const char* fileExtensionOrDirectory, const char* headers[]);
 
-int
-show_install_update_menu();
+// calculate md5sum when installing zip files from menu
+void start_md5_display_thread(char* filepath);
+void stop_md5_display_thread();
+void start_md5_verify_thread(char* filepath);
+void stop_md5_verify_thread();
 
-int
-confirm_selection(const char* title, const char* confirm);
+// md5sum calculate / display / write / check
+int write_md5digest(const char* filepath, const char* md5file, int append);
+int verify_md5digest(const char* filepath, const char* md5file);
 
-int
-confirm_with_headers(const char** confirm_headers, const char* confirm);
+// custom zip path + free browse mode + multi zip flash menus
+int show_custom_zip_menu();
+void set_custom_zip_path();
+void show_multi_flash_menu();
 
-int
-run_and_remove_extendedcommand();
+// nandroid menu settings
+void show_twrp_restore_menu(const char* backup_volume);
+void custom_backup_menu(const char* backup_volume);
+void custom_restore_menu(const char* backup_volume);
+void get_twrp_backup_path(const char* backup_volume, char *backup_path);
+void get_cwm_backup_path(const char* backup_volume, char *backup_path);
+void misc_nandroid_menu();
+void get_rom_name(char *rom_name);
+void get_device_id(char *device_id);
+void reset_custom_job_settings(int custom_job);
 
-int
-verify_root_and_recovery();
+#define MAX_EXTRA_NANDROID_PARTITIONS    5
+void reset_extra_partitions_state();
+int get_extra_partitions_state();
+struct extra_partitions_list {
+    char mount_point[PATH_MAX];
+    int backup_state;
+} extra_partition[MAX_EXTRA_NANDROID_PARTITIONS];
 
-void
-write_recovery_version();
-
-void
-free_string_array(char** array);
-
-void
-free_array_contents(char** array);
-
-int
-is_path_mounted(const char* path);
-
-int
-volume_main(int argc, char **argv);
-
-void
-show_advanced_power_menu();
-
-#ifdef USE_F2FS
-extern int
-make_f2fs_main(int argc, char **argv);
-
-extern int
-fsck_f2fs_main(int argc, char **argv);
-
-extern int
-fibmap_main(int argc, char **argv);
-#endif
-
-#ifdef ENABLE_LOKI
-int
-loki_support_enabled();
-#endif
-
-#endif  // __EXTENDEDCOMMANDS_H
+#endif // __ADVANCED_FUNCTIONS_H

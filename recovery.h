@@ -86,7 +86,7 @@ int device_wipe_data();
 #define ITEM_NANDROID       3
 #define ITEM_MOUNTS         4
 #define ITEM_ADVANCED       5
-#define ITEM_PHILZ_MENU     6
+#define ITEM_SETTINGS       6
 #define ITEM_POWEROFF       7
 #define ITEM_WIPE_CACHE     8  // optional device menu action
 
@@ -116,5 +116,8 @@ void reboot_main_system(int cmd, int flags, char *arg);
 
 // Show a stage indicator.
 void ui_SetStage(int current, int max);
+
+int erase_volume(const char *volume);
+void wipe_data(int confirm);
 
 #endif

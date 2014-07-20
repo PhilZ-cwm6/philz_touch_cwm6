@@ -38,7 +38,7 @@
 #include "common.h"
 #include "libcrecovery/common.h" // __system()
 #include "minui/minui.h"
-#include "recovery_ui.h"
+#include "recovery.h"
 #include "voldclient/voldclient.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
@@ -88,7 +88,7 @@ void ui_update_screen() {
 
 /*
 ui_print_color() usage example:
-It is included in recovery_ui.h to include in most code
+It is included in recovery.h to include in most code
 To do: make it possible to only color the last bottom x lines
 // start code
     int color[] = {CYAN_BLUE_CODE};

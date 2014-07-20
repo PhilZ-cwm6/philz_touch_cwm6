@@ -1,49 +1,22 @@
 #include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
 #include <limits.h>
-#include <linux/input.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/reboot.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
-
-#include <sys/wait.h>
 #include <sys/limits.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
-// statfs
-#include <sys/vfs.h>
-
-#include <signal.h>
-#include <sys/wait.h>
-
-#include "bootloader.h"
-#include "common.h"
 #include "cutils/properties.h"
-#include "install.h"
-#include "make_ext4fs.h"
-#include "minui/minui.h"
-#include "minzip/DirUtil.h"
-#include "roots.h"
-#include "recovery_ui.h"
 
+#include "common.h"
+#include "install.h"
+#include "roots.h"
+#include "recovery.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "flashutils/flashutils.h"
-#include "edify/expr.h"
-#include <libgen.h>
-#include "mtdutils/mtdutils.h"
-#include "bmlutils/bmlutils.h"
-#include "cutils/android_reboot.h"
-
 
 // Start initialize recovery key/value settings
 // touch recovery key/value settings are initialized in gui_settings.c
@@ -268,6 +241,14 @@ static void check_prompt_on_low_space() {
 
 // check if we should verify signature during install of zip packages
 // only called on recovery start
+void toggle_signature_check() {
+    char value[3];
+    signature_check_enabled.value = !signature_check_enabled.value;
+    sprintf(value, "%d", signature_check_enabled.value);
+    write_config_file(PHILZ_SETTINGS_FILE, signature_check_enabled.key, value);
+    // ui_print("Signature Check: %s\n", signature_check_enabled.value ? "Enabled" : "Disabled");
+}
+
 static void check_signature_check() {
     char value[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, signature_check_enabled.key, value, "0");
@@ -278,6 +259,13 @@ static void check_signature_check() {
 }
 
 // verify md5sum of zip file before they are installed
+void toggle_install_zip_verify_md5() {
+    char value[3];
+    install_zip_verify_md5.value ^= 1;
+    sprintf(value, "%d", install_zip_verify_md5.value);
+    write_config_file(PHILZ_SETTINGS_FILE, install_zip_verify_md5.key, value);
+}
+
 static void check_install_zip_verify_md5() {
     char value[PROPERTY_VALUE_MAX];
     read_config_file(PHILZ_SETTINGS_FILE, install_zip_verify_md5.key, value, "0");
@@ -286,6 +274,38 @@ static void check_install_zip_verify_md5() {
     else
         install_zip_verify_md5.value = 0;
 }
+
+#ifdef ENABLE_LOKI
+void toggle_loki_support() {
+    char value[3];
+    apply_loki_patch.value ^= 1;
+    sprintf(value, "%d", apply_loki_patch.value);
+    write_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, value);
+    // ui_print("Loki Support: %s\n", apply_loki_patch.value ? "Enabled" : "Disabled");
+}
+
+// this is called when we load recovery settings and when we istall_package()
+// it is needed when after recovery is booted, user wipes /data, then he installs a ROM: we can still return the user setting 
+int loki_support_enabled() {
+    char no_loki_variant[PROPERTY_VALUE_MAX];
+    int ret = -1;
+
+    property_get("ro.loki_disabled", no_loki_variant, "0");
+    if (strcmp(no_loki_variant, "0") == 0) {
+        // device variant supports loki: check if user enabled it
+        // if there is no settings file (read_config_file() < 0), it could be we have wiped /data before installing zip
+        // in that case, return current value (we last loaded on start or when user last set it) and not default
+        if (read_config_file(PHILZ_SETTINGS_FILE, apply_loki_patch.key, no_loki_variant, "0") >= 0) {
+            if (strcmp(no_loki_variant, "true") == 0 || strcmp(no_loki_variant, "1") == 0)
+                apply_loki_patch.value = 0;
+            else
+                apply_loki_patch.value = 1;
+        }
+        ret = apply_loki_patch.value;
+    }
+    return ret;
+}
+#endif
 
 void refresh_recovery_settings(int on_start) {
     check_auto_restore_settings();
@@ -312,3 +332,118 @@ void refresh_recovery_settings(int on_start) {
         preserve_data_media(1);
     }
 }
+
+/**********************************/
+/*       Start file parser        */
+/*    Original source by PhilZ    */
+/**********************************/
+// todo: parse settings file in one pass and make pairs of key:value
+// get value of key from a given config file
+// always call with value[PROPERTY_VALUE_MAX] to prevent any buffer overflow caused by strcpy(value, strstr(line, "=") + 1);
+int read_config_file(const char* config_file, const char *key, char *value, const char *value_def) {
+    int ret = 0;
+    char line[PROPERTY_VALUE_MAX];
+    ensure_path_mounted(config_file);
+    FILE *fp = fopen(config_file, "rb");
+    if (fp != NULL) {
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=') {
+                // we found the key: try to get its value, remove trailing \n and ensure it is not an empty value
+                strcpy(value, strstr(line, "=") + 1);
+                if (value[strlen(value)-1] == '\n')
+                    value[strlen(value)-1] = '\0';
+                if (value[0] != '\0') {
+                    fclose(fp);
+                    LOGI("%s=%s\n", key, value);
+                    return ret;
+                }
+            }
+        }
+        // either we didn't find the key or it has an empty value
+        ret = 1;
+        fclose(fp);
+    } else {
+        LOGI("Cannot open %s\n", config_file);
+        ret = -1;
+    }
+
+    // set value to default
+    strcpy(value, value_def);
+    LOGI("%s set to default (%s)\n", key, value_def);
+    return ret;
+}
+
+// set value of key in config file
+int write_config_file(const char* config_file, const char* key, const char* value) {
+    if (ensure_path_mounted(config_file) != 0) {
+        LOGE("Cannot mount path for settings file: %s\n", config_file);
+        return -1;
+    }
+
+    char config_file_tmp[PATH_MAX];
+    char tmp[PATH_MAX];
+    sprintf(config_file_tmp, "%s.tmp", config_file);
+    sprintf(tmp, "%s", DirName(config_file_tmp));
+    ensure_directory(tmp, 0755);
+    delete_a_file(config_file_tmp);
+
+    FILE *f_tmp = fopen(config_file_tmp, "wb");
+    if (f_tmp == NULL) {
+        LOGE("failed to create temporary settings file!\n");
+        return -1;
+    }
+
+    FILE *fp = fopen(config_file, "rb");
+    if (fp == NULL) {
+        // we need to create a new settings file: write an info header
+        const char* header[] = {
+            "#PhilZ Touch Settings File\n",
+            "#Edit only in appropriate UNIX format (Notepad+++...)\n",
+            "#Entries are in the form of:\n",
+            "#key=value\n",
+            "#Do not add spaces in between!\n",
+            "\n",
+            NULL
+        };
+
+        int i;
+        for(i = 0; header[i] != NULL; i++) {
+            fwrite(header[i], 1, strlen(header[i]), f_tmp);
+        }
+    } else {
+        // parse existing config file and write new temporary file.
+        char line[PROPERTY_VALUE_MAX];
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            // ignore any existing line with key we want to set
+            if (strstr(line, key) != NULL && strncmp(line, key, strlen(key)) == 0 && line[strlen(key)] == '=')
+                continue;
+            // ensure trailing \n, in case some one got a bad editor...
+            if (line[strlen(line) - 1] != '\n')
+                strcat(line, "\n");
+            fwrite(line, 1, strlen(line), f_tmp);
+        }
+        fclose(fp);
+    }
+
+    // write new key=value entry
+    char new_entry[PROPERTY_VALUE_MAX];
+    sprintf(new_entry, "%s=%s\n", key, value);
+    fwrite(new_entry, 1, strlen(new_entry), f_tmp);
+    fclose(f_tmp);
+
+    if (rename(config_file_tmp, config_file) != 0) {
+        LOGE("failed to rename temporary settings file!\n");
+        return -1;
+    }
+
+    // if we are editing recovery settings file, create a second copy on primary storage
+    if (strcmp(PHILZ_SETTINGS_FILE, config_file) == 0) {
+        sprintf(tmp, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_FILE2);
+        if (copy_a_file(config_file, tmp) != 0)
+            LOGE("failed duplicating settings file to primary storage!\n");
+    }
+
+    LOGI("%s was set to %s\n", key, value);
+    return 0;
+}
+//----- end file settings parser

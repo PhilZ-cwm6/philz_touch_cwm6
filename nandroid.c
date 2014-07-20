@@ -30,7 +30,7 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery_ui.h"
+#include "recovery.h"
 
 #include "cutils/android_reboot.h"
 
@@ -63,12 +63,6 @@ void nandroid_generate_timestamp_path(char* backup_path) {
         strftime(str, PATH_MAX, "clockworkmod/backup/%F.%H.%M.%S", tmp);
         snprintf(backup_path, PATH_MAX, "%s/%s", get_primary_storage_path(), str);
     }
-}
-
-void ensure_directory(const char* dir) {
-    char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s && chmod 777 %s", dir, dir);
-    __system(tmp);
 }
 
 int print_and_error(const char* message, int ret) {
@@ -298,7 +292,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
     d = dirname(blob_dir);
     strcpy(blob_dir, d);
     strcat(blob_dir, "/blobs");
-    ensure_directory(blob_dir);
+    ensure_directory(blob_dir, 0755);
 
     if (!(nandroid_backup_bitfield & NANDROID_FIELD_DEDUPE_CLEARED_SPACE)) {
         nandroid_backup_bitfield |= NANDROID_FIELD_DEDUPE_CLEARED_SPACE;
@@ -563,7 +557,7 @@ int nandroid_backup(const char* backup_path) {
 #endif
 
     char tmp[PATH_MAX];
-    ensure_directory(backup_path);
+    ensure_directory(backup_path, 0755);
 
     if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
@@ -1015,7 +1009,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         backup_filesystem = NULL;
 #endif
 
-    ensure_directory(mount_point);
+    ensure_directory(mount_point, 0755);
 
     char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);
