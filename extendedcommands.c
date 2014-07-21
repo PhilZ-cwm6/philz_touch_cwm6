@@ -4424,21 +4424,21 @@ void show_advanced_menu() {
         if (is_data_media()) {
             ensure_path_mounted("/data");
             if (use_migrated_storage())
-                list[3] = "Sdcard target: /data/media/0";
-            else list[3] = "Sdcard target: /data/media";
+                list[6] = "Sdcard target: /data/media/0";
+            else list[6] = "Sdcard target: /data/media";
         }
 
 #ifdef ENABLE_LOKI
         char item_loki_toggle_menu[MENU_MAX_COLS];
         int enabled = loki_support_enabled();
         if (enabled < 0) {
-            list[4] = NULL;
+            list[7] = NULL;
         } else {
             if (enabled)
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "(x)");
             else
                 ui_format_gui_menu(item_loki_toggle_menu, "Apply Loki Patch", "( )");
-            list[4] = item_loki_toggle_menu;
+            list[7] = item_loki_toggle_menu;
         }
 #endif
 
