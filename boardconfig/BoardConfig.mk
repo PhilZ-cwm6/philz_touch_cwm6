@@ -890,6 +890,14 @@ else ifeq ($(TARGET_PRODUCT), cm_find7)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Sony Xperia M (nicki)
+else ifeq ($(TARGET_PRODUCT), cm_nicki)
+    TARGET_COMMON_NAME := Xperia M
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 854
+    TARGET_SCREEN_WIDTH := 480
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
 #Sony Xperia Z (yuga)
 else ifeq ($(TARGET_PRODUCT), cm_yuga)
     TARGET_COMMON_NAME := Xperia Z
