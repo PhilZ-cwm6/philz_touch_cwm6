@@ -27,21 +27,20 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "common.h"
 #include <cutils/android_reboot.h>
 #include <cutils/properties.h>
-#include "minui/minui.h"
-#include "recovery_ui.h"
-#include "voldclient/voldclient.h"
 
+#include "voldclient/voldclient.h"
+#include "minui/minui.h"
+#include "common.h"
+#include "recovery.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "ui.h"
 
 extern int __system(const char *command);
 
-#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(PHILZ_TOUCH_RECOVERY)
 static int gShowBackButton = 1;
 #else
 static int gShowBackButton = 0;
@@ -134,14 +133,6 @@ pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 int key_queue[256], key_queue_len = 0;
 unsigned long key_last_repeat[KEY_MAX + 1], key_press_time[KEY_MAX + 1];
 volatile char key_pressed[KEY_MAX + 1];
-
-#ifdef BOARD_TOUCH_RECOVERY
-#include "../../vendor/koush/recovery/touch.c"
-#else
-    #if defined(BOARD_RECOVERY_SWIPE) && !defined(PHILZ_TOUCH_RECOVERY)
-    #include "swipe.c"
-    #endif
-#endif
 
 // Return the current time as a double (including fractions of a second).
 static double now() {
@@ -280,18 +271,12 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-#endif
+//#define MENU_TEXT_COLOR 255, 160, 49, 255
+#define MENU_TEXT_COLOR 0, 191, 255, 255
+#define NORMAL_TEXT_COLOR 200, 200, 200, 255
+#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
-// we keep these even in PHILZ_TOUCH_RECOVERY to not break compiling
-// they have no effect in PhilZ Touch builds
-// only used for native dual boot devices
-static int menuTextColor[4] = {0, 191, 255, 255};
-void ui_setMenuTextColor(int r, int g, int b, int a) {
-    menuTextColor[0] = r;
-    menuTextColor[1] = g;
-    menuTextColor[2] = b;
-    menuTextColor[3] = a;
-}
+#endif
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
@@ -314,8 +299,7 @@ void draw_screen_locked(void)
         int j = 0;
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
-#ifndef BOARD_TOUCH_RECOVERY
-            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+            gr_color(MENU_TEXT_COLOR);
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
                     gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
@@ -330,14 +314,14 @@ void draw_screen_locked(void)
             else
                 j = menu_items - menu_show_start;
 
-            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+            gr_color(MENU_TEXT_COLOR);
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
                     draw_text_line(i - menu_show_start , menu[i]);
-                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+                    gr_color(MENU_TEXT_COLOR);
                 } else {
-                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+                    gr_color(MENU_TEXT_COLOR);
                     draw_text_line(i - menu_show_start, menu[i]);
                 }
                 row++;
@@ -347,9 +331,6 @@ void draw_screen_locked(void)
 
             gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
                     gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
-#else
-            row = draw_touch_menu(menu, menu_items, menu_top, menu_sel, menu_show_start);
-#endif
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -451,13 +432,9 @@ static int input_callback(int fd, short revents, void *data)
     if (ret)
         return -1;
 
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     if (touch_handle_input(fd, ev))
         return 0;
-#else
-#ifdef BOARD_RECOVERY_SWIPE
-    swipe_handle_input(fd, &ev);
-#endif
 #endif
 
     if (ev.type == EV_SYN) {
@@ -540,16 +517,14 @@ void ui_init(void)
     ui_has_initialized = 1;
     gr_init();
     ev_init(input_callback, NULL);
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     touch_init();
 #endif
 
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
-#ifdef BOARD_TOUCH_RECOVERY
-    max_menu_rows = get_max_menu_rows(max_menu_rows);
-#endif
+
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
@@ -781,8 +756,10 @@ void ui_print(const char *fmt, ...)
     if (ui_log_stdout)
         fputs(buf, stdout);
 
+    if (!ui_has_initialized)
+        return;
+
     // now, we write log to screen
-    // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
     if (ui_print_replace_lines) {
         int i;
@@ -1200,7 +1177,7 @@ int ui_get_selected_item() {
 }
 
 int ui_handle_key(int key, int visible) {
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     return touch_handle_key(key, visible);
 #else
     return device_handle_key(key, visible);

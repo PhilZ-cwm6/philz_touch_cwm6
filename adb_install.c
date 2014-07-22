@@ -30,7 +30,7 @@
 #include "cutils/properties.h"
 #include "install.h"
 #include "common.h"
-#include "recovery_ui.h"
+#include "recovery.h"
 #include "adb_install.h"
 #include "minadbd/adb.h"
 

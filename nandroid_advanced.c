@@ -779,7 +779,7 @@ int twrp_backup(const char* backup_path) {
 #endif
 
     char tmp[PATH_MAX];
-    ensure_directory(backup_path);
+    ensure_directory(backup_path, 0755);
 
     if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
@@ -1297,6 +1297,78 @@ int verify_nandroid_md5sum(const char* backup_path) {
         delete_a_file(md5file);
     }
 
+    ui_reset_progress();
+    free_string_array(files);
+    return 0;
+}
+
+int check_twrp_md5sum(const char* backup_path) {
+    char md5file[PATH_MAX];
+    char** files;
+    int numFiles = 0;
+
+    ui_print("\n>> Checking MD5 sums...\n");
+    ensure_path_mounted(backup_path);
+    files = gather_files(backup_path, "", &numFiles);
+    if (numFiles == 0) {
+        LOGE("No files found in %s\n", backup_path);
+        free_string_array(files);
+        return -1;
+    }
+
+    int i = 0;
+    for(i = 0; i < numFiles; i++) {
+        // exclude md5 files
+        char *str = strstr(files[i], ".md5");
+        if (str != NULL && strcmp(str, ".md5") == 0)
+            continue;
+
+        ui_quick_reset_and_show_progress(1, 0);
+        ui_print("   - %s\n", BaseName(files[i]));
+        sprintf(md5file, "%s.md5", files[i]);
+        if (verify_md5digest(files[i], md5file) != 0) {
+            LOGE("md5sum error!\n");
+            ui_reset_progress();
+            free_string_array(files);
+            return -1;
+        }
+    }
+
+    ui_print("MD5 sum ok.\n");
+    ui_reset_progress();
+    free_string_array(files);
+    return 0;
+}
+
+int gen_twrp_md5sum(const char* backup_path) {
+    char md5file[PATH_MAX];
+    int numFiles = 0;
+
+    ui_print("\n>> Generating md5 sum...\n");
+    ensure_path_mounted(backup_path);
+
+    // this will exclude subfolders!
+    char** files = gather_files(backup_path, "", &numFiles);
+    if (numFiles == 0) {
+        LOGE("No files found in backup path %s\n", backup_path);
+        free_string_array(files);
+        return -1;
+    }
+
+    int i = 0;
+    for(i = 0; i < numFiles; i++) {
+        ui_quick_reset_and_show_progress(1, 0);
+        ui_print("   - %s\n", BaseName(files[i]));
+        sprintf(md5file, "%s.md5", files[i]);
+        if (write_md5digest(files[i], md5file, 0) < 0) {
+            LOGE("Error while generating md5sum!\n");
+            ui_reset_progress();
+            free_string_array(files);
+            return -1;
+        }
+    }
+
+    ui_print("MD5 sum created.\n");
     ui_reset_progress();
     free_string_array(files);
     return 0;

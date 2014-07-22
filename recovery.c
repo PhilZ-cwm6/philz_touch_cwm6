@@ -30,22 +30,22 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "bootloader.h"
-#include "common.h"
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
-#include "install.h"
+
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
-#include "roots.h"
-#include "recovery_ui.h"
-
 #include "voldclient/voldclient.h"
-
-#include "adb_install.h"
+#include "libcrecovery/common.h"
 #include "minadbd/adb.h"
+#include "bootloader.h"
+#include "common.h"
+#include "install.h"
+#include "roots.h"
+#include "recovery.h"
+#include "adb_install.h"
 #include "recovery_cmds.h"
-
+#include "edifyscripting.h"
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "advanced_functions.h"
@@ -814,7 +814,15 @@ int install_zip(const char* packagefilepath) {
 // remove static to be able to call it from ors menu
 void
 wipe_data(int confirm) {
-    if (confirm && !confirm_selection( "Confirm wipe of all user data?", "Yes - Wipe all user data")) {
+    const char* headers[] = {
+        "Wipe all user data ?",
+        "   data | cache | datadata",
+        "   sd-ext| android_secure",
+        "",
+        NULL
+    };
+
+    if (confirm && !confirm_with_headers(headers, "Yes - Wipe all user data")) {
         return;
     }
 
@@ -940,11 +948,13 @@ prompt_and_wait(int status) {
                     break;
 
                 case ITEM_WIPE_CACHE:
-                    if (ui_IsTextVisible() && !confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
-                        break;
-                    ui_print("\n-- Wiping cache...\n");
-                    erase_volume("/cache");
-                    ui_print("Cache wipe complete.\n");
+                    if (ui_IsTextVisible()) {
+                        wipe_data_menu();
+                    } else {
+                        ui_print("\n-- Wiping cache...\n");
+                        erase_volume("/cache");
+                        ui_print("Cache wipe complete.\n");
+                    }
                     if (!ui_IsTextVisible()) return;
                     break;
 
@@ -956,15 +966,15 @@ prompt_and_wait(int status) {
                     ret = show_nandroid_menu();
                     break;
 
-                case ITEM_PARTITION:
-                    ret = show_partition_menu();
+                case ITEM_MOUNTS:
+                    ret = show_partition_mounts_menu();
                     break;
 
                 case ITEM_ADVANCED:
-                    ret = show_advanced_menu();
+                    show_advanced_menu();
                     break;
 
-                case ITEM_PHILZ_MENU:
+                case ITEM_SETTINGS:
                     show_philz_settings_menu();
                     break;
 
@@ -1027,11 +1037,7 @@ void reboot_main_system(int cmd, int flags, char *arg) {
     verify_settings_file();
     write_recovery_version();
 
-#ifdef BOARD_NATIVE_DUALBOOT
-    device_verify_root_and_recovery();
-#else
     verify_root_and_recovery();
-#endif
 
     finish_recovery(NULL); // sync() in here
     vold_unmount_all();

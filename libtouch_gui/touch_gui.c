@@ -38,7 +38,7 @@
 #include "common.h"
 #include "libcrecovery/common.h" // __system()
 #include "minui/minui.h"
-#include "recovery_ui.h"
+#include "recovery.h"
 #include "voldclient/voldclient.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
@@ -88,7 +88,7 @@ void ui_update_screen() {
 
 /*
 ui_print_color() usage example:
-It is included in recovery_ui.h to include in most code
+It is included in recovery.h to include in most code
 To do: make it possible to only color the last bottom x lines
 // start code
     int color[] = {CYAN_BLUE_CODE};
@@ -1366,7 +1366,7 @@ Return codes:
          code will either trigger first touch event time or track x/y coordinates
     *  0 informs it is a finger lifted event
 */
-
+static int current_slot = 0;
 static int lastWasSynReport = 0;
 static int touchReleaseOnNextSynReport = 0;
 static int use_tracking_id_negative_as_touch_release = 0;
@@ -1399,6 +1399,18 @@ static int touch_track(int fd, struct input_event ev) {
             - to do: if needed, properly set different calibration settings for additional
               touch devices (use events.c call rather than loop for fd check like above)
         */
+
+        // lock on first slot and ditch all other slots events
+        if (ev.code == ABS_MT_SLOT) { //47
+            current_slot = ev.value;
+#ifdef RECOVERY_TOUCH_DEBUG
+            LOGI("EV: => EV_ABS ABS_MT_SLOT %d\n", ev.value);
+#endif
+            return 1;
+        }
+        if (current_slot != 0)
+            return 1;
+
         switch (ev.code)
         {
             case ABS_X: //00
@@ -1819,7 +1831,7 @@ int touch_handle_input(int fd, struct input_event ev) {
         */
         allow_long_press_move = 0;
         reset_gestures();
-    } else if (ev.type == EV_ABS) {
+    } else if (ev.type == EV_ABS && current_slot == 0) {
         // this is a touch event
         // first touch and all finger swiping after this should be dropped
         if (in_touch == 0) {

@@ -73,13 +73,13 @@ static int needs_loki_patch(const char *partition_image) {
     }
 
     orig = mmap(0, (st.st_size + 0x2000 + 0xfff) & ~0xfff, PROT_READ, MAP_PRIVATE, ifd, 0);
-    if (orig == MAP_FAILED) {
+    if ((char*)orig == MAP_FAILED) {
         LOGE("[-] Failed to mmap Loki image.\n");
         return 0;
     }
 
-    hdr = orig;
-    loki_hdr = orig + 0x400;
+    hdr = (struct boot_img_hdr*)orig;
+    loki_hdr = (struct loki_hdr*)orig + 0x400;
 
     /* Verify this is a Loki image */
     if (memcmp(loki_hdr->magic, "LOKI", 4)) {

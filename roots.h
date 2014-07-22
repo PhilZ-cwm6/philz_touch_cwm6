@@ -74,6 +74,10 @@ int format_device(const char *device, const char *path, const char *fs_type);
 // support format MTD, MMC, BML, ext2, ext3 and directory rm -rf like if a path is passed
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
 
+void set_ensure_mount_always_true(int state);
 char* get_real_fstype(const char* path);
+int has_datadata();
+int is_path_mounted(const char* path);
+int volume_main(int argc, char **argv);
 
 #endif  // RECOVERY_ROOTS_H_

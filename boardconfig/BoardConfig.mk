@@ -847,15 +847,15 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola - unified moto_msm8960 (mb886, xt925, xt926)
+#Motorola - unified moto_msm8960 (mb886, xt925, xt926, xt901, xt905, xt907)
 else ifeq ($(TARGET_PRODUCT), cm_moto_msm8960)
     TARGET_COMMON_NAME := Droid msm8960
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola Moto X: TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1053 cm_xt1055 cm_xt1056 cm_xt1058 cm_xt1060),)
+#Motorola Moto X: unified moto_msm8960dt [TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060), VZW Droid Maxx-Dev Edition (xt1080)]
+else ifneq ($(filter $(TARGET_PRODUCT),moto_msm8960dt),)
     TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
@@ -888,6 +888,14 @@ else ifeq ($(TARGET_PRODUCT), cm_find7)
     TARGET_COMMON_NAME := Oppo Find7
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Sony Xperia M (nicki)
+else ifeq ($(TARGET_PRODUCT), cm_nicki)
+    TARGET_COMMON_NAME := Xperia M
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 854
+    TARGET_SCREEN_WIDTH := 480
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Sony Xperia Z (yuga)

@@ -54,15 +54,14 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery_ui.h"
-
+#include "recovery.h"
+#include "ui.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
 #include "flashutils/flashutils.h"
 #include "edify/expr.h"
-#include <libgen.h>
 #include "mtdutils/mtdutils.h"
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
@@ -168,7 +167,7 @@ int force_wait = -1;
 //  * one key (KEY_LEFTBRACE) will handle all gesture defined movements
 //  * the int key_gesture is assigned the touch gesture code (SLIDE_LEFT_GESTURE, SLIDE_RIGHT_GESTURE or DOUBLE_TAP_GESTURE)
 // in the active menu, get_menu_selection() / ui_wait_key() stop watching for a key as it detected KEY_LEFTBRACE
-// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery_ui.h)
+// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery.h)
 // back to recovery.c / get_menu_selection(), action = GESTURE_ACTIONS will launch handle_gesture_actions() and set chosen_item = GESTURE_ACTIONS
 // handle_gesture_actions() is launched while menu is still showing on screen, since ui_end_menu() was not yet called
 // handle_gesture_actions() will read key_gesture value assigned above and run the action associated to the gesture
@@ -1257,7 +1256,7 @@ static void browse_background_image() {
     char list_prefix[] = "Image from ";
     char* list[MAX_NUM_MANAGED_VOLUMES + list_top_items + 1];
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + list_top_items + 1);
+    memset(list, 0, sizeof(list));
     list[0] = "Solid Color Background";
     list[1] = "Reset Koush Background";
     list[2] = "Reset PhilZ Touch Background";
@@ -1373,21 +1372,20 @@ void refresh_touch_gui_settings(int on_start) {
 
 //start show GUI Preferences menu
 static void change_menu_color() {
-    const char* headers[] = {  "Change Menu Colors",
-                                NULL
-    };
+    const char* headers[] = { "Change Menu Colors", NULL };
 
-    char* list[] = { "Change Menu Text Color",
-                            "Change Menu Background Color",
-                            "Change Menu Background Alpha",
-                            "Change Menu Highlight Color",
-                            "Change Menu Highlight Alpha",
-                            "Change Menu Separator Color",
-                            "Change Menu Separator Alpha",
-                            "Change Log and Prints Color",
-                            "Change Header Text Color",
-                            "Change Battery and Clock Color",
-                            NULL
+    char* list[] = {
+        "Change Menu Text Color",
+        "Change Menu Background Color",
+        "Change Menu Background Alpha",
+        "Change Menu Highlight Color",
+        "Change Menu Highlight Alpha",
+        "Change Menu Separator Color",
+        "Change Menu Separator Alpha",
+        "Change Log and Prints Color",
+        "Change Header Text Color",
+        "Change Battery and Clock Color",
+        NULL
     };
 
     for (;;) {
@@ -1468,7 +1466,7 @@ static void change_menu_color() {
 // prefer second storage paths first, then primary storage
 static void fb2png_shot() {
     if (!libtouch_flags.board_use_fb2png) {
-        ui_print("fb2png not supported on this device!\n");
+        LOGE("fb2png not supported on this device!\n");
         return;
     }
 
@@ -1494,7 +1492,7 @@ static void fb2png_shot() {
         return;
     }
 
-    //reads index file to increment filename
+    // reads index file to increment filename
     char tmp[PATH_MAX];
     char line[5]; // xxxx + new line, so that when it reaches 1000 it doesn't read it as 100
     long int file_num = 1;
@@ -1510,10 +1508,10 @@ static void fb2png_shot() {
         fclose(fp);
     }
 
-    //capture screen
+    // capture screen
     char dirtmp[PATH_MAX];
     sprintf(dirtmp, "%s", DirName(tmp));
-    ensure_directory(dirtmp);
+    ensure_directory(dirtmp, 0755);
     sprintf(tmp, "fb2png %s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
     if (0 == __system(tmp)) {
         ui_print("screen shot: %s\n", tmp + 7); // strlen("fb2png ")
@@ -1578,9 +1576,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 }
 
 static void gestures_action_setup() {
-    const char* headers[] = {  "Gesture Action Setup",
-                                NULL
-    };
+    const char* headers[] = { "Gesture Action Setup", NULL };
 
     char item_slide_left[MENU_MAX_COLS];
     char item_slide_right[MENU_MAX_COLS];
@@ -1588,21 +1584,23 @@ static void gestures_action_setup() {
     char item_press_lift[MENU_MAX_COLS];
     char item_press_move[MENU_MAX_COLS];
 
-    char* list[] = { item_slide_left,
-                    item_slide_right,
-                    item_double_tap,
-                    item_press_lift,
-                    item_press_move,
-                    NULL
+    char* list[] = {
+        item_slide_left,
+        item_slide_right,
+        item_double_tap,
+        item_press_lift,
+        item_press_move,
+        NULL
     };
 
-    char* gesture_action[] = { "disabled",
-                                      "screen shot", 
-                                      "aroma browser",
-                                      "set brightness",
-                                      "show log",
-                                      "toggle screen",
-                                      NULL
+    char* gesture_action[] = {
+        "disabled",
+        "screen shot", 
+        "aroma browser",
+        "set brightness",
+        "show log",
+        "toggle screen",
+        NULL
     };
 
     for (;;) {
@@ -2622,12 +2620,13 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
         ui_print("Can't mount %s\n", target_volume);
         return -1;
     }
+
     int ret = 0;
+    char cmd[PATH_MAX];
     char tmp_path[PATH_MAX];
     sprintf(tmp_path, "%s/%s/tmp", target_volume, CUSTOM_ROM_PATH);
 
     ui_print("\nPreparing ROM structure...\n");
-    char cmd[PATH_MAX];
     sprintf(cmd, "rm -rf %s", tmp_path);
     __system(cmd);
     sprintf(cmd, "mkdir -p %s/META-INF/com/google/android", tmp_path);
@@ -2692,7 +2691,7 @@ static void custom_rom_target_volume(const char* source_path) {
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Create ROM in ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2731,7 +2730,7 @@ static void choose_nandroid_menu() {
     char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Choose from ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2934,8 +2933,8 @@ void check_recovery_lock() {
     // parse the password: "key1,key2,key3,key4..."
     int i = 0;
     int pass_chars = 0;
-    char** pass_key = (char**) malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
-    memset(pass_key, 0, RECOVERY_LOCK_MAX_CHARS);
+    char** pass_key = (char**)malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
+    memset(pass_key, 0, sizeof(pass_key));
     ptr = strtok(line, ", \n");
     while (i < RECOVERY_LOCK_MAX_CHARS && ptr != NULL) {
         pass_key[i] = strdup(ptr);

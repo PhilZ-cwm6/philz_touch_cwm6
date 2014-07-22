@@ -54,7 +54,7 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery_ui.h"
+#include "recovery.h"
 
 #include <sys/vfs.h>
 #include "cutils/android_reboot.h"

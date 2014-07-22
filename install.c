@@ -33,7 +33,6 @@
 #include "mtdutils/mtdutils.h"
 #include "roots.h"
 #include "verifier.h"
-#include "recovery_ui.h"
 
 #include "cutils/properties.h"
 
@@ -100,12 +99,6 @@ static int unset_legacy_props() {
 // If the package contains an update binary, extract it and run it.
 static int
 try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
-#ifdef BOARD_NATIVE_DUALBOOT_SINGLEDATA
-	int rc;
-	if((rc=device_truedualboot_before_update(path, zip))!=0)
-		return rc;
-#endif
-
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     if (binary_entry == NULL) {
