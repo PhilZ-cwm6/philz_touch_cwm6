@@ -297,6 +297,11 @@ static void draw_virtualkeys_locked() {
         int iconX = (gr_fb_width() - iconWidth) / 2;
         int iconY = (gr_fb_height() - iconHeight);
         gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
+
+        // draw highlight key line
+        gr_color(VK_KEY_HIGHLIGHT_COLOR);
+        gr_fill(iconX, iconY-2,
+                iconX+iconWidth, iconY);
     }
 }
 
@@ -707,7 +712,7 @@ void draw_touch_menu() {
             }
 
             // start write bottom line separator, the line just below last menu
-            // the line above virtual buttons, is part of their png image
+            // the line above virtual buttons (pre-KK virtual keys), is part of their png image
             gr_color(MENU_SEPARATOR_COLOR);
             gr_fill(0, (row * MENU_HEIGHT_TOTAL) + (MENU_HEIGHT_TOTAL / 2) - 1,
                     gr_fb_width(), (row * MENU_HEIGHT_TOTAL) + (MENU_HEIGHT_TOTAL / 2) + 1);
@@ -1281,18 +1286,21 @@ static void toggle_key_pressed(int key_code, int pressed) {
 
 // called to map a touch event to a recovery virtual button
 // it returns the touched key code and highlights the touched virtual button
-int input_buttons() {
+static int input_buttons() {
     pthread_mutex_lock(&gUpdateMutex);
 
     int final_code = -1;
     int start_draw = 0;
     int end_draw = 0;
+
+    gr_surface surface = gVirtualKeys;
     int fbh = gr_fb_height();
     int fbw = gr_fb_width();
-    gr_surface surface = gVirtualKeys;
+    int vk_width = gr_get_width(surface);
+    int keyhight = gr_get_height(surface);
+    int keywidth = vk_width / 4;
+    int keyoffset = (fbw - vk_width) / 2;  // pixels from left display edge to start of virtual keys
 
-    int keywidth = gr_get_width(surface) / 4;
-    int keyoffset = (fbw - gr_get_width(surface)) / 2;
     if (touch_x < (keywidth + keyoffset + 1)) {
         // down button
         final_code = KEY_DOWN; // 108
@@ -1301,29 +1309,31 @@ int input_buttons() {
     } else if (touch_x < ((keywidth * 2) + keyoffset + 1)) {
         // up button
         final_code = KEY_UP; // 103
-        start_draw = keywidth + keyoffset + 1;
+        start_draw = keyoffset + keywidth + 1;
         end_draw = (keywidth * 2) + keyoffset;
     } else if (touch_x < ((keywidth * 3) + keyoffset + 1)) {
         // back button
         final_code = KEY_BACK; // 158
-        start_draw = (keywidth * 2) + keyoffset + 1;
+        start_draw = keyoffset + (keywidth * 2) + 1;
         end_draw = (keywidth * 3) + keyoffset;
     } else if (touch_x < ((keywidth * 4) + keyoffset + 1)) {
         // enter key
         final_code = KEY_ENTER; // 28
-        start_draw = (keywidth * 3) + keyoffset + 1;
+        start_draw = keyoffset + (keywidth * 3) + 1;
         end_draw = (keywidth * 4) + keyoffset;
+    } else {
+        return final_code;
     }
 
     // start drawing button highlight
-    gr_color(0, 0, 0, 255);     // clear old touch points
-    gr_fill(0, fbh-gr_get_height(surface)-2, start_draw-1,
-            fbh-gr_get_height(surface));
-    gr_fill(end_draw+1, fbh-gr_get_height(surface)-2, fbw,
-            fbh-gr_get_height(surface));
-    gr_color(CYAN_BLUE_CODE);
-    gr_fill(start_draw, fbh-gr_get_height(surface)-2, end_draw,
-            fbh-gr_get_height(surface));
+    // clear old touch points (for old key codes with a blue line on top of keys in png)
+    gr_color(0, 0, 0, 255); // black
+    gr_fill(0, fbh-keyhight, 
+            vk_width+keyoffset, fbh-keyhight+3);
+
+    gr_color(VK_KEY_HIGHLIGHT_COLOR);
+    gr_fill(start_draw, fbh-keyhight,
+            end_draw, fbh-keyhight+3);
     gr_flip(); // makes visible the draw buffer we did above, without redrawing whole screen
     pthread_mutex_unlock(&gUpdateMutex);
 

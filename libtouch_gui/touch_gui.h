@@ -193,6 +193,9 @@ extern int batt_clock_code[4]; // color code for battery and clock
 // define default color used when calling ui_print_default_color()
 #define DEFAULT_UI_PRINT_COLOR      CYAN_BLUE_CODE
 
+// highlight color of virtual keys
+#define VK_KEY_HIGHLIGHT_COLOR      CYAN_BLUE_CODE
+
 /****************************************/
 /*   Start support for theme settings   */
 /****************************************/
