@@ -131,8 +131,8 @@ int batt_clock_code[4] = {DEFAULT_BATT_CLOCK_CODE};
 
 // dim and blank screen
 static long int max_brightness_value = 255;
-int is_blanked = 0;
-int is_dimmed = 0;
+bool is_blanked = 0;
+bool is_dimmed = 0;
 
 // toggle friendly log view during install_zip()
 // on start, bypass user settings: do not wait after boot install scripts
@@ -1562,12 +1562,12 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
             ui_start_menu(headers, items, initial_selection);
             break;
         case BLANK_SCREEN_ACTION:
-            ui_blank_screen(1);
+            ui_blank_screen(true);
             // to avoid considering more keys, mainly on long press and move action, usleep for 1sec before clearing key queue
             // use 999999 micro sec as 1000000 usecs is illegal in usleep
             usleep(999999);
             ui_clear_key_queue();
-            ui_wait_key(); // will also call ui_blank_screen(0) on a key press and set ignore_key_action
+            ui_wait_key(); // will also call ui_blank_screen(false) on a key press and set ignore_key_action
             break;
     }
 
@@ -2594,7 +2594,7 @@ static int rom_zip_wrapper(const char* backup_path) {
 
             // wake-up screen brightness on key event
             if (is_dimmed)
-                ui_dim_screen(0);
+                ui_dim_screen(false);
 
             // support cancel nandroid tar backup
             if (key_event == GO_BACK) {
@@ -2606,7 +2606,7 @@ static int rom_zip_wrapper(const char* backup_path) {
             }
         } else if (!is_dimmed && dim_timeout.value != 0 && (now.tv_sec - last_key_ev) >= dim_timeout.value) {
             // dim screen on timeout
-            ui_dim_screen(1);
+            ui_dim_screen(true);
         }
 
         tmp[PATH_MAX - 1] = '\0';

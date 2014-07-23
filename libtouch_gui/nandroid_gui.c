@@ -99,7 +99,7 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
 
         // wake-up screen brightness on key event
         if (is_dimmed)
-            ui_dim_screen(0);
+            ui_dim_screen(false);
 
         // support cancel nandroid job
         if (key_event == GO_BACK) {
@@ -141,7 +141,7 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
         }
     } else if (!is_dimmed && dim_timeout.value != 0 && (timenow_msec() - last_key_ev) / 1000 >= dim_timeout.value) {
         // dim screen on timeout
-        ui_dim_screen(1);
+        ui_dim_screen(true);
     }
 
     return 0;

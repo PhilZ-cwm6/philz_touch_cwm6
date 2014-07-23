@@ -958,9 +958,11 @@ void ui_friendly_log(int engage_friendly_view)
     }
 }
 
-void ui_blank_screen(int blank_screen) {
-    if (blank_screen)
+void ui_blank_screen(bool blank_screen) {
+    if (blank_screen) {
+        ui_dim_screen(true);
         ignore_key_action = 1;
+    }
 
     pthread_mutex_lock(&gUpdateMutex);
     gr_fb_blank(blank_screen);
@@ -968,6 +970,7 @@ void ui_blank_screen(int blank_screen) {
 
     // wake up screen
     if (!blank_screen) {
+        ui_dim_screen(false);
         update_screen_locked();
 
         // some phones (i9500) need special scripts to restore touch after screen wake up
@@ -978,9 +981,12 @@ void ui_blank_screen(int blank_screen) {
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-void ui_dim_screen(int dim_screen) {
+// set brightness to 0 or defaulr value
+// used for timed out dim screen
+// when manually dimming screen, we keep 10 as minimal value to avoid locking user
+void ui_dim_screen(bool dim_screen) {
     if (dim_screen)
-        apply_brightness_value(10);
+        apply_brightness_value(0);
     else
         apply_brightness_value(set_brightness.value);
 
@@ -990,16 +996,16 @@ void ui_dim_screen(int dim_screen) {
 // support refresh batt / clock, dim and blank screen after a set delay and if no key is pressed
 // screen_timeout increment must be same as timeout.tv_sec += increase value or we get out of time sync
 void ui_refresh_display_state(int *screen_timeout) {
-    *screen_timeout += REFRESH_TIME_USB_INTERVAL;
     if (key_queue_len == 0) {
         // no key was pressed
         // dim screen if timer reached
+        *screen_timeout += REFRESH_TIME_USB_INTERVAL;
         if (!is_dimmed && dim_timeout.value != 0 && *screen_timeout >= dim_timeout.value)
-            ui_dim_screen(1);
+            ui_dim_screen(true);
 
         // blank screen if timer reached
         if (!is_blanked && blank_timeout.value != 0 && *screen_timeout >= blank_timeout.value)
-            ui_blank_screen(1); // this will also set is_blanked to 1
+            ui_blank_screen(true); // this will also set is_blanked to 1
 
         // refresh clock and battery display if screen is not blanked
         // if text is not visible, no need to refresh clock/time (password prompt start up screen)
@@ -1011,10 +1017,11 @@ void ui_refresh_display_state(int *screen_timeout) {
     } else {
         // key_queue_len > 0: a key was pressed
         // wake up screen if it was blanked or dimmed
+        // unblank screen will also reset brightness if dimmed
         if (is_blanked)
-            ui_blank_screen(0);
-        if (is_dimmed)
-            ui_dim_screen(0);
+            ui_blank_screen(false);
+        else if (is_dimmed)
+            ui_dim_screen(false);
     }
 }
 /******** end philz functions declarartion ********/
@@ -1326,7 +1333,7 @@ static int input_buttons() {
     }
 
     // start drawing button highlight
-    // clear old touch points (for old key codes with a blue line on top of keys in png)
+    // clear old touch points
     gr_color(0, 0, 0, 255); // black
     gr_fill(0, fbh-keyhight, 
             vk_width+keyoffset, fbh-keyhight+3);

@@ -23,6 +23,7 @@
 #ifndef __TOUCH_GUI_H
 #define __TOUCH_GUI_H
 
+#include <stdbool.h>
 
 // check if a progress bar is being displayed
 int ui_showing_progress_bar();
@@ -56,11 +57,11 @@ extern int key_gesture;
 
 // brightness and blank screen settings
 #define BRIGHTNESS_DEFAULT_VALUE 160
-extern int is_blanked;
-extern int is_dimmed;
+extern bool is_blanked;
+extern bool is_dimmed;
 void apply_brightness_value(long int dim_value);
-void ui_blank_screen(int blank_screen);
-void ui_dim_screen(int dim_screen);
+void ui_blank_screen(bool blank_screen);
+void ui_dim_screen(bool dim_screen);
 
 // live refresh menu height and other settings normally done on recovery start using ui_init()
 void fast_ui_init();

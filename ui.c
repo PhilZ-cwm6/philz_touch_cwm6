@@ -1013,6 +1013,11 @@ int ui_wait_key()
 #endif
     } while ((timeouts > 0 || usb_connected()) && key_queue_len == 0);
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    // on key press, immediately wake up screen (only if key_queue_len != 0)
+    ui_refresh_display_state(&display_state);
+#endif
+
     int key = -1;
     if (key_queue_len > 0) {
         key = key_queue[0];
@@ -1072,7 +1077,7 @@ int ui_wait_key_with_repeat()
         }
 #ifdef PHILZ_TOUCH_RECOVERY
         // either a key was pressed (key_queue_len > 0) or reboot timer (timeouts) is reached
-        // wake up screen if it was blanked or dimmed but only if no key was pressed (key_queue_len == 0)
+        // wake up screen if it was blanked or dimmed but only if a key was pressed (key_queue_len > 0)
         // this will avoid wake up screen after reboot timer reached AND USB cable is connected (no reboot) and screen was blanked/dimmed
         ui_refresh_display_state(&display_state);
 #endif
