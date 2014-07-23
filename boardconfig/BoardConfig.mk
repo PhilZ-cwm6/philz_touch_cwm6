@@ -60,6 +60,15 @@
 #                               In any case, user can toggle the storage path by create/delete the file /data/media/.cwm_force_data_media
 #                               This is achieved through the Advanced menu
 #
+#   - TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/class/android_usb/android%d/f_mass_storage/lun/file"
+#                               It will add custom lun path support to vold (mount usb storage). For vold support, it must be in main device tree
+#                               If recovery has no vold support, it will enable mount usb storage for non vold managed storage
+#
+#   - BOARD_UMS_LUNFILE := "/sys/class/android_usb/android%d/f_mass_storage/lun/file"
+#                               Same as TARGET_USE_CUSTOM_LUN_FILE_PATH except it is not used by vold
+#                               You can also define both for non vold managed storage
+#
+
 
 #Amazon Kindle Fire HD 8.9 (jem)
 ifeq ($(TARGET_PRODUCT), cm_jem)
