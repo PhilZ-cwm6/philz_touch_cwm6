@@ -225,7 +225,10 @@ static void write_fstab_entry(Volume *v, FILE *file)
         // special case rfs cause auto will mount it as vfat on samsung.
         // use real fstype if it is an f2fs/ext4 conversion
         char* fstype = v->fs_type;
-        if (v->fs_type2 != NULL && strcmp(v->fs_type, "rfs") != 0 && strcmp(v->fs_type, "f2fs") != 0 && strcmp(v->fs_type2, "f2fs") != 0) {
+        if (v->fs_type2 != NULL) {
+            if (strcmp(v->fs_type, "rfs") != 0 && 
+                !(strcmp(v->fs_type, "f2fs") == 0 && strcmp(v->fs_type2, "ext4") == 0) &&
+                !(strcmp(v->fs_type, "ext4") == 0 && strcmp(v->fs_type2, "f2fs") == 0))
             fstype = "auto";
         }
         fprintf(file, "%s defaults\n", fstype);
@@ -438,7 +441,11 @@ int try_mount(const char* device, const char* mount_point, const char* fs_type, 
     if (device == NULL || mount_point == NULL || fs_type == NULL)
         return -1;
     int ret = 0;
-    if (fs_options == NULL) {
+    if (strcmp(fs_type, "auto") == 0) {
+        char mount_cmd[PATH_MAX];
+        sprintf(mount_cmd, "mount %s %s", device, mount_point);
+        ret = __system(mount_cmd);
+    } else if (fs_options == NULL) {
         ret = mount(device, mount_point, fs_type,
                        MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
         // LOGE("ret =%d - device=%s - mount_point=%s - fstype=%s\n", ret, device, mount_point, fs_type); // debug
@@ -604,7 +611,7 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         return -1;
     }
 
-    if (NULL == mount_point)
+    if (mount_point == NULL)
         mount_point = v->mount_point;
 
     const MountedVolume* mv =
@@ -632,7 +639,8 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
             return -1;
         }
         return mtd_mount_partition(partition, mount_point, v->fs_type, 0);
-    } else if (strcmp(v->fs_type, "ext4") == 0 ||
+    } else if (strcmp(v->fs_type, "auto") == 0 || 
+               strcmp(v->fs_type, "ext4") == 0 ||
                strcmp(v->fs_type, "ext3") == 0 ||
 #ifdef USE_F2FS
                strcmp(v->fs_type, "f2fs") == 0 ||
@@ -642,17 +650,11 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         // LOGE("main pass: %s %s %s %s\n", v->blk_device, mount_point, v->fs_type, v->fs_type2); // debug
         if ((result = try_mount(v->blk_device, mount_point, v->fs_type, v->fs_options)) == 0)
             return 0;
-        if ((result = try_mount(v->blk_device, mount_point, v->fs_type2, v->fs_options2)) == 0)
-            return 0;
         if ((result = try_mount(v->blk_device2, mount_point, v->fs_type2, v->fs_options2)) == 0)
             return 0;
+        if ((result = try_mount(v->blk_device, mount_point, v->fs_type2, v->fs_options2)) == 0)
+            return 0;
         return result;
-    } else if (strcmp(v->fs_type, "auto") == 0) {
-        // either we are using fstab with non vold managed external storage or vold failed to mount a storage (ext2/ext4, some vfat systems)
-        // on vold managed devices, we need the blk_device2
-        char mount_cmd[PATH_MAX];
-        sprintf(mount_cmd, "mount %s %s", v->blk_device2 != NULL ? v->blk_device2 : v->blk_device, mount_point);
-        return __system(mount_cmd);
     } else {
         // let's try mounting with the mount binary and hope for the best.
         // case called by ensure_path_mounted_at_mount_point("/emmc", "/sdcard") in edifyscripting.c (this now obsolete)
