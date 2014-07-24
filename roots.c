@@ -243,6 +243,12 @@ Volume* get_device_volumes() {
     return fstab->recs;
 }
 
+static int is_datamedia = 0;
+int is_data_media()
+{
+    return is_datamedia;
+}
+
 void load_volume_table()
 {
     int i;
@@ -350,27 +356,36 @@ void load_volume_table()
         LOGW("Unable to create /etc/fstab!\n");
     }
 
-    fprintf(stderr, "recovery filesystem table\n");
-    fprintf(stderr, "=========================\n");
+    is_datamedia = 1;
+
+    printf("recovery filesystem table\n");
+    printf("=========================\n");
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = &fstab->recs[i];
-
-        fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
+        printf("  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
         if (v->blk_device2 != NULL) {
             // print extra volume table
-            fprintf(stderr, "    %s %s %s %lld\n", v->mount_point, v->fs_type2,
+            printf("    %s %s %s %lld\n", v->mount_point, v->fs_type2,
                     v->blk_device2, v->length);
         }
 
         write_fstab_entry(v, file);
+
+        // https://source.android.com/devices/tech/storage/config-example.html
+        if (strcmp(v->mount_point, "/mnt/media_rw/sdcard0") == 0 ||
+                (strcmp(v->mount_point, "/sdcard") == 0 && strcmp(v->fs_type, "datamedia") != 0) ||
+                (fs_mgr_is_voldmanaged(v) && strcmp(v->label, "sdcard0") == 0)) {
+            is_datamedia = 0;
+        }
     }
 
     if (file != NULL)
         fclose(file);
 
-    fprintf(stderr, "\n");
+    printf("\n");
 }
+
 
 Volume* volume_for_path(const char* path) {
     return fs_mgr_get_entry_for_mount_point(fstab, path);
@@ -488,22 +503,6 @@ static int check_migrated_storage() {
     is_migrated_storage = (lstat("/data/media/.cwm_force_data_media", &s) != 0);
 #endif
     return is_migrated_storage;
-}
-
-int is_data_media() {
-    int i;
-    int has_sdcard = 0;
-    for (i = 0; i < get_num_volumes(); i++) {
-        Volume* vol = get_device_volumes() + i;
-        if (strcmp(vol->fs_type, "datamedia") == 0)
-            return 1;
-        if (strcmp(vol->mount_point, "/sdcard") == 0)
-            has_sdcard = 1;
-        if (fs_mgr_is_voldmanaged(vol) &&
-                (strcmp(vol->mount_point, "/storage/sdcard0") == 0))
-            has_sdcard = 1;
-    }
-    return !has_sdcard;
 }
 
 // load_volume_table() must have been called at this stage, so we can use ensure_path_mounted()
