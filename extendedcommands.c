@@ -4556,7 +4556,6 @@ void show_advanced_menu() {
 
     for (;;) {
         if (is_data_media()) {
-            ensure_path_mounted("/data");
             if (use_migrated_storage())
                 list[6] = "Sdcard target: /data/media/0";
             else list[6] = "Sdcard target: /data/media";
@@ -4647,17 +4646,19 @@ void show_advanced_menu() {
                 break;
             }
             case 6: {
-                if (is_data_media()) {
-                    // /data is mounted above in the for() loop: we can directly call use_migrated_storage()
+                if (is_data_media() && ensure_path_mounted("/data") == 0) {
                     if (use_migrated_storage()) {
                         write_string_to_file("/data/media/.cwm_force_data_media", "1");
                         ui_print("storage set to /data/media\n");
                     } else {
-                        mkdir("/data/media/0", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH); 
+                        // For devices compiled with BOARD_HAS_NO_MULTIUSER_SUPPORT := true, create /data/media/0
+                        // to force using it when calling check_migrated_storage() through setup_data_media()
+                        ensure_directory("/data/media/0", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
                         delete_a_file("/data/media/.cwm_force_data_media");
                         ui_print("storage set to /data/media/0\n");
                     }
-                    setup_data_media(0); // /data is mounted above in the for() loop. No need to mount/unmount on call
+                    // recreate /sdcard link
+                    setup_data_media(0); // /data is mounted above. No need to mount/unmount on call
                     ui_print("Reboot to apply settings!\n");
                 }
                 break;
