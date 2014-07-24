@@ -61,16 +61,6 @@
 #include "libtouch_gui/gui_settings.h"
 #endif
 
-/*****************************************/
-/*   DO NOT REMOVE THIS CREDITS HEARDER  */
-/* IF YOU MODIFY ANY PART OF THIS SOURCE */
-/*  YOU MUST AGREE TO SHARE THE CHANGES  */
-/*                                       */
-/*       Start PhilZ Menu settings       */
-/*      Code written by PhilZ@xda        */
-/*      Part of PhilZ Touch Recovery     */
-/*****************************************/
-
 extern struct selabel_handle *sehandle;
 
 // ignore_android_secure = 1: this will force skipping android secure from backup/restore jobs
@@ -564,7 +554,6 @@ void stop_md5_verify_thread() {
 }
 // ------- End md5sum display
 
-
 /***********************************************/
 /* start wipe data and system options and menu */
 /***********************************************/
@@ -927,7 +916,6 @@ void show_multi_flash_menu() {
 }
 //-------- End Multi-Flash Zip code
 
-
 /*****************************************/
 /*   DO NOT REMOVE THIS CREDITS HEARDER  */
 /* IF YOU MODIFY ANY PART OF THIS SOURCE */
@@ -1023,7 +1011,6 @@ static void choose_ors_volume() {
             free(list[i + 1]);
     }
 }
-
 
 // Parse backup options in ors
 // Stock CWM as of v6.x, doesn't support backup options
@@ -1480,7 +1467,6 @@ static void show_custom_ors_menu() {
 }
 //----------end open recovery script support
 
-
 /**********************************/
 /*       Start Get ROM Name       */
 /*    Original source by PhilZ    */
@@ -1512,11 +1498,16 @@ static void format_filename(char *valid_path, int max_len) {
 // always call with rom_name[PROPERTY_VALUE_MAX]
 #define MAX_ROM_NAME_LENGTH 31
 void get_rom_name(char *rom_name) {
-    const char *rom_id_key[] = { "ro.modversion", "ro.romversion", "ro.build.display.id", NULL };
+    const char *rom_id_key[] = {
+        "ro.modversion",
+        "ro.romversion",
+        "ro.build.display.id",
+        NULL
+    };
     const char *key;
     int i = 0;
 
-    sprintf(rom_name, "noname");
+    strcpy(rom_name, "noname");
     while ((key = rom_id_key[i]) != NULL && strcmp(rom_name, "noname") == 0) {
         if (read_config_file("/system/build.prop", key, rom_name, "noname") < 0) {
             ui_print("failed to open /system/build.prop!\n");
@@ -1530,7 +1521,6 @@ void get_rom_name(char *rom_name) {
         format_filename(rom_name, MAX_ROM_NAME_LENGTH);
     }
 }
-
 
 /**********************************/
 /*   Misc Nandroid Settings Menu  */
@@ -1777,7 +1767,6 @@ void misc_nandroid_menu() {
     }
 }
 //-------- End Misc Nandroid Settings
-
 
 /****************************************/
 /*  Start Install Zip from custom path  */
@@ -3765,9 +3754,8 @@ static int control_usb_storage(bool enable) {
         int i;
         for(i = 0; i < MAX_NUM_USB_VOLUMES; ++i) {
             Volume *v = volumes[i];
-            if (v) {
-                if (control_usb_storage_for_lun(v, enable) == 0)
-                    ++num; // if any one path succeeds, we return success
+            if (v && control_usb_storage_for_lun(v, enable) == 0) {
+                ++num; // if any one path succeeds, we return success
             }
         }
 

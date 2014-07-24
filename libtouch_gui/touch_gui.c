@@ -981,7 +981,7 @@ void ui_blank_screen(bool blank_screen) {
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-// set brightness to 0 or defaulr value
+// set brightness to 0 or default value
 // used for timed out dim screen
 // when manually dimming screen, we keep 10 as minimal value to avoid locking user
 void ui_dim_screen(bool dim_screen) {
