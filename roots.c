@@ -208,17 +208,19 @@ static void write_fstab_entry(Volume *v, FILE *file)
     // detect MTD/EMMC devices by name. BML devices won't be auto detected and we need the proper blk device in recovery.fstab!
     // mtdutils.c/cmd_bml_get_partition_device() always returns -1
     char device[200];
-    if (strncmp(v->blk_device, "/", 1) != 0 && get_partition_device(v->blk_device, device) != 0) {
-        fprintf(stderr, "    invalid device, skipping /etc/fstab entry\n");
-        return;
+    if (strncmp(v->blk_device, "/", 1) != 0) {
+        if (get_partition_device(v->blk_device, device) != 0) {
+            fprintf(stderr, "    invalid device: skipping /etc/fstab entry\n");
+            return;
+        }
     } else {
         strcpy(device, v->blk_device);
     }
 
-    if (strcmp(v->fs_type, "mtd") != 0 && strcmp(v->fs_type, "emmc") != 0
-                  && strcmp(v->fs_type, "bml") != 0 && !fs_mgr_is_voldmanaged(v)
-                  && strncmp(device, "/", 1) == 0
-                  && strncmp(v->mount_point, "/", 1) == 0) {
+    if (strcmp(v->fs_type, "emmc") != 0 && 
+            !fs_mgr_is_voldmanaged(v) &&
+            strncmp(device, "/", 1) == 0 &&
+            strncmp(v->mount_point, "/", 1) == 0) {
 
         fprintf(file, "%s ", device);
         fprintf(file, "%s ", v->mount_point);
@@ -395,9 +397,9 @@ void load_volume_table()
     fprintf(stderr, "\n");
 #endif
 
-    // Create a boring /etc/fstab so tools like Busybox mount work
+    // Create /etc/fstab so tools like Busybox mount work
     FILE *file;
-    file = fopen ("/etc/mtab","a");
+    file = fopen("/etc/mtab", "a");
     fclose(file);
     file = fopen("/etc/fstab", "w");
     if (file == NULL) {
