@@ -181,18 +181,18 @@ static void load_volume_table_extra() {
     fs_mgr_free_fstab(fstab_extra);
     fstab_extra = fs_mgr_read_fstab("/etc/extra.fstab");
     if (!fstab_extra) {
-        fprintf(stderr, "No /etc/extra.fstab\n");
+        printf("No /etc/extra.fstab\n");
         return;
     }
 
-    fprintf(stderr, "\nextra filesystem table: (device2, fstype2, options2):\n");
-    fprintf(stderr,   "======================\n");
+    printf("\nextra filesystem table: (device2, fstype2, options2):\n");
+    printf(  "======================\n");
     for(i = 0; i < fstab_extra->num_entries; ++i) {
         Volume* v = &fstab_extra->recs[i];
-        fprintf(stderr, "  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
+        printf("  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type,
                 v->blk_device, v->length);
     }
-    fprintf(stderr, "\n");
+    printf("\n");
 }
 
 Volume* volume_for_path_extra(const char* path) {
@@ -210,7 +210,7 @@ static void write_fstab_entry(Volume *v, FILE *file)
     char device[200];
     if (strncmp(v->blk_device, "/", 1) != 0) {
         if (get_partition_device(v->blk_device, device) != 0) {
-            fprintf(stderr, "    invalid device: skipping /etc/fstab entry\n");
+            printf("    invalid device: skipping /etc/fstab entry\n");
             return;
         }
     } else {
@@ -307,13 +307,13 @@ void load_volume_table()
     fs_mgr_free_fstab(fstab);
     fstab = fs_mgr_read_fstab("/etc/recovery.fstab");
     if (!fstab) {
-        fprintf(stderr, "failed to read /etc/recovery.fstab\n");
+        printf("failed to read /etc/recovery.fstab\n");
         return;
     }
 
     ret = fs_mgr_add_entry(fstab, "/tmp", "ramdisk", "ramdisk", 0);
     if (ret < 0 ) {
-        fprintf(stderr, "failed to add /tmp entry to fstab\n");
+        printf("failed to add /tmp entry to fstab\n");
         fs_mgr_free_fstab(fstab);
         fstab = NULL;
         return;
@@ -344,7 +344,7 @@ void load_volume_table()
     // if fstab entry matches the real device fs_type, do nothing
     // also skip vold managed devices as vold relies on the defined flags.
     // vold managed devices should be set to auto fstype for free formatting
-    fprintf(stderr, "checking ext4 <-> f2fs conversion...\n");
+    printf("checking ext4 <-> f2fs conversion...\n");
     for (i = 0; i < fstab->num_entries; ++i) {
         Volume* v = &fstab->recs[i];
 
@@ -389,12 +389,12 @@ void load_volume_table()
                         v->fs_options = NULL;
                     }
                 }
-                fprintf(stderr, "  %s: %s -> %s\n", v->mount_point, fstab_fstype, v->fs_type);
+                printf("  %s: %s -> %s\n", v->mount_point, fstab_fstype, v->fs_type);
                 free(fstab_fstype);
             }
         }
     }
-    fprintf(stderr, "\n");
+    printf("\n");
 #endif
 
     // Create /etc/fstab so tools like Busybox mount work
@@ -1174,14 +1174,14 @@ char* get_real_fstype(const char* path) {
 
     Volume* vol = volume_for_path(path);
     if (vol == NULL) {
-        fprintf(stderr, "  get_real_fstype: volume not found (%s).\n", path);
+        printf("  get_real_fstype: volume not found (%s).\n", path);
         return NULL;
     }
 
     sprintf(cmd, "/sbin/blkid -c /dev/null %s", vol->blk_device);
     FILE *fp = __popen(cmd, "r");
     if (fp == NULL) {
-        fprintf(stderr, "  get_real_fstype: blkid error\n");
+        printf("  get_real_fstype: blkid error\n");
         return NULL;
     }
 
@@ -1192,7 +1192,7 @@ char* get_real_fstype(const char* path) {
     }
     __pclose(fp);
     if (real_device_fstype == NULL)
-        fprintf(stderr, "  get_real_fstype: unknown filesystem (%s)\n", path);
+        printf("  get_real_fstype: unknown filesystem (%s)\n", path);
 
     return real_device_fstype;
 }
