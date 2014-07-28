@@ -856,7 +856,7 @@ int format_volume(const char* volume) {
 
     // if we're formatting a path, this will act like 'rm -rf volume'
     if (strcmp(v->mount_point, volume) != 0) {
-        return format_unknown_device(v->blk_device, volume, NULL);
+        return format_unknown_device(NULL, volume, NULL);
     }
 
     // check to see if /data is being formatted, and if it is /data/media
@@ -1089,7 +1089,7 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
         return erase_raw_partition(fs_type, device);
 
     // if this is SDEXT:, don't worry about it if it does not exist.
-    if (0 == strcmp(path, "/sd-ext")) {
+    if (strcmp(path, "/sd-ext") == 0) {
         struct stat st;
         Volume *vol = volume_for_path("/sd-ext");
         if (vol == NULL || 0 != stat(vol->blk_device, &st)) {
