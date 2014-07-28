@@ -849,6 +849,7 @@ wipe_data(int confirm) {
             sprintf(buf, "%s/.android_secure", extra_paths[i]);
             erase_volume(buf);
         }
+        free_string_array(extra_paths);
     }
     ui_print("Data wipe complete.\n");
 }

@@ -249,6 +249,54 @@ int is_data_media()
     return is_datamedia;
 }
 
+// is volume a physical primary storage ?
+static int is_volume_primary_storage(Volume* v)
+{
+    // Static mount point /sdcard is primary storage, except when it's
+    // declared as datamedia
+    if (strcmp(v->mount_point, "/sdcard") == 0) {
+        if (strcmp(v->fs_type, "datamedia") == 0) {
+            return 0;
+        }
+        return 1;
+    }
+
+    // Static mount points beginning with /mnt/media_rw/sdcard are primary
+    // storage except when a non-zero digit follows (eg. sdcard[1-9])
+    if (strcmp(v->mount_point, "/mnt/media_rw/sdcard0") == 0 || strcmp(v->mount_point, "/mnt/media_rw/sdcard") == 0) {
+        return 1;
+    }
+
+    // Dynamic mount points which label begins with sdcard are primary storage
+    // except when a non-zero digit follows (eg. sdcard[1-9])
+    // load_volume_table() allows a custom moint point different from /storage/label
+    if (fs_mgr_is_voldmanaged(v)) {
+        if (strcmp(v->label, "sdcard0") == 0 || strcmp(v->label, "sdcard"))
+            return 1;
+    }
+
+    return 0;
+}
+
+// check if the volume is used as secondary storage
+// we also allow voldmanaged usb volumes
+int is_volume_extra_storage(Volume* v) {
+    if (strcmp(v->mount_point, get_primary_storage_path()) == 0)
+        return 0;
+
+    if (strcmp(v->mount_point, "/external_sd") == 0 ||
+            strncmp(v->mount_point, "/mnt/media_rw/sdcard", 20) == 0) {
+        return 1;
+    }
+
+    // load_volume_table() allows a custom moint point different from /storage/label
+    if (fs_mgr_is_voldmanaged(v)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 void load_volume_table()
 {
     int i;
@@ -276,16 +324,16 @@ void load_volume_table()
         Volume* v = &fstab->recs[i];
 
         // Process vold-managed volumes with mount point "auto"
+        // we also allow a custom moint point different from /storage/label
+        // https://source.android.com/devices/tech/storage/config-example.html
         if (fs_mgr_is_voldmanaged(v) && strcmp(v->mount_point, "auto") == 0) {
             char path[PATH_MAX];
-
-            // Set the mount point to /storage/label which as used by vold
             snprintf(path, PATH_MAX, "/storage/%s", v->label);
             free(v->mount_point);
             v->mount_point = strdup(path);
         }
 
-        // get blk_device2, fstype_2 and fs_options2 if it exists
+        // get blk_device2, fstype_2 and fs_options2 if they exist
         add_extra_fstab_entries(i);
     }
 
@@ -370,14 +418,11 @@ void load_volume_table()
                     v->blk_device2, v->length);
         }
 
-        write_fstab_entry(v, file);
-
-        // https://source.android.com/devices/tech/storage/config-example.html
-        if (strcmp(v->mount_point, "/mnt/media_rw/sdcard0") == 0 ||
-                (strcmp(v->mount_point, "/sdcard") == 0 && strcmp(v->fs_type, "datamedia") != 0) ||
-                (fs_mgr_is_voldmanaged(v) && strcmp(v->label, "sdcard0") == 0)) {
+        if (is_volume_primary_storage(v)) {
             is_datamedia = 0;
         }
+
+        write_fstab_entry(v, file);
     }
 
     if (file != NULL)
@@ -386,56 +431,69 @@ void load_volume_table()
     printf("\n");
 }
 
-
 Volume* volume_for_path(const char* path) {
     return fs_mgr_get_entry_for_mount_point(fstab, path);
 }
 
-int is_primary_storage_voldmanaged() {
-    Volume* v;
-    v = volume_for_path("/storage/sdcard0");
-    return fs_mgr_is_voldmanaged(v);
-}
-
 static char* primary_storage_path = NULL;
 char* get_primary_storage_path() {
+    int i = 0;
     if (primary_storage_path == NULL) {
-        if (volume_for_path("/storage/sdcard0"))
-            primary_storage_path = "/storage/sdcard0";
-        else
-            primary_storage_path = "/sdcard";
+        primary_storage_path = "/sdcard";
+        for (i = 0; i < fstab->num_entries; ++i) {
+            Volume* v = &fstab->recs[i];
+            if (is_volume_primary_storage(v)) {
+                // one time malloc
+                primary_storage_path = strdup(v->mount_point);
+                break;
+            }
+        }
     }
     return primary_storage_path;
+}
+
+int is_primary_storage_voldmanaged() {
+    Volume* v = volume_for_path(get_primary_storage_path());
+    return fs_mgr_is_voldmanaged(v);
 }
 
 int get_num_extra_volumes() {
     int num = 0;
     int i;
-    for (i = 0; i < get_num_volumes(); i++) {
+    for (i = 0; i < get_num_volumes(); ++i) {
         Volume* v = get_device_volumes() + i;
-        if ((strcmp("/external_sd", v->mount_point) == 0) ||
-                ((strcmp(get_primary_storage_path(), v->mount_point) != 0) &&
-                fs_mgr_is_voldmanaged(v) && vold_is_volume_available(v->mount_point)))
+        if (is_volume_extra_storage(v)) {
+            if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point))
+                continue;
+
             num++;
+        }
     }
     return num;
 }
 
 char** get_extra_storage_paths() {
-    int i = 0, j = 0;
-    static char* paths[MAX_NUM_MANAGED_VOLUMES];
+    char** paths = NULL;
     int num_extra_volumes = get_num_extra_volumes();
+    int i = 0, j = 0;
 
     if (num_extra_volumes == 0)
         return NULL;
 
-    for (i = 0; i < get_num_volumes(); i++) {
+    paths = (char**)malloc((num_extra_volumes + 1) * sizeof(char*));
+    if (paths == NULL) {
+        LOGE("get_extra_storage_paths: memory error\n");
+        return NULL;
+    }
+
+    for (i = 0; i < get_num_volumes(); ++i) {
         Volume* v = get_device_volumes() + i;
-        if ((strcmp("/external_sd", v->mount_point) == 0) ||
-                ((strcmp(get_primary_storage_path(), v->mount_point) != 0) &&
-                fs_mgr_is_voldmanaged(v) && vold_is_volume_available(v->mount_point))) {
-            paths[j] = v->mount_point;
-            j++;
+        if (is_volume_extra_storage(v)) {
+            if (fs_mgr_is_voldmanaged(v) && !vold_is_volume_available(v->mount_point))
+                continue;
+
+            paths[j] = strdup(v->mount_point);
+            ++j;
         }
     }
     paths[j] = NULL;
@@ -565,11 +623,6 @@ void setup_data_media(int mount) {
         if (ret != 0)
             LOGE("could not unmount /data after /data/media setup\n");
     }
-/*
-    // debug
-    if (ui_should_log_stdout())
-        LOGI("using %s for %s\n", path, mount_point);
-*/
 }
 
 int is_data_media_volume_path(const char* path) {

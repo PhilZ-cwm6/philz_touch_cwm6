@@ -49,12 +49,14 @@ int format_volume(const char* volume);
 // mounted (/tmp and /cache) are mounted.  Returns 0 on success.
 int setup_install_mounts();
 
+// storage
 char* get_primary_storage_path();
 char** get_extra_storage_paths();
 char* get_android_secure_path();
 void setup_legacy_storage_paths();
 int get_num_extra_volumes();
 int get_num_volumes();
+int is_primary_storage_voldmanaged();
 
 Volume* get_device_volumes();
 
@@ -63,6 +65,9 @@ void setup_data_media(int mount);
 int is_data_media_volume_path(const char* path);
 void preserve_data_media(int val);
 int is_data_media_preserved();
+
+// check if it is an extra storage volume
+int is_volume_extra_storage(Volume* v);
 
 #define MAX_NUM_MANAGED_VOLUMES 10
 

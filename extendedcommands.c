@@ -591,6 +591,7 @@ static void show_partition_sdcard_menu() {
 
     if (list_index == 0) {
         LOGE("no volumes found to partition.\n");
+        free_string_array(extra_paths);
         return;
     }
 
@@ -670,6 +671,7 @@ static void show_partition_sdcard_menu() {
 
 out:
     free_string_array(list);
+    free_string_array(extra_paths);
 }
 
 void wipe_data_menu() {
@@ -705,6 +707,7 @@ void wipe_data_menu() {
                 break;
             }
         }
+        free_string_array(extra_paths);
     }
     if (can_partition_volumes)
         list[6] = "Partition sdcard (sd-ext support)";
@@ -840,6 +843,7 @@ void show_multi_flash_menu() {
             }
             i++;
         }
+        free_string_array(extra_paths);
     }
 
     // either MULTI_ZIP_FOLDER path not found (ui_print help)
@@ -1007,6 +1011,7 @@ static void choose_ors_volume() {
 
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -1451,16 +1456,17 @@ static void show_custom_ors_menu() {
     list[num_extra_volumes + 1] = NULL;
 
     int chosen_item;
-    for (;;)
-    {
+    for (;;) {
         chosen_item = get_menu_selection(headers, list, 0, 0);
         if (chosen_item == GO_BACK || chosen_item == REFRESH)
             break;
+
         choose_custom_ors_menu(list[chosen_item] + strlen(list_prefix));
     }
 
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -1577,6 +1583,7 @@ static void regenerate_md5_sum_menu() {
 out:
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -1914,6 +1921,7 @@ out:
     // free(list_main[0]);
     free(list_main[1]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list_main[i + list_top_items]);
     }
@@ -2172,6 +2180,7 @@ int set_android_secure_path(char *and_sec_path) {
                 path = buf;
             i++;
         }
+        free_string_array(extra_paths);
     }
 
     // assign primary storage (/sdcard) only if not datamedia and we did not find .android_secure in external storage
@@ -3219,6 +3228,7 @@ void run_aroma_browser() {
             ret = default_aromafm(extra_paths[i]);
             ++i;
         }
+        free_string_array(extra_paths);
     }
     if (ret != 0)
         ui_print("No %s in storage paths\n", AROMA_FM_PATH);
@@ -3522,6 +3532,7 @@ out:
     // free all the dynamic items
     free(install_menu_items[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for (i = 0; i < num_extra_volumes; i++)
             free(install_menu_items[FIXED_TOP_INSTALL_ZIP_MENUS + i]);
     }
@@ -4187,6 +4198,7 @@ static void run_dedupe_gc() {
             sprintf(path, fmt, extra_paths[i]);
             nandroid_dedupe_gc(path);
         }
+        free_string_array(extra_paths);
     }
 }
 
@@ -4368,6 +4380,7 @@ int show_nandroid_menu() {
         }
     }
 out:
+    free_string_array(extra_paths);
     for (i = 0; i < action_entries_num; i++)
         free(list[i]);
     return chosen_item;
@@ -4596,6 +4609,7 @@ void show_advanced_menu() {
                         choose_default_ors_menu(extra_paths[i]);
                         i++;
                     }
+                    free_string_array(extra_paths);
                 }
 
                 if (browse_for_file) {

@@ -1310,6 +1310,7 @@ static void browse_background_image() {
 
     free(list[4]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + list_top_items]);
     }
@@ -1488,7 +1489,8 @@ static void fb2png_shot() {
         sd_path = get_primary_storage_path();
 
     if (ensure_path_mounted(sd_path) != 0) {
-        ui_print("Found no mountable storage to save screen shots.\n");
+        ui_print("no mountable storage to save screen shots.\n");
+        free_string_array(extra_paths);
         return;
     }
 
@@ -1521,6 +1523,7 @@ static void fb2png_shot() {
     } else {
         ui_print("screen capture failed\n");
     }
+    free_string_array(extra_paths);
 }
 
 // Touch gesture actions
@@ -2710,6 +2713,7 @@ static void custom_rom_target_volume(const char* source_path) {
 
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -2774,6 +2778,7 @@ static void choose_nandroid_menu() {
 out:
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
