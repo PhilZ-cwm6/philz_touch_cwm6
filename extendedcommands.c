@@ -4119,7 +4119,7 @@ int show_partition_mounts_menu() {
     for (i = 0; i < num_volumes; i++) {
         Volume* v = get_device_volumes() + i;
 
-        if (is_data_media() && strcmp(v->mount_point, get_primary_storage_path()) == 0) {
+        if (is_data_media_volume_path(v->mount_point)) {
             // do not show mount/unmount /sdcard on /data/media devices (when recovery.fstab entry with fs_type == "datamedia")
             continue;
         } else if (fs_mgr_is_voldmanaged(v)) {
