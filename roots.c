@@ -202,7 +202,7 @@ Volume* volume_for_path_extra(const char* path) {
 
 static void write_fstab_entry(Volume *v, FILE *file)
 {
-    if (v == NULL || file == NULL)
+    if (v == NULL || file == NULL || strcmp(v->fs_type, "ramdisk") == 0)
         return;
 
     // detect MTD/EMMC devices by name. BML devices won't be auto detected and we need the proper blk device in recovery.fstab!
