@@ -326,6 +326,7 @@ void refresh_recovery_settings(int on_start) {
     refresh_touch_gui_settings(on_start);
 #endif
     // unmount settings file on recovery start
+    // keep preserve_data_media() if we ever move settings file to /sdcard
     if (on_start) {
         preserve_data_media(0);
         ensure_path_unmounted(PHILZ_SETTINGS_FILE);

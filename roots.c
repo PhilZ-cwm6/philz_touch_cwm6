@@ -615,28 +615,29 @@ void setup_data_media(int mount) {
     if (mount) {
         int count = 0;
         int ret = -1;
-        preserve_data_media(0);
         while (count < 5 && ret != 0) {
             ret = ensure_path_unmounted("/data");
             usleep(500000);
             ++count;
         }
-        preserve_data_media(1);
         if (ret != 0)
             LOGE("could not unmount /data after /data/media setup\n");
     }
 }
 
+// handle /sdcard/ path when not defined in recovery.fstab
 int is_data_media_volume_path(const char* path) {
+    if (!is_data_media())
+        return 0;
+
     Volume* v = volume_for_path(path);
     if (v != NULL)
         return strcmp(v->fs_type, "datamedia") == 0;
 
-    if (!is_data_media()) {
-        return 0;
-    }
+    if (strcmp(path, "/sdcard") == 0 || strncmp(path, "/sdcard/", 8) == 0)
+        return 1;
 
-    return strcmp(path, "/sdcard") == 0 || path == strstr(path, "/sdcard/");
+    return 0;
 }
 
 static int ensure_path_mounted_always_true = 0;
@@ -740,13 +741,12 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
 
 // not thread safe because of scan_mounted_volumes()
 int ensure_path_unmounted(const char* path) {
+    // if we are using /data/media, do not unmount /sdcard until !is_data_media_preserved()
     if (is_data_media_volume_path(path)) {
-        return ensure_path_unmounted("/data");
-    }
-
-    // if we are using /data/media, do not unmount volumes /data or /sdcard until !is_data_media_preserved()
-    if (strstr(path, "/data") == path && is_data_media() && is_data_media_preserved()) {
-        return 0;
+        if (is_data_media_preserved())
+            return 0;
+        else
+            return ensure_path_unmounted("/data");
     }
 
     Volume* v = volume_for_path(path);
@@ -964,9 +964,12 @@ int is_data_media_preserved() {
 }
 
 void setup_legacy_storage_paths() {
-    char* primary_path = get_primary_storage_path();
+    // sdcard symlink is done in setup_data_media()
+    if (is_data_media())
+        return;
 
-    if (!is_data_media_volume_path(primary_path)) {
+    char* primary_path = get_primary_storage_path();
+    if (strcmp(primary_path, "/sdcard") != 0) {
         rmdir("/sdcard");
         symlink(primary_path, "/sdcard");
     }

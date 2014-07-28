@@ -1025,9 +1025,7 @@ setup_adbd() {
             check_and_fclose(file_src, key_src);
         }
     }
-    preserve_data_media(0);
     ensure_path_unmounted("/data");
-    preserve_data_media(1);
 
     // Trigger (re)start of adb daemon
     property_set("service.adb.root", "1");
