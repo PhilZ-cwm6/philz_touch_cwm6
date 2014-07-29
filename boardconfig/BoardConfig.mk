@@ -877,6 +877,13 @@ else ifeq ($(TARGET_PRODUCT), cm_falcon)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    
+#Oneplus bacon, A0001 (One Plus One)
+else ifeq ($(TARGET_PRODUCT), cm_bacon)
+    TARGET_COMMON_NAME := One Plus One
+    TARGET_SCREEN_HEIGHT := 1920
+    TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Oppo Find5 (find5)
 else ifeq ($(TARGET_PRODUCT), cm_find5)
