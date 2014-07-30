@@ -1,6 +1,6 @@
 #include <linux/input.h>
 
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "common.h"
 #include "extendedcommands.h"
 

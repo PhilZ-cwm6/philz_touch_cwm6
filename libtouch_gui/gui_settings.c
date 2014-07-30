@@ -54,7 +54,7 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "ui.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
@@ -167,7 +167,7 @@ int force_wait = -1;
 //  * one key (KEY_LEFTBRACE) will handle all gesture defined movements
 //  * the int key_gesture is assigned the touch gesture code (SLIDE_LEFT_GESTURE, SLIDE_RIGHT_GESTURE or DOUBLE_TAP_GESTURE)
 // in the active menu, get_menu_selection() / ui_wait_key() stop watching for a key as it detected KEY_LEFTBRACE
-// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery.h)
+// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery_ui.h)
 // back to recovery.c / get_menu_selection(), action = GESTURE_ACTIONS will launch handle_gesture_actions() and set chosen_item = GESTURE_ACTIONS
 // handle_gesture_actions() is launched while menu is still showing on screen, since ui_end_menu() was not yet called
 // handle_gesture_actions() will read key_gesture value assigned above and run the action associated to the gesture

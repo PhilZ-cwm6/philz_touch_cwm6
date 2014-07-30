@@ -45,7 +45,7 @@
 #include "common.h"
 #include "install.h"
 #include "make_ext4fs.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "roots.h"
 #include "ui.h"
 #include "extendedcommands.h"

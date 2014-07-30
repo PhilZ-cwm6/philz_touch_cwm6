@@ -33,7 +33,7 @@
 #include "voldclient/voldclient.h"
 #include "minui/minui.h"
 #include "common.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "ui.h"

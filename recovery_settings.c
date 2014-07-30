@@ -12,7 +12,7 @@
 #include "common.h"
 #include "install.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"

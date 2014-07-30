@@ -30,7 +30,7 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 
 #include "cutils/android_reboot.h"
 

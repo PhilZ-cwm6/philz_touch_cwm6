@@ -17,7 +17,7 @@
 #include "libcrecovery/common.h"
 #include "common.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "mtdutils/mounts.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"

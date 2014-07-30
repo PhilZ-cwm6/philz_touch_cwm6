@@ -42,7 +42,7 @@
 #include "common.h"
 #include "install.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "adb_install.h"
 #include "recovery_cmds.h"
 #include "edifyscripting.h"
@@ -967,7 +967,7 @@ prompt_and_wait(int status) {
                     ret = show_nandroid_menu();
                     break;
 
-                case ITEM_MOUNTS:
+                case ITEM_PARTITION:
                     ret = show_partition_mounts_menu();
                     break;
 
