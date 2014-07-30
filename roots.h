@@ -67,6 +67,7 @@ void preserve_data_media(int val);
 int is_data_media_preserved();
 
 // check if it is an extra storage volume
+int is_volume_primary_storage(Volume* v);
 int is_volume_extra_storage(Volume* v);
 
 #define MAX_NUM_MANAGED_VOLUMES 10

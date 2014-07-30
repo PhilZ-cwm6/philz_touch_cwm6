@@ -252,8 +252,11 @@ int is_data_media()
 }
 
 // is volume a physical primary storage ?
-static int is_volume_primary_storage(Volume* v)
+int is_volume_primary_storage(Volume* v)
 {
+    if (v == NULL)
+        return 0;
+
     // Static mount point /sdcard is primary storage, except when it's
     // declared as datamedia
     if (strcmp(v->mount_point, "/sdcard") == 0) {
