@@ -273,7 +273,7 @@ static int is_volume_primary_storage(Volume* v)
     // except when a non-zero digit follows (eg. sdcard[1-9])
     // load_volume_table() allows a custom moint point different from /storage/label
     if (fs_mgr_is_voldmanaged(v)) {
-        if (strcmp(v->label, "sdcard0") == 0 || strcmp(v->label, "sdcard"))
+        if (strcmp(v->label, "sdcard0") == 0 || strcmp(v->label, "sdcard") == 0)
             return 1;
     }
 
