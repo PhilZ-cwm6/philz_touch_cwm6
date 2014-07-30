@@ -2635,14 +2635,14 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     sprintf(cmd, "mkdir -p %s/META-INF/com/google/android", tmp_path);
     __system(cmd);
 
-    if (NULL == source_path) {
+    if (source_path == NULL) {
         // create a nandroid backup from existing ROM and use it for update.zip
         backup_recovery = 0, backup_wimax = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
         nandroid_force_backup_format("tar");
         ret = nandroid_backup(tmp_path);
         nandroid_force_backup_format("");
         backup_recovery = 1, backup_wimax = 1, backup_data = 1, backup_cache = 1, backup_sdext = 1;
-        if (0 != ret) {
+        if (ret != 0) {
             LOGE("Error while creating a nandroid image!\n");
             return ret;
         }
@@ -2666,7 +2666,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     ensure_path_unmounted("/system");
 
     //restore nandroid backup source folder
-    if (!(NULL == source_path)) {
+    if (source_path != NULL) {
         sprintf(cmd, "cd %s; mv boot.* system.* preload.* %s", tmp_path, source_path);
         __system(cmd);
     }
@@ -2675,7 +2675,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     sprintf(cmd, "rm -rf '%s'", tmp_path);
     __system(cmd);
 
-    if (0 != ret) {
+    if (ret != 0) {
         return print_and_error("Error while making a zip image!\n", ret);
     }
 

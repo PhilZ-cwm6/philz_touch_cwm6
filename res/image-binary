@@ -6,6 +6,7 @@
 rm -rf /tmp/image-edify /tmp/image /tmp/install-system /tmp/install-preload /tmp/system.err /tmp/preload.err /tmp/error-edify
 mkdir -p /tmp/image
 cd /tmp/image
+#keep touch nandroid.md5 for backward compatibility with stock CWM
 touch nandroid.md5
 unzip $3 boot.*
 unzip -p $3 image-edify > /tmp/image-edify
