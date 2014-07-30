@@ -954,6 +954,11 @@ int setup_install_mounts() {
     return 0;
 }
 
+/* by default: 
+    - do not unmount /data if user requests unmounting /sdcard
+    - do not format whole /data (include /data/media) when format /data is requested
+      instead, do rm -rf with /data/media excluded
+*/
 static int data_media_preserved_state = 1;
 void preserve_data_media(int val) {
     data_media_preserved_state = val;

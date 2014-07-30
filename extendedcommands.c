@@ -4397,7 +4397,7 @@ int can_partition(const char* path) {
         return 0;
     }
     if (strcmp(vol->fs_type, "auto") != 0) {
-        LOGI("Can't partition non-vfat: %s (%s)\n", path, vol->fs_type);
+        LOGI("cannot partition non auto filesystem: %s (%s)\n", path, vol->fs_type);
         return 0;
     }
 

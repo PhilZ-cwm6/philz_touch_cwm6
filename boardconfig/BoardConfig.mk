@@ -6,8 +6,6 @@
 #
 # Info on some tags
 #   - KERNEL_EXFAT_MODULE_NAME: This will force minivold to use much faster kernel modules instead of slow fuse
-#                               it will only work if you have modified vold sources (contact me for info)
-#                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
 #                               you need either an exfat enabled prebuilt kernel or to compile exfat modules along kernel
 #                               you also need to patch minivold: https://github.com/PhilZ-cwm6/android_system_vold
 #   - KERNEL_NTFS_MODULE_NAME:  Same as above, but for ntfs. Currently, it is only limited write support. Better drop to fuse

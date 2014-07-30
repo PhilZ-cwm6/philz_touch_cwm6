@@ -567,7 +567,7 @@ int nandroid_backup(const char* backup_path) {
 #endif
 
     Volume *vol = volume_for_path("/wimax");
-    if (backup_wimax && vol != NULL && 0 == statfs(vol->blk_device, &s)) {
+    if (backup_wimax && vol != NULL && statfs(vol->blk_device, &s) == 0) {
         char serialno[PROPERTY_VALUE_MAX];
         ui_print("\n>> Backing up WiMAX...\n");
         serialno[0] = 0;
