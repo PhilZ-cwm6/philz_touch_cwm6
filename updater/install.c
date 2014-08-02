@@ -1475,10 +1475,11 @@ Value* ReadFileFn(const char* name, State* state, int argc, Expr* argv[]) {
 // current package (because nothing has cleared the copy of the
 // arguments stored in the BCB).
 //
-// The argument is the partition name passed to the android reboot
-// property.  It can be "recovery" to boot from the recovery
-// partition, or "" (empty string) to boot from the regular boot
-// partition.
+// The first argument is the block device for the misc partition
+// ("/misc" in the fstab).  The second argument is the argument
+// passed to the android reboot property.  It can be "recovery" to
+// boot from the recovery partition, or "" (empty string) to boot
+// from the regular boot partition.
 Value* RebootNowFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (argc != 2) {
         return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
@@ -1494,6 +1495,9 @@ Value* RebootNowFn(const char* name, State* state, int argc, Expr* argv[]) {
     memset(buffer, 0, sizeof(((struct bootloader_message*)0)->command));
     FILE* f = fopen(filename, "r+b");
     fseek(f, offsetof(struct bootloader_message, command), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
     fwrite(buffer, sizeof(((struct bootloader_message*)0)->command), 1, f);
     fclose(f);
     free(filename);
@@ -1541,6 +1545,9 @@ Value* SetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
     // package installation.
     FILE* f = fopen(filename, "r+b");
     fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
     int to_write = strlen(stagestr)+1;
     int max_size = sizeof(((struct bootloader_message*)0)->stage);
     if (to_write > max_size) {
@@ -1556,9 +1563,11 @@ Value* SetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
 
 // Return the value most recently saved with SetStageFn.  The argument
 // is the block device for the misc partition.
+// Note we accept two arguments for compatibility with existing ota
+// generators that expect the upstream behavior.
 Value* GetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 2) {
-        return ErrorAbort(state, "%s() expects 1 arg, got %d", name, argc);
+    if (argc != 1 && argc != 2) {
+        return ErrorAbort(state, "%s() expects 1 or 2 args, got %d", name, argc);
     }
 
     char* filename;
@@ -1567,6 +1576,9 @@ Value* GetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
     char buffer[sizeof(((struct bootloader_message*)0)->stage)];
     FILE* f = fopen(filename, "rb");
     fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
     fread(buffer, sizeof(buffer), 1, f);
     fclose(f);
     buffer[sizeof(buffer)-1] = '\0';
