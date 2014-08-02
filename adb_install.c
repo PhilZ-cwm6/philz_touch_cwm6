@@ -85,7 +85,7 @@ void *adb_sideload_thread(void* v) {
     ui_cancel_wait_key();
 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        ui_print("status %d\n", WEXITSTATUS(status));
+        LOGI("status %d\n", WEXITSTATUS(status));
     }
 
     LOGI("sideload thread finished\n");
