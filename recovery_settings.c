@@ -76,12 +76,6 @@ struct CWMSettingsCharValues user_zip_folder = { "user_zip_folder", "" };
 #define board_use_b_slot_protocol       0
 #endif
 
-#ifndef BOARD_HAS_NO_FB2PNG
-#define board_use_fb2png                1
-#else
-#define board_use_fb2png                0
-#endif
-
 #ifndef BOARD_POST_UNBLANK_COMMAND
 #define BOARD_POST_UNBLANK_COMMAND      ""
 #endif
@@ -95,7 +89,6 @@ struct CompilerFlagsUI libtouch_flags = {
     recovery_touchscreen_flip_x,
     recovery_touchscreen_flip_y,
     board_use_b_slot_protocol,
-    board_use_fb2png,
     BRIGHTNESS_SYS_FILE,
     BATTERY_LEVEL_PATH,
     BOARD_POST_UNBLANK_COMMAND

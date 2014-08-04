@@ -1463,14 +1463,9 @@ static void change_menu_color() {
 /**********************************/
 /*   Start touch gesture actions  */
 /**********************************/
-// capture screen using fb2png and incremental file names
+// capture screen to incremental file names
 // prefer second storage paths first, then primary storage
 static void fb2png_shot() {
-    if (!libtouch_flags.board_use_fb2png) {
-        LOGE("fb2png not supported on this device!\n");
-        return;
-    }
-
     char* sd_path = NULL;
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();

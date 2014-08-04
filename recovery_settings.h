@@ -158,7 +158,6 @@ struct CompilerFlagsUI {
     int recovery_touchscreen_flip_x;
     int recovery_touchscreen_flip_y;
     int board_use_b_slot_protocol;
-    int board_use_fb2png;
     char brightness_sys_file[PATH_MAX];
     const char battery_level_path[PATH_MAX];
     const char board_post_unblank_command[PATH_MAX];
