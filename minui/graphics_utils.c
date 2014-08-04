@@ -21,8 +21,8 @@
 
 #include "minui.h"
 
-struct fb_var_screeninfo vi;
-GGLSurface gr_mem_surface;
+extern struct fb_var_screeninfo vi;
+extern GGLSurface gr_mem_surface;
 
 int gr_save_screenshot(const char *dest)
 {
@@ -37,7 +37,7 @@ int gr_save_screenshot(const char *dest)
     png_infop info_ptr = NULL;
 
     fp = fopen(dest, "wb");
-    if(!fp)
+    if (!fp)
         goto exit;
 
     img_data = malloc(vi.xres * vi.yres * 3);
@@ -82,7 +82,7 @@ int gr_save_screenshot(const char *dest)
 
     ptr = img_data;
     stride_bytes = surface.width*3;
-    for(y = 0; y < surface.height; ++y)
+    for (y = 0; y < surface.height; ++y)
     {
         png_write_row(png_ptr, ptr);
         ptr += stride_bytes;
@@ -92,15 +92,15 @@ int gr_save_screenshot(const char *dest)
 
     res = 0;
 exit:
-    if(info_ptr)
+    if (info_ptr)
         png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-    if(png_ptr)
+    if (png_ptr)
         png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-    if(gl)
+    if (gl)
         gglUninit(gl);
-    if(img_data)
+    if (img_data)
         free(img_data);
-    if(fp)
+    if (fp)
         fclose(fp);
     return res;
 }
