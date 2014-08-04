@@ -136,6 +136,10 @@ LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
 LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include external/fsck_msdos
 LOCAL_C_INCLUDES += system/vold
 
+ifdef PHILZ_TOUCH_RECOVERY
+LOCAL_STATIC_LIBRARIES += libtouch_gui
+endif
+
 LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
 
 ifeq ($(ENABLE_LOKI_RECOVERY),true)
@@ -190,10 +194,6 @@ LOCAL_STATIC_LIBRARIES += libminui libpixelflinger_static libpng libcutils liblo
 LOCAL_STATIC_LIBRARIES += libstdc++ libc
 
 LOCAL_STATIC_LIBRARIES += libselinux
-
-ifdef PHILZ_TOUCH_RECOVERY
-LOCAL_STATIC_LIBRARIES += libtouch_gui
-endif
 
 include $(BUILD_EXECUTABLE)
 

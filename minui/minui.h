@@ -78,4 +78,6 @@ static inline int res_create_display_surface(const char* name, gr_surface* pSurf
 }
 void res_free_surface(gr_surface surface);
 
+int gr_save_screenshot(const char *dest);
+
 #endif

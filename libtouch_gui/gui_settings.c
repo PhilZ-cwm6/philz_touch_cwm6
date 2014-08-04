@@ -1514,14 +1514,14 @@ static void fb2png_shot() {
     char dirtmp[PATH_MAX];
     sprintf(dirtmp, "%s", DirName(tmp));
     ensure_directory(dirtmp, 0755);
-    sprintf(tmp, "fb2png %s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
-    if (0 == __system(tmp)) {
-        ui_print("screen shot: %s\n", tmp + 7); // strlen("fb2png ")
+    sprintf(tmp, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
+    if (gr_save_screenshot(tmp) == 0) {
+        ui_print("screen shot: %s\n", tmp);
         sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
         sprintf(line, "%ld", file_num);
         write_string_to_file(tmp, line);
     } else {
-        ui_print("screen capture failed\n");
+        LOGE("screen capture failed\n");
     }
     free_string_array(extra_paths);
 }
