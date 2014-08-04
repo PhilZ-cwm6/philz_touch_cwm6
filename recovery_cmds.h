@@ -52,6 +52,10 @@ extern int erase_image_main(int argc, char **argv);
 extern int mkyaffs2image_main(int argc, char **argv);
 extern int unyaffs_main(int argc, char **argv);
 
+#ifndef BOARD_HAS_NO_FB2PNG
+extern int fb2png_main(int argc, char **argv); // libfb2png_static
+#endif
+
 #ifdef BOARD_RECOVERY_USE_LIBTAR
 extern int minitar_main(int argc, char **argv);
 #endif
@@ -83,6 +87,9 @@ static const struct recovery_cmd recovery_cmds[] = {
     { "vdc",            vdc_main },
     { "pigz",           pigz_main },
     { "sdcard",         sdcard_main },
+#ifndef BOARD_HAS_NO_FB2PNG
+    { "fb2png",         fb2png_main },
+#endif
 #ifdef BOARD_RECOVERY_USE_LIBTAR
     { "tar",            minitar_main },
 #endif
