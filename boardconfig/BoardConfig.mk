@@ -66,6 +66,12 @@
 #                               Same as TARGET_USE_CUSTOM_LUN_FILE_PATH except it is not used by vold
 #                               You can also define both for non vold managed storage
 #
+#   - BOARD_CUSTOM_GRAPHICS: this flag is set in device tree board config file. It will cause disabling of gr_save_screenshot() function
+#                            on screen capture, recovery will fall to fb2png if it is available
+#                            to enable use of built in gr_save_screenshot() instead of fb2png, you must:
+#                               * remove "LOCAL_CFLAGS += -DHAS_CUSTOM_GRAPHICS" line from bootable/recovery/minui/Android.mk
+#                               * fix any compiler error caused by the custom graphics.c (https://github.com/PhilZ-cwm6/philz_touch_cwm6/commit/4fb941bcb4824b4dd6a812960ed4870ee929da4e#diff-f71f8d16e94c30dfbe7ef8306e4e4428L68)
+#
 
 
 #Amazon Kindle Fire HD 8.9 (jem)

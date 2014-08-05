@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := events.c resources.c graphics_utils.c
 ifneq ($(BOARD_CUSTOM_GRAPHICS),)
   LOCAL_SRC_FILES += $(BOARD_CUSTOM_GRAPHICS)
+  LOCAL_CFLAGS += -DHAS_CUSTOM_GRAPHICS
 else
   LOCAL_SRC_FILES += graphics.c graphics_overlay.c
 endif

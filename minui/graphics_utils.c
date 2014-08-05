@@ -21,6 +21,12 @@
 
 #include "minui.h"
 
+#ifdef HAS_CUSTOM_GRAPHICS
+int gr_save_screenshot(const char *dest) {
+    return -2;
+}
+
+#else
 extern struct fb_var_screeninfo vi;
 extern GGLSurface gr_mem_surface;
 
@@ -91,6 +97,7 @@ int gr_save_screenshot(const char *dest)
     png_write_end(png_ptr, NULL);
 
     res = 0;
+
 exit:
     if (info_ptr)
         png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
@@ -104,3 +111,4 @@ exit:
         fclose(fp);
     return res;
 }
+#endif  // HAS_CUSTOM_GRAPHICS

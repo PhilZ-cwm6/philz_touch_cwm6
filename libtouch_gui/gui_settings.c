@@ -1465,6 +1465,16 @@ static void change_menu_color() {
 /**********************************/
 // capture screen to incremental file names
 // prefer second storage paths first, then primary storage
+#define FB2PNG_BIN "/sbin/fb2png" // recovery_cmds.h
+static int fb2png_capture(const char* file_path) {
+    if (!file_found(FB2PNG_BIN))
+        return -1;
+
+    char cmd[PATH_MAX];
+    sprintf(cmd, "%s %s", FB2PNG_BIN, file_path);
+    return __system(cmd);
+}
+
 static void screen_shot() {
     char* sd_path = NULL;
     char** extra_paths = get_extra_storage_paths();
@@ -1490,11 +1500,11 @@ static void screen_shot() {
     }
 
     // reads index file to increment filename
-    char tmp[PATH_MAX];
+    char path[PATH_MAX];
     char line[5]; // xxxx + new line, so that when it reaches 1000 it doesn't read it as 100
     long int file_num = 1;
-    sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
-    FILE *fp = fopen(tmp, "r");
+    sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    FILE *fp = fopen(path, "r");
     if (fp != NULL) {
         if (fgets(line, sizeof(line), fp) != NULL) {
             file_num = strtol(line, NULL, 10);
@@ -1507,14 +1517,22 @@ static void screen_shot() {
 
     // capture screen
     char dirtmp[PATH_MAX];
-    sprintf(dirtmp, "%s", DirName(tmp));
+    int ret;
+    sprintf(dirtmp, "%s", DirName(path));
     ensure_directory(dirtmp, 0755);
-    sprintf(tmp, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
-    if (gr_save_screenshot(tmp) == 0) {
-        ui_print("screen shot: %s\n", tmp);
-        sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    sprintf(path, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
+    ret = gr_save_screenshot(path);
+    if (ret == -2) {
+        // device uses a custom graphics.c
+        // try to use libfb2png
+        ret = fb2png_capture(path);
+        ui_print("custom graphics source detected: dropping to fb2png mode:\n");
+    }
+    if (ret == 0) {
+        ui_print("screen shot: %s\n", path);
+        sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
         sprintf(line, "%ld", file_num);
-        write_string_to_file(tmp, line);
+        write_string_to_file(path, line);
     } else {
         LOGE("screen capture failed\n");
     }
