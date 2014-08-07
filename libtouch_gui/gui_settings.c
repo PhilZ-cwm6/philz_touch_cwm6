@@ -2255,8 +2255,8 @@ void show_touch_gui_menu() {
             ui_format_gui_menu(item_touch, "Touch GUI", "Full");
 
         if (menu_height_increase.value == MENU_HEIGHT_INCREASE_0)
-            sprintf(tmp, "%ld (default)", menu_height_increase.value);
-        else sprintf(tmp, "%ld (custom)", menu_height_increase.value);
+            sprintf(tmp, "%ld (default)", MENU_HEIGHT_TOTAL);
+        else sprintf(tmp, "%ld (custom)", MENU_HEIGHT_TOTAL);
         ui_format_gui_menu(item_height, "Menu Height", tmp);
 
         if (scroll_sensitivity.value == SCROLL_SENSITIVITY_0)
