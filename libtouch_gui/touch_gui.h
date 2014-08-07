@@ -70,28 +70,37 @@ void fast_ui_init();
 void fast_ui_init_png();
 
 // Menu Height
-// FONT_HEIGHT will define row height (that is menu hight), it is the font size (CHAR_HEIGHT = BOARD_RECOVERY_CHAR_HEIGHT in ui.h)
+// FONT_HEIGHT will define row height (that is menu hight), it is the font size (CHAR_HEIGHT = BOARD_RECOVERY_CHAR_HEIGHT in ui_defines.h)
 // we use a different macro name for libtouch_gui
 // for roboto_23x41.h font, BOARD_RECOVERY_CHAR_HEIGHT == 41
 // smallest font height is now 16: font_7x16.h
 // Minimum increase of row height is 4 to not overlap menu separators
-// We will then increase menu_height_increase.value by FONT_HEIGHT/4 increments
-// Max increase will be set to FONT_HEIGHT * 4
+// We will then increase menu_height_increase.value by FONT_HEIGHT/4 increments (same as FONT_HEIGHT_ROUNDED/4)
+// Max increase will be set to MENU_HEIGHT_INCREASE_0 * 3 (that is around FONT_HEIGHT * 3)
 // We add MENU_HEIGHT_INCREASE_MIN (+4) to that max to effectively reach 4*BOARD_RECOVERY_CHAR_HEIGHT
 
 #define FONT_WIDTH                  (libtouch_flags.char_width)
 #define FONT_HEIGHT                 (libtouch_flags.char_height)
-#define MENU_HEIGHT_TOTAL           ((FONT_HEIGHT) + menu_height_increase.value)
-#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT) - ((FONT_HEIGHT) % 4))
-#define MENU_HEIGHT_INCREASE_MIN    ((MENU_HEIGHT_INCREASE_0) / 4)
-#define MENU_HEIGHT_INCREASE_MAX    ((MENU_HEIGHT_INCREASE_0) * 3)
+
+/* To change default menu height at compile time:
+#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT_ROUNDED) * 1.25)
+#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT_ROUNDED) * 1.5)
+#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT_ROUNDED) * 1.75)
+#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT_ROUNDED) * 2)
+...
+#define MENU_HEIGHT_INCREASE_0      ((FONT_HEIGHT_ROUNDED) * 3)
+*/
+#define FONT_HEIGHT_ROUNDED         ((FONT_HEIGHT) - ((FONT_HEIGHT) % 4))
+#define MENU_HEIGHT_INCREASE_0      FONT_HEIGHT_ROUNDED
+#define MENU_HEIGHT_INCREASE_MIN    ((FONT_HEIGHT_ROUNDED) / 4)
+#define MENU_HEIGHT_INCREASE_MAX    ((FONT_HEIGHT_ROUNDED) * 3)
 #define MENU_HEIGHT_INCREASE_INIT   4   // initialization value must be constant
 
-// default total menu hight
-#define CHAR_HEIGHT_0               ((FONT_HEIGHT) + (MENU_HEIGHT_INCREASE_0))
+// total menu height (font_height + height_increase)
+#define MENU_HEIGHT_TOTAL           ((FONT_HEIGHT) + menu_height_increase.value)
 
-// Scroll Sensitivity
-#define SCROLL_SENSITIVITY_0    ((CHAR_HEIGHT_0) - ((CHAR_HEIGHT_0) % 4))
+// Scroll Sensitivity: it is incremented by SCROLL_SENSITIVITY_MIN steps up to maximum of SCROLL_SENSITIVITY_MAX
+#define SCROLL_SENSITIVITY_0    ((MENU_HEIGHT_TOTAL) - ((MENU_HEIGHT_TOTAL) % 4))
 #define SCROLL_SENSITIVITY_MIN  ((SCROLL_SENSITIVITY_0) / 4)
 #define SCROLL_SENSITIVITY_MAX  ((SCROLL_SENSITIVITY_0) * 2)
 #define SCROLL_SENSITIVITY_INIT 16
