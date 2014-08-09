@@ -327,6 +327,11 @@ tar_extract_hardlink(TAR * t, const char *realname)
 		free (pn);
 		return -1;
 	}
+	if (unlink(filename) == -1 && errno != ENOENT)
+	{
+		free (pn);
+		return -1;
+	}
 	libtar_hashptr_reset(&hp);
 	if (libtar_hash_getkey(t->h, &hp, th_get_linkname(t),
 			       (libtar_matchfunc_t)libtar_str_match) != 0)
