@@ -46,7 +46,7 @@ static int gShowBackButton = 1;
 static int gShowBackButton = 0;
 #endif
 
-#define UI_WAIT_KEY_TIMEOUT_SEC    3600
+#define UI_WAIT_KEY_TIMEOUT_SEC     3600
 #define UI_KEY_REPEAT_INTERVAL      80
 #define UI_KEY_WAIT_REPEAT          400
 #define UI_UPDATE_PROGRESS_INTERVAL 300

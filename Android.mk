@@ -178,7 +178,7 @@ ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 LOCAL_STATIC_LIBRARIES += libtar_recovery
 endif
 
-ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
+ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
 LOCAL_CFLAGS += -DUSE_F2FS
 LOCAL_STATIC_LIBRARIES += libmake_f2fs libfsck_f2fs libfibmap_f2fs
 endif
@@ -211,7 +211,7 @@ ifneq ($(BOARD_HAS_NO_FB2PNG),true)
     RECOVERY_LINKS += fb2png
 endif
 
-ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
+ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
 RECOVERY_LINKS += mkfs.f2fs fsck.f2fs fibmap.f2fs
 endif
 
