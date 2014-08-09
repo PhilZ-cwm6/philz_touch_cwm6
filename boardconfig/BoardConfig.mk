@@ -1010,7 +1010,7 @@ endif
 
 
 # use libtar for backup/restore instead of busybox
-BOARD_RECOVERY_USE_LIBTAR := true
+# BOARD_RECOVERY_USE_LIBTAR := true
 
 # The below flags must always be defined as default in BoardConfig.mk, unless defined above:
 # device name to display in About dialog
