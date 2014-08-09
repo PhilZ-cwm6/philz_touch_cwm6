@@ -481,34 +481,40 @@ void draw_visible_text_line(int row, const char* t, int align) {
 // - Draw clock and battery stats
 // - Do not call any LOGE or ui_print here, or it will trigger another call to pthread_mutex_lock(&gUpdateMutex)
 //   while it is locked here as called by update_screen_locked() after a lock to gUpdateMutex
+// - Errors: -1 (init value, should never be displayed), -2 (fopen error), -3 (fgets error)
+static int last_batt_level = -1;
 static int get_batt_stats(void) {
-    static int level = -1;
-    char value[4];
+    char value[6];
     static int count = -1;
     if (touch_sel && count >= 0 && count < 5) {
         // touch_sel == 1: do not loose time opening battery stats file on each touch to highlight action
         // count >= 0 to allow load of battery stats on first draw of screen
         // count < 5: allow refresh battery stats each five touches to highlight
-        count++;
-        return level;
+        ++count;
+        return last_batt_level;
     }
 
     if (count < 0 || count >= 5)
         count = 0;
-    
-    FILE * capacity = fopen(libtouch_flags.battery_level_path, "rt");
-    if (capacity) {
-        fgets(value, 4, capacity);
-        fclose(capacity);
-        level = atoi(value);
 
-        if (level > 100)
-            level = 100;
-        if (level < 0)
-            level = 0;
-    } else level = -1;
+    FILE* fp = fopen(libtouch_flags.battery_level_path, "rt");
+    if (fp == NULL) {
+        last_batt_level = -2;
+        return last_batt_level;
+    }
 
-    return level;
+    if (fgets(value, sizeof(value), fp) != NULL) {
+        last_batt_level = atoi(value);
+        if (last_batt_level > 100)
+            last_batt_level = 100;
+        else if (last_batt_level < 0)
+            last_batt_level = 0;
+    } else {
+        last_batt_level = -3;
+    }
+
+    fclose(fp);
+    return last_batt_level;
 }
 
 // Do not call any LOGE or ui_print here, or it will trigger another call to pthread_mutex_lock(&gUpdateMutex)
