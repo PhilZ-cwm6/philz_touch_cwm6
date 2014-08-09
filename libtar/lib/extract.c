@@ -147,13 +147,13 @@ tar_extract_file(TAR *t, const char *realname)
 		i = tar_extract_regfile(t, realname);
 
 	if (i != 0) {
-		perror("FAILED RESTORE OF FILE i: %s\n", realname);
+		fprintf(stderr, "Failed restore of file i: %s\n", realname);
 		return i;
 	}
 
 	i = tar_set_file_perms(t, realname);
 	if (i != 0) {
-		perror("FAILED SETTING PERMS: %d\n", i);
+		fprintf(stderr, "Failed Setting perms: %d\n", i);
 		return i;
 	}
 
