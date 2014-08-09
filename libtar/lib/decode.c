@@ -49,11 +49,11 @@ th_get_uid(TAR *t)
 	int uid;
 	struct passwd *pw;
 
-    if (!(t->options & TAR_USE_NUMERIC_ID)) {
-        pw = getpwnam(t->th_buf.uname);
-        if (pw != NULL)
-            return pw->pw_uid;
-    }
+	if (!(t->options & TAR_USE_NUMERIC_ID)) {
+		pw = getpwnam(t->th_buf.uname);
+		if (pw != NULL)
+			return pw->pw_uid;
+	}
 
 	/* if the password entry doesn't exist */
 	sscanf(t->th_buf.uid, "%o", &uid);
@@ -67,11 +67,11 @@ th_get_gid(TAR *t)
 	int gid;
 	struct group *gr;
 
-    if (!(t->options & TAR_USE_NUMERIC_ID)) {
-        gr = getgrnam(t->th_buf.gname);
-        if (gr != NULL)
-            return gr->gr_gid;
-    }
+	if (!(t->options & TAR_USE_NUMERIC_ID)) {
+		gr = getgrnam(t->th_buf.gname);
+		if (gr != NULL)
+			return gr->gr_gid;
+	}
 
 	/* if the group entry doesn't exist */
 	sscanf(t->th_buf.gid, "%o", &gid);

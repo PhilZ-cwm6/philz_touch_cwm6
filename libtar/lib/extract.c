@@ -190,10 +190,7 @@ tar_extract_file(TAR *t, const char *realname)
 int
 tar_extract_regfile(TAR *t, const char *realname)
 {
-	//mode_t mode;
 	size_t size;
-	//uid_t uid;
-	//gid_t gid;
 	int fdout;
 	int i, k;
 	char buf[T_BLOCKSIZE];
@@ -213,10 +210,7 @@ tar_extract_regfile(TAR *t, const char *realname)
 
 	pn = th_get_pathname(t);
 	filename = (realname ? realname : pn);
-	//mode = th_get_mode(t);
 	size = th_get_size(t);
-	//uid = th_get_uid(t);
-	//gid = th_get_gid(t);
 
 	if (mkdirhier(dirname(filename)) == -1)
 	{
@@ -243,27 +237,6 @@ tar_extract_regfile(TAR *t, const char *realname)
 		free (pn);
 		return -1;
 	}
-
-#if 0
-    /* DEAD Code */
-	/* change the owner.  (will only work if run as root) */
-	if (fchown(fdout, uid, gid) == -1 && errno != EPERM)
-	{
-#ifdef DEBUG
-		perror("fchown()");
-#endif
-		return -1;
-	}
-
-	/* make sure the mode isn't inheritted from a file we're overwriting */
-	if (fchmod(fdout, mode & 07777) == -1)
-	{
-#ifdef DEBUG
-		perror("fchmod()");
-#endif
-		return -1;
-	}
-#endif
 
 	/* extract the file */
 	for (i = size; i > 0; i -= T_BLOCKSIZE)
@@ -403,9 +376,9 @@ tar_extract_symlink(TAR *t, const char *realname)
 	}
 
 	if (unlink(filename) == -1 && errno != ENOENT) {
-        free (pn);
+		free (pn);
 		return -1;
-    }
+	}
 
 #ifdef DEBUG
 	printf("  ==> extracting: %s (symlink to %s)\n",

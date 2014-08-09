@@ -103,7 +103,7 @@ TAR;
 #define TAR_CHECK_VERSION	32	/* check version in file header */
 #define TAR_IGNORE_CRC		64	/* ignore CRC in file header */
 #define TAR_STORE_SELINUX	128	/* store selinux context */
-#define TAR_USE_NUMERIC_ID  256 /* favor numeric owner over names: --numeric-owner */
+#define TAR_USE_NUMERIC_ID  256 /* favor numeric owner over names (--numeric-owner) */
 
 /* this is obsolete - it's here for backwards-compatibility only */
 #define TAR_IGNORE_MAGIC	0

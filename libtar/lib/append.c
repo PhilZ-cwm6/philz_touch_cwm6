@@ -186,12 +186,13 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 	}
 
 	/* print file info */
-	if (t->options & TAR_VERBOSE) {
+	if (t->options & TAR_VERBOSE)
+	{
 		//th_print_long_ls(t);
-        char *f = th_get_pathname(t);
-        printf("%s\n", f);
-        free(f);
-    }
+		char *f = th_get_pathname(t);
+		printf("%s\n", f);
+		free(f);
+	}
 
 
 #ifdef DEBUG
