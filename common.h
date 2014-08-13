@@ -17,16 +17,9 @@
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <fs_mgr.h>
-
-#ifndef PHILZ_TOUCH_RECOVERY
-//#define MENU_TEXT_COLOR 255, 160, 49, 255
-#define MENU_TEXT_COLOR 0, 191, 255, 255
-#define NORMAL_TEXT_COLOR 200, 200, 200, 255
-#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
-#endif
-#define MENU_TEXT_COLOR_RED 255, 0, 0, 255
 
 // Initialize the graphics system.
 void ui_init();
@@ -36,9 +29,10 @@ void ui_cancel_wait_key();
 int ui_wait_key();            // waits for a key/button press, returns the code
 int ui_wait_key_with_repeat();
 int ui_key_pressed(int key);  // returns >0 if the code is currently pressed
-int ui_text_visible();        // returns >0 if text log is currently visible
-int ui_text_ever_visible();   // returns >0 if text log was ever visible
-void ui_show_text(int visible);
+bool ui_IsTextVisible();        // true if text log is currently visible
+bool ui_WasTextEverVisible();   // true if text log was ever visible
+void ui_ShowText(bool visible);
+void ui_SetShowText(bool visible);
 void ui_clear_key_queue();
 
 // Write a message to the on-screen log shown with Alt-L (also to stderr).
@@ -47,21 +41,7 @@ void ui_clear_key_queue();
 void ui_print(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void ui_printlogtail(int nb_lines);
 
-void ui_delete_line(int num);
-void ui_set_show_text(int value);
-void ui_set_nice(int enabled);
-#define ui_nice_print(...) { ui_set_nice(1); ui_print(__VA_ARGS__); ui_set_nice(0); }
-int ui_was_niced();
 int ui_get_text_cols();
-void ui_increment_frame();
-void ui_setMenuTextColor(int r, int g, int b, int a);
-
-void ui_nolog_lines(int lines);
-
-#ifdef ENABLE_LOKI
-int loki_support_enabled();
-int loki_check();
-#endif
 
 // Display some header text followed by a menu of items, which appears
 // at the top of the screen (in place of any scrolling ui_print()
@@ -96,7 +76,6 @@ enum {
   BACKGROUND_ICON_INSTALLING,
   BACKGROUND_ICON_ERROR,
   BACKGROUND_ICON_CLOCKWORK,
-  BACKGROUND_ICON_CID,
   BACKGROUND_ICON_FIRMWARE_INSTALLING,
   BACKGROUND_ICON_FIRMWARE_ERROR,
   NUM_BACKGROUND_ICONS
@@ -114,17 +93,14 @@ char *ui_copy_image(int icon, int *width, int *height, int *bpp);
 void ui_show_progress(float portion, int seconds);
 void ui_set_progress(float fraction);  // 0.0 - 1.0 within the defined scope
 
-// Default allocation of progress bar segments to operations
-static const int VERIFICATION_PROGRESS_TIME = 60;
-static const float VERIFICATION_PROGRESS_FRACTION = 0.25;
-static const float DEFAULT_FILES_PROGRESS_FRACTION = 0.4;
-static const float DEFAULT_IMAGE_PROGRESS_FRACTION = 0.1;
-
 // Show a rotating "barberpole" for ongoing operations.  Updates automatically.
 void ui_show_indeterminate_progress();
 
 // Hide and reset the progress bar.
 void ui_reset_progress();
+
+// do a reset and show the progress bar without updating screen
+void ui_quick_reset_and_show_progress(float portion, int seconds);
 
 #define LOGE(...) ui_print("E:" __VA_ARGS__)
 #define LOGW(...) fprintf(stdout, "W:" __VA_ARGS__)
@@ -165,6 +141,9 @@ typedef struct {
 // fopen a file, mounting volumes and making parent dirs as necessary.
 FILE* fopen_path(const char *path, const char *mode);
 
-void set_perf_mode(int on);
+// for nandroid cmd actions on voldmanaged devices (recovery.c)
+void vold_init();
+
+int install_zip(const char* packagefilepath);
 
 #endif  // RECOVERY_COMMON_H

@@ -40,7 +40,7 @@ int user_set_buffers_num = -1;
 // debugging code for new overlay devices
 #define MDP_V4_0 400
 static int overlay_supported = 0;
-int target_has_overlay(char *version) {
+int device_target_has_overlay(char *version) {
     int mdp_version;
 
     if (strlen(version) >= 8) {
@@ -119,7 +119,7 @@ int get_device_fb(const char* path, struct fb *fb)
     }
 
     // debug info for overlay devices
-    target_has_overlay(finfo.id);
+    device_target_has_overlay(finfo.id);
 
     // capture active buffer: n is 0 for first buffer, 1 for second
     // graphics.c -> set_active_framebuffer() -> vi.yoffset = n * vi.yres;

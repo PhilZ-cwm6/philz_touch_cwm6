@@ -20,17 +20,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "dedupe/dedupe.h"
+#include "edifyscripting.h"
 #include "extendedcommands.h"
 #include "nandroid.h"
-#include "dedupe/dedupe.h"
 
 extern int minizip_main(int argc, char **argv);
-extern int flash_image_main(int argc, char **argv);
-extern int edify_main(int argc, char **argv);
-extern int dump_image_main(int argc, char **argv);
-extern int erase_image_main(int argc, char **argv);
-extern int mkyaffs2image_main(int argc, char **argv);
-extern int unyaffs_main(int argc, char **argv);
 extern int make_ext4fs_main(int argc, char **argv);
 extern int reboot_main(int argc, char **argv);
 extern int poweroff_main(int argc, char **argv);
@@ -41,9 +36,7 @@ extern int newfs_msdos_main(int argc, char **argv);
 extern int vdc_main(int argc, char **argv);
 extern int pigz_main(int argc, char **argv);
 extern int sdcard_main(int argc, char **argv);
-#ifndef BOARD_RECOVERY_USE_BBTAR
-extern int minitar_main(int argc, char **argv);
-#endif
+
 #ifdef USE_F2FS
 extern int make_f2fs_main(int argc, char **argv);
 extern int fsck_f2fs_main(int argc, char **argv);
@@ -51,6 +44,21 @@ extern int fibmap_main(int argc, char **argv);
 #endif
 
 extern int busybox_driver(int argc, char **argv);
+
+extern int flash_image_main(int argc, char **argv);
+extern int edify_main(int argc, char **argv);
+extern int dump_image_main(int argc, char **argv);
+extern int erase_image_main(int argc, char **argv);
+extern int mkyaffs2image_main(int argc, char **argv);
+extern int unyaffs_main(int argc, char **argv);
+
+#ifndef BOARD_HAS_NO_FB2PNG
+extern int fb2png_main(int argc, char **argv); // libfb2png_static
+#endif
+
+#ifdef BOARD_RECOVERY_USE_LIBTAR
+extern int minitar_main(int argc, char **argv);
+#endif
 
 struct recovery_cmd {
     const char *name;
@@ -79,7 +87,10 @@ static const struct recovery_cmd recovery_cmds[] = {
     { "vdc",            vdc_main },
     { "pigz",           pigz_main },
     { "sdcard",         sdcard_main },
-#ifndef BOARD_RECOVERY_USE_BBTAR
+#ifndef BOARD_HAS_NO_FB2PNG
+    { "fb2png",         fb2png_main },
+#endif
+#ifdef BOARD_RECOVERY_USE_LIBTAR
     { "tar",            minitar_main },
 #endif
 #ifdef USE_F2FS

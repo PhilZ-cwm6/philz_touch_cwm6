@@ -52,19 +52,25 @@ static int sock = -1;
 
 static int vold_connect() {
 
-    int ret = 1;
+    int retries = 5;
+    int ret = -1;
     if (sock > 0) {
-        return ret;
+        return 1;
     }
 
     // socket connection to vold
-    if ((sock = socket_local_client("vold",
-                                     ANDROID_SOCKET_NAMESPACE_RESERVED,
-                                     SOCK_STREAM)) < 0) {
-        LOGE("Error connecting to Vold! (%s)\n", strerror(errno));
-        ret = -1;
-    } else {
-        LOGI("Connected to Vold..\n");
+    while (retries > 0) { 
+        if ((sock = socket_local_client("vold",
+                                         ANDROID_SOCKET_NAMESPACE_RESERVED,
+                                         SOCK_STREAM)) < 0) {
+            LOGE("Error connecting to Vold! (%s)\n", strerror(errno));
+        } else {
+            LOGI("Connected to Vold..\n");
+            ret = 1;
+            break;
+        }
+        sleep(1);
+        retries--;
     }
     return ret;
 }
@@ -77,7 +83,7 @@ static int split(char *str, char **splitstr) {
     p = strtok(str, " ");
 
     while(p != NULL) {
-        splitstr[i] = malloc(strlen(p) + 1);
+        splitstr[i] = (char *)malloc(strlen(p) + 1);
         if (splitstr[i])
             strcpy(splitstr[i], p);
         i++;
@@ -112,7 +118,7 @@ static int monitor_started = 0;
 // wait for events and signal waiters when appropriate
 static int monitor() {
 
-    char *buffer = malloc(4096);
+    char *buffer = (char *)malloc(4096);
     int code = 0;
 
     while(1) {

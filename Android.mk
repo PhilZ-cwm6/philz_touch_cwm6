@@ -2,11 +2,11 @@ LOCAL_PATH := $(call my-dir)
 
 ifeq ($(RECOVERY_VARIANT),)
 ifeq ($(LOCAL_PATH),bootable/recovery)
-RECOVERY_VARIANT := cwm
+RECOVERY_VARIANT := philz
 endif
 endif
 
-ifeq ($(RECOVERY_VARIANT),cwm)
+ifeq ($(RECOVERY_VARIANT),philz)
 
 # philz touch gui: either prebuilt or from sources
 PHILZ_TOUCH_RECOVERY := true
@@ -42,16 +42,13 @@ LOCAL_SRC_FILES := \
     install.c \
     roots.c \
     ui.c \
-    mounts.c \
     extendedcommands.c \
     advanced_functions.c \
     digest/md5.c \
     recovery_settings.c \
     nandroid.c \
-    reboot.c \
     ../../system/core/toolbox/dynarray.c \
     ../../system/core/toolbox/newfs_msdos.c \
-    firmware.c \
     edifyscripting.c \
     prop.c \
     adb_install.c \
@@ -61,6 +58,8 @@ LOCAL_SRC_FILES := \
 
 ADDITIONAL_RECOVERY_FILES := $(shell echo $$ADDITIONAL_RECOVERY_FILES)
 LOCAL_SRC_FILES += $(ADDITIONAL_RECOVERY_FILES)
+
+LOCAL_ADDITIONAL_DEPENDENCIES += updater
 
 LOCAL_MODULE := recovery
 
@@ -78,9 +77,9 @@ endif
 endif
 
 # This should be the same line as upstream to not break makerecoveries.sh
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.4.8
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.5.0
 
-PHILZ_BUILD := 6.41.6
+PHILZ_BUILD := 6.56.2
 CWM_BASE_VERSION := $(shell echo $(RECOVERY_VERSION) | cut -d ' ' -f 3)
 LOCAL_CFLAGS += -DCWM_BASE_VERSION="$(CWM_BASE_VERSION)"
 
@@ -105,19 +104,7 @@ LOCAL_CFLAGS += -DPHILZ_BUILD="$(PHILZ_BUILD)"
 #compile date:
 #LOCAL_CFLAGS += -DBUILD_DATE="\"`date`\""
 
-#debug and calibration logging for touch code
-#RECOVERY_TOUCH_DEBUG := true
-ifeq ($(RECOVERY_TOUCH_DEBUG),true)
-LOCAL_CFLAGS += -DRECOVERY_TOUCH_DEBUG
-endif
-
 ifdef PHILZ_TOUCH_RECOVERY
-ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
-  BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
-endif
-endif
-
-ifdef BOARD_TOUCH_RECOVERY
 ifeq ($(BOARD_USE_CUSTOM_RECOVERY_FONT),)
   BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
 endif
@@ -132,8 +119,8 @@ BOARD_RECOVERY_CHAR_HEIGHT := $(shell echo $(BOARD_USE_CUSTOM_RECOVERY_FONT) | c
 
 LOCAL_CFLAGS += -DBOARD_RECOVERY_CHAR_WIDTH=$(BOARD_RECOVERY_CHAR_WIDTH) -DBOARD_RECOVERY_CHAR_HEIGHT=$(BOARD_RECOVERY_CHAR_HEIGHT)
 
-BOARD_RECOVERY_DEFINES := BOARD_RECOVERY_SWIPE BOARD_HAS_NO_SELECT_BUTTON BOARD_UMS_LUNFILE BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT BOARD_TOUCH_RECOVERY RECOVERY_EXTEND_NANDROID_MENU TARGET_USE_CUSTOM_LUN_FILE_PATH TARGET_DEVICE TARGET_RECOVERY_FSTAB BOARD_NATIVE_DUALBOOT BOARD_NATIVE_DUALBOOT_SINGLEDATA BOARD_RECOVERY_SWIPE_SWAPXY
-BOARD_RECOVERY_DEFINES += BOOTLOADER_CMD_ARG BOARD_HAS_SLOW_STORAGE BOARD_USE_MTK_LAYOUT BOARD_MTK_BOOT_LABEL EXTRA_PARTITIONS_PATH BOARD_RECOVERY_USE_BBTAR
+BOARD_RECOVERY_DEFINES := BOARD_HAS_NO_SELECT_BUTTON BOARD_RECOVERY_ALWAYS_WIPES BOARD_RECOVERY_HANDLES_MOUNT TARGET_USE_CUSTOM_LUN_FILE_PATH BOARD_UMS_LUNFILE TARGET_DEVICE TARGET_RECOVERY_FSTAB BOARD_RECOVERY_BLDRMSG_OFFSET
+BOARD_RECOVERY_DEFINES += BOOTLOADER_CMD_ARG BOARD_HAS_SLOW_STORAGE BOARD_USE_MTK_LAYOUT BOARD_MTK_BOOT_LABEL BOARD_RECOVERY_USE_LIBTAR BOARD_HAS_NO_MULTIUSER_SUPPORT
 BOARD_RECOVERY_DEFINES += BRIGHTNESS_SYS_FILE BATTERY_LEVEL_PATH BOARD_POST_UNBLANK_COMMAND BOARD_HAS_LOW_RESOLUTION RECOVERY_TOUCHSCREEN_SWAP_XY RECOVERY_TOUCHSCREEN_FLIP_X RECOVERY_TOUCHSCREEN_FLIP_Y BOARD_USE_B_SLOT_PROTOCOL BOARD_HAS_NO_FB2PNG
 
 # Stringify BOARD_RECOVERY_DEFINES list
@@ -148,6 +135,14 @@ LOCAL_STATIC_LIBRARIES :=
 LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
 LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include external/fsck_msdos
 LOCAL_C_INCLUDES += system/vold
+
+ifdef PHILZ_TOUCH_RECOVERY
+LOCAL_STATIC_LIBRARIES += libtouch_gui
+endif
+
+ifneq ($(BOARD_HAS_NO_FB2PNG),true)
+LOCAL_STATIC_LIBRARIES += libfb2png_static
+endif
 
 LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
 
@@ -176,10 +171,10 @@ else
   LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_UI)
 endif
 
-LOCAL_STATIC_LIBRARIES += libvoldclient libsdcard libminipigz libfsck_msdos
+LOCAL_STATIC_LIBRARIES += libvoldclient libsdcard libminipigz libreboot_static libfsck_msdos
 LOCAL_STATIC_LIBRARIES += libmake_ext4fs libext4_utils_static libz libsparse_static
 
-ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 LOCAL_STATIC_LIBRARIES += libtar_recovery
 endif
 
@@ -204,16 +199,16 @@ LOCAL_STATIC_LIBRARIES += libstdc++ libc
 
 LOCAL_STATIC_LIBRARIES += libselinux
 
-ifdef PHILZ_TOUCH_RECOVERY
-LOCAL_STATIC_LIBRARIES += libtouch_gui
-endif
-
 include $(BUILD_EXECUTABLE)
 
 RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop getprop start stop dedupe minizip setup_adbd fsck_msdos newfs_msdos vdc sdcard pigz
 
-ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 RECOVERY_LINKS += tar
+endif
+
+ifneq ($(BOARD_HAS_NO_FB2PNG),true)
+    RECOVERY_LINKS += fb2png
 endif
 
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
@@ -234,7 +229,7 @@ ALL_DEFAULT_INSTALLED_MODULES += $(RECOVERY_SYMLINKS)
 # Now let's do recovery symlinks
 BUSYBOX_LINKS := $(shell cat external/busybox/busybox-minimal.links)
 exclude := tune2fs mke2fs
-ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 exclude += tar
 endif
 RECOVERY_BUSYBOX_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
@@ -246,6 +241,14 @@ $(RECOVERY_BUSYBOX_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
 	$(hide) ln -sf $(BUSYBOX_BINARY) $@
 
 ALL_DEFAULT_INSTALLED_MODULES += $(RECOVERY_BUSYBOX_SYMLINKS) 
+
+# Reboot static library
+include $(CLEAR_VARS)
+LOCAL_MODULE := libreboot_static
+LOCAL_MODULE_TAGS := optional
+LOCAL_CFLAGS := -Dmain=reboot_main
+LOCAL_SRC_FILES := ../../system/core/reboot/reboot.c
+include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := killrecovery.sh
@@ -323,7 +326,7 @@ ifneq ($(BOARD_USE_NTFS_3G),false)
     include $(commands_recovery_local_path)/ntfs-3g/Android.mk
 endif
 
-ifneq ($(BOARD_RECOVERY_USE_BBTAR),true)
+ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
     include $(commands_recovery_local_path)/libtar/Android.mk
 endif
 

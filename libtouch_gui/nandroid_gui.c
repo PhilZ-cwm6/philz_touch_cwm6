@@ -50,7 +50,6 @@
 #include "bootloader.h"
 #include "common.h"
 #include "cutils/properties.h"
-#include "firmware.h"
 #include "install.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
@@ -64,13 +63,13 @@
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
 
 #include "flashutils/flashutils.h"
 #include <libgen.h>
 
 #include "libtouch_gui/touch_gui.h"
 #include "libtouch_gui/nandroid_gui.h"
+#include "libtouch_gui/gui_settings.h"
 
 // timer reset on each touch screen event (dim screen during nandroid jobs)
 // it will be initialized on a backup/restore job
@@ -78,11 +77,18 @@ long long last_key_ev;
 
 // checks to see if user cancel action during nandroid job
 // also dims screen during nandroid job if no key action
+// ui_is_initialized() check is to avoid the "Press Back to cancel." message during 'adb shell nandroid backup/restore' commands
 int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup, int *nand_starts) {
+    if (!ui_is_initialized())
+        return 0;
+
+    // print last 2 log rows in default colour
+    // add 2 new lines at the end as they will be replaced by backup size progress
+    // the space on last line is needed, else ui_print won't increment the column and the new line is deleted
     if (*nand_starts) {
-        // initialize settings
         ui_clear_key_queue();
-        ui_print("\nPress Back to cancel.\n");
+        ui_print_preset_colors(2, NULL);
+        ui_print("\nPress Back to cancel.\n \n \n");
         *nand_starts = 0;
     }
 
@@ -93,15 +99,13 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
 
         // wake-up screen brightness on key event
         if (is_dimmed)
-            ui_dim_screen(0);
+            ui_dim_screen(false);
 
         // support cancel nandroid job
         if (key_event == GO_BACK) {
-            // print last 1 log rows in cyan blue
-            int color[] = {CYAN_BLUE_CODE};
-            ui_print_color(1, color);
-
-            ui_print("Really cancel? (press Back)\n");
+            ui_set_nandroid_print(0, 2);
+            ui_print("\nReally cancel? (press Back)\n");
+            ui_set_nandroid_print(0, 0);
             is_time_interval_passed(0);
             ui_clear_key_queue();
             while (!is_time_interval_passed(5000)) {
@@ -112,7 +116,6 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
             }
 
             if (key_event != GO_BACK) {
-                ui_delete_line(1);
                 return 0;
             }
 
@@ -120,8 +123,8 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
             ui_clear_key_queue();
             __pclose(*fp);
             if (is_backup) {
-                ui_print("Deleting backup...\n");
                 char cmd[PATH_MAX];
+                ui_print("Deleting backup...\n");
                 sync(); // before deleting backup folder
                 sprintf(cmd, "rm -rf '%s'", DirName(backup_file_image));
                 __system(cmd);
@@ -130,16 +133,15 @@ int user_cancel_nandroid(FILE **fp, const char* backup_file_image, int is_backup
             finish_nandroid_job(); // will also do a sync() and some ui_prints
             if (!is_backup) {
                 // heading \n to not bother with text spanning on one or two lines, depending on device res
-                ui_print_color(2, color);
                 ui_print("\nPartition was left corrupted after cancel command!\n");
             }
 
-            ui_print_color(0, 0);
+            ui_print_preset_colors(0, NULL);
             return 1;
         }
     } else if (!is_dimmed && dim_timeout.value != 0 && (timenow_msec() - last_key_ev) / 1000 >= dim_timeout.value) {
         // dim screen on timeout
-        ui_dim_screen(1);
+        ui_dim_screen(true);
     }
 
     return 0;

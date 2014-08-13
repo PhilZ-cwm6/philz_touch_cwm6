@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+#ifndef _ADB_INSTALL_H
+#define _ADB_INSTALL_H
 
+void start_sideload();
+int apply_from_adb(int* wipe_cache, const char* install_file);
+int enter_sideload_mode(int status);
 
-int apply_from_adb();
-
+#endif

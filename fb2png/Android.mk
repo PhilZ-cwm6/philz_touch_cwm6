@@ -32,6 +32,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := libfb2png_static
 LOCAL_SRC_FILES := \
+    fb2png_main.c \
     fb2png.c \
     img_process.c \
     fb.c
@@ -60,7 +61,7 @@ LOCAL_C_INCLUDES +=\
     external/libpng\
     external/zlib
 
-LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
-LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+#LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+#LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
 
 include $(BUILD_EXECUTABLE)

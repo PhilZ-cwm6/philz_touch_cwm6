@@ -36,24 +36,20 @@
 #include <sys/wait.h>
 #include <libgen.h> // basename
 
-#include "bootloader.h"
-#include "common.h"
-#include "cutils/properties.h"
-#include "firmware.h"
-#include "install.h"
+#include <cutils/properties.h>
+
+#include "edify/expr.h"
+#include "libcrecovery/common.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
+#include "edifyscripting.h"
+#include "common.h"
+#include "install.h"
 #include "roots.h"
 #include "recovery_ui.h"
-
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
-#include "flashutils/flashutils.h"
-#include "edify/expr.h"
-#include "mtdutils/mtdutils.h"
-#include "mmcutils/mmcutils.h"
 
 extern int yyparse();
 extern int yy_scan_bytes();
@@ -217,6 +213,8 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
             restorecache = 0;
         else if (strcmp(args2[i], "nosd-ext") == 0)
             restoresdext = 0;
+        else if (strcmp(args2[i], "nomd5") == 0)
+            enable_md5sum.value = 0;
     }
     
     for (i = 0; i < argc; ++i) {
@@ -243,7 +241,7 @@ Value* InstallZipFn(const char* name, State* state, int argc, Expr* argv[]) {
         return NULL;
     }
     
-    if (0 != install_zip(path))
+    if (install_zip(path) != INSTALL_SUCCESS)
         return StringValue(strdup(""));
     
     return StringValue(strdup(path));
@@ -313,7 +311,7 @@ int run_script_from_buffer(char* script_data, int script_len, char* filename)
 
 int edify_main(int argc, char** argv) {
     load_volume_table();
-    process_volumes();
+    setup_data_media(1);
     RegisterBuiltins();
     RegisterRecoveryHooks();
     FinishRegistration();

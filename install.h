@@ -17,9 +17,15 @@
 #ifndef RECOVERY_INSTALL_H_
 #define RECOVERY_INSTALL_H_
 
-#include "common.h"
+#include <stdbool.h>
 
-enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT, INSTALL_UPDATE_SCRIPT_MISSING, INSTALL_UPDATE_BINARY_MISSING };
-int install_package(const char *root_path);
+enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT, INSTALL_NONE };
+// Install the package specified by root_path.  If INSTALL_SUCCESS is
+// returned and *wipe_cache is true on exit, caller should wipe the
+// cache partition.
+int install_package(const char *root_path, int* wipe_cache,
+                    const char* install_file);
+
+void set_perf_mode(bool enable);
 
 #endif  // RECOVERY_INSTALL_H_

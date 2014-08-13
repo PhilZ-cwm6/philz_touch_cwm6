@@ -6,6 +6,7 @@
 rm -rf /tmp/image-edify /tmp/image /tmp/install-system /tmp/install-preload /tmp/system.err /tmp/preload.err /tmp/error-edify
 mkdir -p /tmp/image
 cd /tmp/image
+#keep touch nandroid.md5 for backward compatibility with stock CWM
 touch nandroid.md5
 unzip $3 boot.*
 unzip -p $3 image-edify > /tmp/image-edify
@@ -17,7 +18,7 @@ chmod 0755 /tmp/install-system
 unzip -l $3 | grep -v "#" | grep preload
 if [ "0" = "$?" ]
 then
-  echo -e "#!/sbin/sh\n\ncd /; /sbin/unzip -p $3 'preload.*' | tar x" >/tmp/install-preload
+  echo -e "#!/sbin/sh\n\ncd /; /sbin/unzip -p $3 'preload.*' | tar -xp" >/tmp/install-preload
   echo 'if [ "0" != "$?" ]; then echo 1>/tmp/preload.err; fi;' >>/tmp/install-preload
   chmod 0755 /tmp/install-preload
   echo -e 'ui_print("Formatting preload...");' >>/tmp/image-edify

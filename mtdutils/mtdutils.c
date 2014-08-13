@@ -28,6 +28,13 @@
 
 #include "mtdutils.h"
 
+struct MtdPartition {
+    int device_index;
+    unsigned int size;
+    unsigned int erase_size;
+    char *name;
+};
+
 struct MtdReadContext {
     const MtdPartition *partition;
     char *buffer;
@@ -282,7 +289,7 @@ static int read_block(const MtdPartition *partition, int fd, char *data)
 {
     struct mtd_ecc_stats before, after;
     if (ioctl(fd, ECCGETSTATS, &before)) {
-        fprintf(stderr, "mtd: ECCGETSTATS error (%s)\n", strerror(errno));
+        printf("mtd: ECCGETSTATS error (%s)\n", strerror(errno));
         return -1;
     }
 
@@ -293,13 +300,13 @@ static int read_block(const MtdPartition *partition, int fd, char *data)
 
     while (pos + size <= (int) partition->size) {
         if (lseek64(fd, pos, SEEK_SET) != pos || read(fd, data, size) != size) {
-            fprintf(stderr, "mtd: read error at 0x%08llx (%s)\n",
+            printf("mtd: read error at 0x%08llx (%s)\n",
                     pos, strerror(errno));
         } else if (ioctl(fd, ECCGETSTATS, &after)) {
-            fprintf(stderr, "mtd: ECCGETSTATS error (%s)\n", strerror(errno));
+            printf("mtd: ECCGETSTATS error (%s)\n", strerror(errno));
             return -1;
         } else if (after.failed != before.failed) {
-            fprintf(stderr, "mtd: ECC errors (%d soft, %d hard) at 0x%08llx\n",
+            printf("mtd: ECC errors (%d soft, %d hard) at 0x%08llx\n",
                     after.corrected - before.corrected,
                     after.failed - before.failed, pos);
             // copy the comparison baseline for the next read.
@@ -321,8 +328,8 @@ static int read_block(const MtdPartition *partition, int fd, char *data)
 
 ssize_t mtd_read_data(MtdReadContext *ctx, char *data, size_t len)
 {
-    ssize_t read = 0;
-    while (read < (int) len) {
+    size_t read = 0;
+    while (read < len) {
         if (ctx->consumed < ctx->partition->erase_size) {
             size_t avail = ctx->partition->erase_size - ctx->consumed;
             size_t copy = len - read < avail ? len - read : avail;
@@ -338,12 +345,12 @@ ssize_t mtd_read_data(MtdReadContext *ctx, char *data, size_t len)
             read += ctx->partition->erase_size;
         }
 
-        if (read >= (int)len) {
+        if (read >= len) {
             return read;
         }
 
         // Read the next block into the buffer
-        if (ctx->consumed == ctx->partition->erase_size && read < (int) len) {
+        if (ctx->consumed == ctx->partition->erase_size && read < len) {
             if (read_block(ctx->partition, ctx->fd, ctx->buffer)) return -1;
             ctx->consumed = 0;
         }
@@ -407,7 +414,9 @@ static int write_block(MtdWriteContext *ctx, const char *data)
 
     ssize_t size = partition->erase_size;
 
-    char *verify = malloc(size);
+    // fix crash on large erase block
+    // https://github.com/CyanogenMod/android_bootable_recovery/commit/35ced477713582fae54c1ac70198bf78a1a44783
+    char* verify = (char*)malloc(size * sizeof(char));
     if (verify == NULL)
         return 1;
 
@@ -429,39 +438,39 @@ static int write_block(MtdWriteContext *ctx, const char *data)
         int retry;
         for (retry = 0; retry < 2; ++retry) {
             if (ioctl(fd, MEMERASE, &erase_info) < 0) {
-                fprintf(stderr, "mtd: erase failure at 0x%08lx (%s)\n",
+                printf("mtd: erase failure at 0x%08lx (%s)\n",
                         pos, strerror(errno));
                 continue;
             }
             if (lseek(fd, pos, SEEK_SET) != pos ||
                 write(fd, data, size) != size) {
-                fprintf(stderr, "mtd: write error at 0x%08lx (%s)\n",
+                printf("mtd: write error at 0x%08lx (%s)\n",
                         pos, strerror(errno));
             }
 
             if (lseek(fd, pos, SEEK_SET) != pos ||
                 read(fd, verify, size) != size) {
-                fprintf(stderr, "mtd: re-read error at 0x%08lx (%s)\n",
+                printf("mtd: re-read error at 0x%08lx (%s)\n",
                         pos, strerror(errno));
                 continue;
             }
             if (memcmp(data, verify, size) != 0) {
-                fprintf(stderr, "mtd: verification error at 0x%08lx (%s)\n",
+                printf("mtd: verification error at 0x%08lx (%s)\n",
                         pos, strerror(errno));
                 continue;
             }
 
             if (retry > 0) {
-                fprintf(stderr, "mtd: wrote block after %d retries\n", retry);
+                printf("mtd: wrote block after %d retries\n", retry);
             }
-            fprintf(stderr, "mtd: successfully wrote block at %llx\n", pos);
+            printf("mtd: successfully wrote block at %lx\n", pos);
             free(verify);
             return 0;  // Success!
         }
 
         // Try to erase it once more as we give up on this block
         add_bad_block_offset(ctx, pos);
-        fprintf(stderr, "mtd: skipping write block at 0x%08lx\n", pos);
+        printf("mtd: skipping write block at 0x%08lx\n", pos);
         ioctl(fd, MEMERASE, &erase_info);
         pos += partition->erase_size;
     }
@@ -526,7 +535,7 @@ off_t mtd_erase_blocks(MtdWriteContext *ctx, int blocks)
     while (blocks-- > 0) {
         loff_t bpos = pos;
         if (ioctl(ctx->fd, MEMGETBADBLOCK, &bpos) > 0) {
-            fprintf(stderr, "mtd: not erasing bad block at 0x%08lx\n", pos);
+            printf("mtd: not erasing bad block at 0x%08lx\n", pos);
             pos += ctx->partition->erase_size;
             continue;  // Don't try to erase known factory-bad blocks.
         }
@@ -535,7 +544,7 @@ off_t mtd_erase_blocks(MtdWriteContext *ctx, int blocks)
         erase_info.start = pos;
         erase_info.length = ctx->partition->erase_size;
         if (ioctl(ctx->fd, MEMERASE, &erase_info) < 0) {
-            fprintf(stderr, "mtd: erase failure at 0x%08lx\n", pos);
+            printf("mtd: erase failure at 0x%08lx\n", pos);
         }
         pos += ctx->partition->erase_size;
     }
@@ -570,6 +579,7 @@ off_t mtd_find_write_start(MtdWriteContext *ctx, off_t pos) {
     return pos;
 }
 
+// needed by nandroid backup / restore MMC/MTD/BML partitions
 #define BLOCK_SIZE    2048
 #define SPARE_SIZE    (BLOCK_SIZE >> 5)
 #define HEADER_SIZE 2048

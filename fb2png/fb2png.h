@@ -25,6 +25,7 @@
 
 extern int user_set_buffers_num;
 
+int fb2png_main(int argc, char **argv);
 int fb2png(const char *path);
 
 #endif

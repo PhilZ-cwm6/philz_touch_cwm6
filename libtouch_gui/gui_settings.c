@@ -49,22 +49,19 @@
 #include "bootloader.h"
 #include "common.h"
 #include "cutils/properties.h"
-#include "firmware.h"
 #include "install.h"
 #include "make_ext4fs.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
 #include "recovery_ui.h"
-
+#include "ui.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "mounts.h"
 #include "flashutils/flashutils.h"
 #include "edify/expr.h"
-#include <libgen.h>
 #include "mtdutils/mtdutils.h"
 #include "bmlutils/bmlutils.h"
 #include "cutils/android_reboot.h"
@@ -115,6 +112,7 @@ struct CWMSettingsIntValues wait_after_install = { "wait_after_install", 1 };
 struct CWMSettingsLongIntValues t_zone = { "t_zone", 0 };
 struct CWMSettingsLongIntValues t_zone_offset = { "t_zone_offset", 0 };
 struct CWMSettingsIntValues use_dst_time = { "use_dst_time", 0 };
+struct CWMSettingsIntValues use_qcom_time_data_files = { "use_qcom_time_data_files", 0 };
 struct CWMSettingsIntValues use_qcom_time_daemon = { "use_qcom_time_daemon", 0 };
 struct CWMSettingsLongIntValues use_qcom_time_offset = { "use_qcom_time_offset", 0 };
 
@@ -133,8 +131,8 @@ int batt_clock_code[4] = {DEFAULT_BATT_CLOCK_CODE};
 
 // dim and blank screen
 static long int max_brightness_value = 255;
-int is_blanked = 0;
-int is_dimmed = 0;
+bool is_blanked = 0;
+bool is_dimmed = 0;
 
 // toggle friendly log view during install_zip()
 // on start, bypass user settings: do not wait after boot install scripts
@@ -198,19 +196,19 @@ int force_wait = -1;
 int key_gesture = 0;
 
 void selective_load_theme_settings() {
-    static const char* header_choose[] = {
+    const char* header_choose[] = {
         "Select a theme to load",
         "",
         NULL
     };
 
-    static const char* headers[] = {
+    const char* headers[] = {
         "Select settings to load from theme",
         "",
         NULL
     };
 
-    static char* list[] = {
+    char* list[] = {
         "Load all recovery settings",
         "Load only GUI settings",
         NULL
@@ -234,8 +232,10 @@ void selective_load_theme_settings() {
 
         switch (chosen_item) {
             case 0: {
-                if (confirm_selection("Overwrite all settings ?", "Yes - Apply New Theme") &&
-                        copy_a_file(theme_file, PHILZ_SETTINGS_FILE) == 0) {
+                if (confirm_selection("Overwrite all settings ?", "Yes - Apply New Theme") && copy_a_file(theme_file, PHILZ_SETTINGS_FILE) == 0) {
+                    char settings_copy[PATH_MAX];
+                    sprintf(settings_copy, "%s/%s", get_primary_storage_path(), PHILZ_SETTINGS_FILE2);
+                    copy_a_file(theme_file, settings_copy);
                     refresh_recovery_settings(0);
                     ui_print("loaded default settings from %s\n", BaseName(theme_file));
                 }
@@ -311,7 +311,7 @@ static void check_wait_after_install() {
 
 static void check_menu_height() {
     char value[PROPERTY_VALUE_MAX];
-    static char value_def[5];
+    char value_def[5];
     sprintf (value_def, "%d", MENU_HEIGHT_INCREASE_0);
     read_config_file(PHILZ_SETTINGS_FILE, menu_height_increase.key, value, value_def);
     menu_height_increase.value = strtol(value, NULL, 10);
@@ -599,7 +599,8 @@ static void set_system_time() {
         "EET-10;EETDT",
         "MET-11;METDT",
         "NZST-12;NZDT",
-        NULL };
+        NULL
+    };
 
     // parse to get time zone
     char time_string[50];
@@ -620,7 +621,7 @@ static void set_system_time() {
         strcat(t_zone_string, dst_string);
 
     // apply time through TZ environment variable
-	setenv("TZ", t_zone_string, 1);
+    setenv("TZ", t_zone_string, 1);
     tzset();
 
     // log current system time
@@ -668,22 +669,95 @@ static void apply_time_zone(int write_cfg, int tz) {
 }
 
 /* Start Qualcom Time Fixes */
-// this is called on recovery start and from the Qcom Time Daemon toggle menu when user sets it
-static void load_qcom_time_daemon(int on_start) {
-    if (on_start) {
-        // called on recovery start
-        char value[PROPERTY_VALUE_MAX];
-        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value, "0");
-        if (strcmp(value, "1") == 0)
-            use_qcom_time_daemon.value = 1;
-        else
-            use_qcom_time_daemon.value = 0;
+// parse the time daemon data files (credits to TeamWin)
+static void parse_t_daemon_data_files() {
+    // Devices with Qualcomm Snapdragon 800 do some shenanigans with RTC.
+    // They never set it, it just ticks forward from 1970-01-01 00:00,
+    // and then they have files /data/system/time/ats_* with 64bit offset
+    // in miliseconds which, when added to the RTC, gives the correct time.
+    // So, the time is: (offset_from_ats + value_from_RTC)
+    // There are multiple ats files, they are for different systems? Bases?
+    // Like, ats_1 is for modem and ats_2 is for TOD (time of day?).
+    // Look at file time_genoff.h in CodeAurora, qcom-opensource/time-services
+
+    const char *paths[] = {"/data/system/time/", "/data/time/"};
+    char ats_path[PATH_MAX] = "";
+    DIR *d;
+    FILE *f;
+    uint64_t offset = 0;
+    struct timeval tv;
+    struct dirent *dt;
+
+    // Don't fix the time of it already is over year 2000, it is likely already okay, either
+    // because the RTC is fine or because the recovery already set it and then crashed
+    gettimeofday(&tv, NULL);
+    if (tv.tv_sec > 946684800) {
+        // timestamp of 2000-01-01 00:00:00
+        LOGE("parse_t_daemon_data_files: time already okay (after year 2000).\n");
+        return;
     }
 
-    if (!use_qcom_time_daemon.value)
+    // on start, /data will be unmounted by refresh_recovery_settings()
+    if (ensure_path_mounted("/data") != 0) {
+        LOGE("parse_t_daemon_data_files: failed to mount /data\n");
         return;
+    }
 
-    // load the daemon
+    // Prefer ats_2, it seems to be the one we want according to logcat on hammerhead
+    // - it is the one for ATS_TOD (time of day?).
+    // However, I never saw a device where the offset differs between ats files.
+    size_t i;
+    for (i = 0; i < (sizeof(paths)/sizeof(paths[0])); ++i) {
+        DIR *d = opendir(paths[i]);
+        if (!d)
+            continue;
+
+        while ((dt = readdir(d))) {
+            if (dt->d_type != DT_REG || strncmp(dt->d_name, "ats_", 4) != 0)
+                continue;
+
+            if (strlen(ats_path) == 0 || strcmp(dt->d_name, "ats_2") == 0)
+                sprintf(ats_path, "%s%s", paths[i], dt->d_name);
+        }
+
+        closedir(d);
+    }
+
+    if (strlen(ats_path) == 0) {
+        LOGE("parse_t_daemon_data_files: no ats files found, leaving time as-is!\n");
+        return;
+    }
+
+    f = fopen(ats_path, "r");
+    if (!f) {
+        LOGE("parse_t_daemon_data_files: failed to open file %s\n", ats_path);
+        return;
+    }
+
+    if (fread(&offset, sizeof(offset), 1, f) != 1) {
+        LOGE("parse_t_daemon_data_files: failed load uint64 from file %s\n", ats_path);
+        fclose(f);
+        return;
+    }
+    fclose(f);
+
+    LOGI("parse_t_daemon_data_files: Setting time offset from file %s, offset %llu\n", ats_path, offset);
+
+    gettimeofday(&tv, NULL);
+    tv.tv_sec += offset / 1000;
+    tv.tv_usec += (offset % 1000) * 1000;
+
+    while(tv.tv_usec >= 1000000) {
+        ++tv.tv_sec;
+        tv.tv_usec -= 1000000;
+    }
+
+    settimeofday(&tv, NULL);
+    log_current_system_time();
+}
+
+// load the qcom time_daemon
+static void load_qcom_time_daemon(int on_start) {
     // unmount of /system + /data must be done in __system() or in source code after a sleep() delay. Else, they are unmounted while time_daemon is not done
     // only unmount partitions on recovery start
     if (!file_found("/system/bin/time_daemon") ||
@@ -699,7 +773,8 @@ static void load_qcom_time_daemon(int on_start) {
             ui_print("starting time daemon...\n");
 
         char cmd[PATH_MAX];
-        sprintf(cmd, "export LD_LIBRARY_PATH=/system/vendor/lib:/system/lib; /system/bin/time_daemon &(sleep 2; killall time_daemon;%s) &", on_start ? " /sbin/umount /system; /sbin/umount /data" : "");
+        sprintf(cmd, "export LD_LIBRARY_PATH=/system/vendor/lib:/system/lib; /system/bin/time_daemon &(sleep 2; killall time_daemon;%s) &",
+                on_start ? " /sbin/umount /system; /sbin/umount /data" : "");
         __system(cmd);
         // sleep 2.5 secs, else on recovery start, refresh_recovery_settings() will unmount /data too early
         //  - time_daemon may not sync time correctly
@@ -714,11 +789,11 @@ static void load_qcom_time_daemon(int on_start) {
 }
 
 // apply qcom time rtc offset
-// called only on recovery start
-static void apply_qcom_rtc_offset() {
-    char value[PROPERTY_VALUE_MAX];
-    read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_offset.key, value, "0");
-    use_qcom_time_offset.value = strtol(value, NULL, 10);
+// only apply on recovery start
+// else, this will increment the time by given offset when applied multiple times from menu
+static void apply_qcom_rtc_offset(int on_start) {
+    if (!on_start)
+        return;
 
     if (use_qcom_time_offset.value > 0) {
         LOGI("applying rtc time offset...\n");
@@ -733,8 +808,41 @@ static void apply_qcom_rtc_offset() {
             settimeofday(&tv, NULL);
             log_current_system_time();
         }
-    } else {
-        use_qcom_time_offset.value = 0;
+    }
+}
+
+// first check if we must directly parse time data files
+// if not, try to directly load the time_daemon service
+// started on recovery start or from menu
+static void apply_qcom_time_daemon_fixes(int on_start) {
+    if (on_start) {
+        // called on recovery start, no need to parse settings file when called from menus
+        char value[PROPERTY_VALUE_MAX];
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value, "0");
+        if (strcmp(value, "1") == 0)
+            use_qcom_time_daemon.value = 1;
+        else
+            use_qcom_time_daemon.value = 0;
+
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_data_files.key, value, "0");
+        if (strcmp(value, "1") == 0 || strcmp(value, "true") == 0)
+            use_qcom_time_data_files.value = 1;
+        else
+            use_qcom_time_data_files.value = 0;
+
+        read_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_offset.key, value, "0");
+        use_qcom_time_offset.value = strtol(value, NULL, 10);
+        if (use_qcom_time_offset.value < 0)
+            use_qcom_time_offset.value = 0;
+    }
+
+    // Only allow one qcom time_daemon fix (this should never happen unless user manually alters settings file)
+    if (use_qcom_time_data_files.value) {
+        parse_t_daemon_data_files();
+    } else if (use_qcom_time_daemon.value) {
+        load_qcom_time_daemon(on_start);
+    } else if (use_qcom_time_offset.value) {
+        apply_qcom_rtc_offset(on_start);
     }
 }
 // ------- End Qualcom Time Fixes
@@ -771,7 +879,7 @@ static void apply_background_icon(int write_cfg) {
 //this will only apply settings to the active session
 static void apply_gui_colors(const char* key, long int value) {
     //30 lines, each with 4 columns: red value, green value, blue value, alpha value
-    static int menu_color_table[30][4] = {
+    int menu_color_table[30][4] = {
         {WHITE_COLOR_CODE},
         {BLACK_COLOR_CODE},
         {CYAN_BLUE_CODE},
@@ -1121,9 +1229,7 @@ static void choose_background_image(const char* sd_path) {
         return;
     }
 
-    static const char* headers[] = {  "Choose a background image.",
-                                NULL
-    };
+    const char* headers[] = {"Choose a background image.", NULL};
 
     char tmp[PATH_MAX];
     //tariling / previously needed for choose_file_menu()
@@ -1145,12 +1251,12 @@ static void browse_background_image() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {"Choose an image or color", "", NULL};
+    const char* headers[] = {"Choose an image or color", "", NULL};
     int list_top_items = 5;
     char list_prefix[] = "Image from ";
     char* list[MAX_NUM_MANAGED_VOLUMES + list_top_items + 1];
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + list_top_items + 1);
+    memset(list, 0, sizeof(list));
     list[0] = "Solid Color Background";
     list[1] = "Reset Koush Background";
     list[2] = "Reset PhilZ Touch Background";
@@ -1204,6 +1310,7 @@ static void browse_background_image() {
 
     free(list[4]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + list_top_items]);
     }
@@ -1259,29 +1366,27 @@ void refresh_touch_gui_settings(int on_start) {
         // no need to load these when refreshing recovery settings (theme loading, restore settings...)
         // only load them on recovery start
         apply_time_zone(0, 0);
-        load_qcom_time_daemon(1);
-        apply_qcom_rtc_offset();
+        apply_qcom_time_daemon_fixes(1);
     }
 }
 //-------- End GUI Preferences functions
 
 //start show GUI Preferences menu
 static void change_menu_color() {
-    static const char* headers[] = {  "Change Menu Colors",
-                                NULL
-    };
+    const char* headers[] = { "Change Menu Colors", NULL };
 
-    static char* list[] = { "Change Menu Text Color",
-                            "Change Menu Background Color",
-                            "Change Menu Background Alpha",
-                            "Change Menu Highlight Color",
-                            "Change Menu Highlight Alpha",
-                            "Change Menu Separator Color",
-                            "Change Menu Separator Alpha",
-                            "Change Log and Prints Color",
-                            "Change Header Text Color",
-                            "Change Battery and Clock Color",
-                            NULL
+    char* list[] = {
+        "Change Menu Text Color",
+        "Change Menu Background Color",
+        "Change Menu Background Alpha",
+        "Change Menu Highlight Color",
+        "Change Menu Highlight Alpha",
+        "Change Menu Separator Color",
+        "Change Menu Separator Alpha",
+        "Change Log and Prints Color",
+        "Change Header Text Color",
+        "Change Battery and Clock Color",
+        NULL
     };
 
     for (;;) {
@@ -1358,14 +1463,19 @@ static void change_menu_color() {
 /**********************************/
 /*   Start touch gesture actions  */
 /**********************************/
-// capture screen using fb2png and incremental file names
+// capture screen to incremental file names
 // prefer second storage paths first, then primary storage
-static void fb2png_shot() {
-    if (!libtouch_flags.board_use_fb2png) {
-        ui_print("fb2png not supported on this device!\n");
-        return;
-    }
+#define FB2PNG_BIN "/sbin/fb2png" // recovery_cmds.h
+static int fb2png_capture(const char* file_path) {
+    if (!file_found(FB2PNG_BIN))
+        return -1;
 
+    char cmd[PATH_MAX];
+    sprintf(cmd, "%s %s", FB2PNG_BIN, file_path);
+    return __system(cmd);
+}
+
+static void screen_shot() {
     char* sd_path = NULL;
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
@@ -1384,16 +1494,17 @@ static void fb2png_shot() {
         sd_path = get_primary_storage_path();
 
     if (ensure_path_mounted(sd_path) != 0) {
-        ui_print("Found no mountable storage to save screen shots.\n");
+        ui_print("no mountable storage to save screen shots.\n");
+        free_string_array(extra_paths);
         return;
     }
 
-    //reads index file to increment filename
-    char tmp[PATH_MAX];
+    // reads index file to increment filename
+    char path[PATH_MAX];
     char line[5]; // xxxx + new line, so that when it reaches 1000 it doesn't read it as 100
     long int file_num = 1;
-    sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
-    FILE *fp = fopen(tmp, "r");
+    sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    FILE *fp = fopen(path, "r");
     if (fp != NULL) {
         if (fgets(line, sizeof(line), fp) != NULL) {
             file_num = strtol(line, NULL, 10);
@@ -1404,26 +1515,35 @@ static void fb2png_shot() {
         fclose(fp);
     }
 
-    //capture screen
+    // capture screen
     char dirtmp[PATH_MAX];
-    sprintf(dirtmp, "%s", DirName(tmp));
-    ensure_directory(dirtmp);
-    sprintf(tmp, "fb2png %s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
-    if (0 == __system(tmp)) {
-        ui_print("screen shot: %s\n", tmp + 7); // strlen("fb2png ")
-        sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
-        sprintf(line, "%ld", file_num);
-        write_string_to_file(tmp, line);
-    } else {
-        ui_print("screen capture failed\n");
+    int ret;
+    sprintf(dirtmp, "%s", DirName(path));
+    ensure_directory(dirtmp, 0755);
+    sprintf(path, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
+    ret = gr_save_screenshot(path);
+    if (ret == -2) {
+        // device uses a custom graphics.c
+        // try to use libfb2png
+        ret = fb2png_capture(path);
+        ui_print("custom graphics source detected: dropping to fb2png mode:\n");
     }
+    if (ret == 0) {
+        ui_print("screen shot: %s\n", path);
+        sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+        sprintf(line, "%ld", file_num);
+        write_string_to_file(path, line);
+    } else {
+        LOGE("screen capture failed\n");
+    }
+    free_string_array(extra_paths);
 }
 
 // Touch gesture actions
 //  - they are only triggered when in a menu prompt view (get_menu_selection())
 //  - we also disable them if progress bar is being shown
 //    this can happen in md5 display/verify threads where we have progress bar while waiting for menu action
-//    fb2png and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
+//    screen capture and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
 void handle_gesture_actions(const char** headers, char** items, int initial_selection) {
     int action = DISABLE_ACTION;
     if (ui_showing_progress_bar())
@@ -1441,7 +1561,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 
     switch (action) {
         case SCREEN_CAPTURE_ACTION:
-            fb2png_shot();
+            screen_shot();
             break;
         case AROMA_BROWSER_ACTION:
             ui_end_menu();
@@ -1458,12 +1578,12 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
             ui_start_menu(headers, items, initial_selection);
             break;
         case BLANK_SCREEN_ACTION:
-            ui_blank_screen(1);
+            ui_blank_screen(true);
             // to avoid considering more keys, mainly on long press and move action, usleep for 1sec before clearing key queue
             // use 999999 micro sec as 1000000 usecs is illegal in usleep
             usleep(999999);
             ui_clear_key_queue();
-            ui_wait_key(); // will also call ui_blank_screen(0) on a key press and set ignore_key_action
+            ui_wait_key(); // will also call ui_blank_screen(false) on a key press and set ignore_key_action
             break;
     }
 
@@ -1472,9 +1592,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 }
 
 static void gestures_action_setup() {
-    static const char* headers[] = {  "Gesture Action Setup",
-                                NULL
-    };
+    const char* headers[] = { "Gesture Action Setup", NULL };
 
     char item_slide_left[MENU_MAX_COLS];
     char item_slide_right[MENU_MAX_COLS];
@@ -1482,21 +1600,23 @@ static void gestures_action_setup() {
     char item_press_lift[MENU_MAX_COLS];
     char item_press_move[MENU_MAX_COLS];
 
-    char* list[] = { item_slide_left,
-                    item_slide_right,
-                    item_double_tap,
-                    item_press_lift,
-                    item_press_move,
-                    NULL
+    char* list[] = {
+        item_slide_left,
+        item_slide_right,
+        item_double_tap,
+        item_press_lift,
+        item_press_move,
+        NULL
     };
 
-    static char* gesture_action[] = { "disabled",
-                                      "screen shot", 
-                                      "aroma browser",
-                                      "set brightness",
-                                      "show log",
-                                      "toggle screen",
-                                      NULL
+    char* gesture_action[] = {
+        "disabled",
+        "screen shot", 
+        "aroma browser",
+        "set brightness",
+        "show log",
+        "toggle screen",
+        NULL
     };
 
     for (;;) {
@@ -1577,9 +1697,9 @@ static void gestures_action_setup() {
 
 // set time zone
 static void time_zone_h_menu() {
-    static const char* headers[] = { "Select Time Zone", NULL };
+    const char* headers[] = { "Select Time Zone", NULL };
 
-    static char* list[] = {
+    char* list[] = {
         "(UTC -11) Samoa, Midway Island",
         "(UTC -10) Hawaii",
         "(UTC -9) Alaska",
@@ -1706,28 +1826,26 @@ static void time_zone_h_menu() {
     - it will set current time and date to the total seconds since epoch specified by the timeval struct
     - in our case, the tv timeval struct holds the date chosen by user
 */
-#define CHANGE_TIME_MENU_VALIDATE 0
-#define CHANGE_TIME_MENU_INCREASE 1
-#define CHANGE_TIME_MENU_DECREASE 2
-#define CHANGE_TIME_MENU_NEXT     3
-#define CHANGE_TIME_MENU_PREVIOUS 4
-#define CHANGE_TIME_MENU_DATE_BIN 5
-#define CHANGE_TIME_MENU_T_DAEMON 6
-#define CHANGE_TIME_MENU_T_OFFSET 7
+#define CHANGE_TIME_MENU_VALIDATE       0
+#define CHANGE_TIME_MENU_INCREASE       1
+#define CHANGE_TIME_MENU_DECREASE       2
+#define CHANGE_TIME_MENU_NEXT           3
+#define CHANGE_TIME_MENU_PREVIOUS       4
+#define CHANGE_TIME_MENU_DATE_BIN       5
+#define CHANGE_TIME_MENU_T_DAEMON_DATA  6
+#define CHANGE_TIME_MENU_T_DAEMON_LOAD  7
+#define CHANGE_TIME_MENU_T_OFFSET       8
 static void change_date_time_menu() {
-    struct tm new_date;
-    time_t new_date_secs = time(NULL);
-    localtime_r(&new_date_secs, &new_date);
-
     char item_increase[MENU_MAX_COLS];
     char item_decrease[MENU_MAX_COLS];
     char item_next[MENU_MAX_COLS];
     char item_previous[MENU_MAX_COLS];
     char item_force_system_date[MENU_MAX_COLS];
+    char item_parse_time_daemon_data_files[MENU_MAX_COLS];
     char item_qcom_time_daemon[MENU_MAX_COLS];
     char item_qcom_time_offset[MENU_MAX_COLS];
 
-    char chosen_date[MENU_MAX_COLS];
+    char chosen_date[MENU_MAX_COLS] = "";
     const char* headers[] = { "Change date and time:", chosen_date, "", NULL };
 
     char* list[] = {
@@ -1737,6 +1855,7 @@ static void change_date_time_menu() {
         item_next,
         item_previous,
         item_force_system_date,
+        item_parse_time_daemon_data_files,
         item_qcom_time_daemon,
         item_qcom_time_offset,
         NULL    // GO_BACK (cancel)
@@ -1749,6 +1868,10 @@ static void change_date_time_menu() {
     int next = 0;
     int previous = 0;
 
+    struct tm new_date;
+    time_t new_date_secs = time(NULL);
+    localtime_r(&new_date_secs, &new_date);
+
     for (;;) {
         // update header text
         strftime(chosen_date, sizeof(chosen_date), "--> %Y-%m-%d %H:%M:%S", &new_date);
@@ -1756,6 +1879,10 @@ static void change_date_time_menu() {
         // update "toggle use of date -s" menu
         if (force_system_date) ui_format_gui_menu(item_force_system_date, "Try Force Persist on Reboot", "(x)");
         else ui_format_gui_menu(item_force_system_date, "Try Force Persist on Reboot", "( )");
+
+        // qcom devices: try to directly parse the /data/time contents
+        if (use_qcom_time_data_files.value) ui_format_gui_menu(item_parse_time_daemon_data_files, "Parse Time Daemon Data", "(x)");
+        else ui_format_gui_menu(item_parse_time_daemon_data_files, "Parse Time Daemon Data", "( )");
 
         // menu to toggle load of time_daemon
         if (use_qcom_time_daemon.value)
@@ -1848,32 +1975,87 @@ static void change_date_time_menu() {
         } else if (chosen_item == CHANGE_TIME_MENU_DATE_BIN) {
             // toggle force use of date -s command
             force_system_date ^= 1;
-        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON) {
+        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON_DATA) {
+            const char* qcom_headers[] = {
+                "Apply time daemon data:",
+                "Use Only for Qualcom boards",
+                NULL
+            };
+            char* qcom_list[] = { "Yes - Apply Time Daemon Data", NULL };
+            struct timeval tv;
+
+            // only allow one qcom time fix: time daemon, rtc offset or parse of time data files
+            if (!use_qcom_time_data_files.value && use_qcom_time_offset.value != 0) {
+                LOGE("first, disable RTC Time Offset\n");
+                continue;
+            }
+            if (!use_qcom_time_data_files.value && use_qcom_time_daemon.value) {
+                LOGE("first, disable Qcom Time Daemon\n");
+                continue;
+            }
+
+            // prompt to enable parsing time daemon data files, but not when disabling it
+            if (!use_qcom_time_data_files.value && 0 != get_menu_selection(qcom_headers, qcom_list, 0, 0))
+                continue;
+            use_qcom_time_data_files.value ^= 1;
+            sprintf(value, "%d", use_qcom_time_data_files.value);
+            write_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_data_files.key, value);
+
+            // check if the time/date is not what we expect (something near epoch)
+            // assume > 2000-01-01 00:00:00
+            // if after that time, try to set time to epoch and warn user to reboot into ROM, sync time and back to recovery
+            gettimeofday(&tv, NULL);
+            if (use_qcom_time_data_files.value && tv.tv_sec > 946684800) {
+                tv.tv_sec = 0;
+                tv.tv_usec = 0;
+                settimeofday(&tv, NULL);
+                ui_print("If time is wrong,\n");
+                ui_print("reboot to system & sync time\n");
+            }
+            apply_qcom_time_daemon_fixes(0);
+
+            // refresh current time in menu header
+            new_date_secs = time(NULL);
+            localtime_r(&new_date_secs, &new_date);
+        } else if (chosen_item == CHANGE_TIME_MENU_T_DAEMON_LOAD) {
             const char* qcom_headers[] = { "Load time daemon:", "Use Only for Qualcom boards", "And if all manual modes fail", NULL };
             char* qcom_list[] = { "Yes - Load Time Daemon", NULL };
 
-            // do not allow to use both time daemon and rtc offset fixes
+            // only allow one qcom time fix: time daemon, rtc offset or parse of time data files
             if (!use_qcom_time_daemon.value && use_qcom_time_offset.value != 0) {
-                LOGE("disable RTC Time Offset first\n");
+                LOGE("first, disable RTC Time Offset\n");
                 continue;
             }
+            if (!use_qcom_time_daemon.value && use_qcom_time_data_files.value) {
+                LOGE("first, disable Parse Time Daemon Data\n");
+                continue;
+            }
+
             // prompt to enable time daemon, but not when disabling it
             if (!use_qcom_time_daemon.value && 0 != get_menu_selection(qcom_headers, qcom_list, 0, 0))
                 continue;
             use_qcom_time_daemon.value ^= 1;
             sprintf(value, "%d", use_qcom_time_daemon.value);
             write_config_file(PHILZ_SETTINGS_FILE, use_qcom_time_daemon.key, value);
-            load_qcom_time_daemon(0);
+            apply_qcom_time_daemon_fixes(0);
+
+            // refresh current time in menu header
+            new_date_secs = time(NULL);
+            localtime_r(&new_date_secs, &new_date);
         } else if (chosen_item == CHANGE_TIME_MENU_T_OFFSET) {
             // some Qcom boards that need time_daemon, can use an offset from RTC clock (LGE G2 devices)
             // use_qcom_time_offset.value holds the offset in seconds. If we set to 1, we consider it is to enable and read the offset
             // if user has a ROM that doesn't properly support time_daemon, it will need this trick
             // also this could be used if recovery is missing some selinux permissions to load time_daemon
-            // we only allow use of either method: time daemon or time offset
+            // we only allow use of one method: time daemon, parse time daemon data files or time offset
             const char* qcom_headers[] = { "Use time offset:", "Use Only for Qualcom boards", "And if all other modes fail", NULL };
             char* qcom_list[] = { "Yes - Enable Time Offset", NULL };
             if (use_qcom_time_offset.value == 0 && use_qcom_time_daemon.value) {
-                LOGE("disable Qcom Time Daemon first\n");
+                LOGE("first, disable Qcom Time Daemon\n");
+                continue;
+            }
+            if (use_qcom_time_offset.value == 0 && use_qcom_time_data_files.value) {
+                LOGE("first, disable Parse Time Daemon Data\n");
                 continue;
             }
 
@@ -1951,7 +2133,7 @@ static void change_date_time_menu() {
 }
 
 static void show_time_settings_menu() {
-    static const char* headers[] = { "Time settings", NULL };
+    const char* headers[] = { "Time settings", NULL };
 
     char item_timezone_h[MENU_MAX_COLS];
     char item_timezone_m[MENU_MAX_COLS];
@@ -2022,7 +2204,7 @@ static void show_time_settings_menu() {
 // end check time zone
 
 void show_touch_gui_menu() {
-    static const char* headers[] = { "Touch GUI Setup", NULL };
+    const char* headers[] = { "Touch GUI Setup", NULL };
 
     char item_touch[MENU_MAX_COLS];
     char item_height[MENU_MAX_COLS];
@@ -2362,14 +2544,19 @@ static void rom_zip_callback(const char* filename) {
     strcpy(tmp, filename);
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = '\0';
+    if (strlen(tmp) == 0)
+        return;
+
     tmp[ui_get_text_cols() - 1] = '\0';
     rom_files_count++;
-    ui_increment_frame();
-    ui_nice_print("%s\n", tmp);
-    if (!ui_was_niced() && rom_files_total != 0)
+    ui_set_log_stdout(0);
+    ui_set_nandroid_print(1, 1);
+    ui_print("%s\n", tmp);
+    ui_set_log_stdout(1);
+    ui_set_nandroid_print(0, 0);
+
+    if (rom_files_total != 0)
         ui_set_progress((float)rom_files_count / (float)rom_files_total);
-    if (!ui_was_niced())
-        ui_delete_line(1);
 }
 
 static void get_directory_stats(const char* directory) {
@@ -2408,7 +2595,7 @@ static int rom_zip_wrapper(const char* backup_path) {
     }
 
     ui_clear_key_queue();
-    ui_print("Press Back to cancel.\n");
+    ui_print("Press Back to cancel.\n \n");
     // support dim screen durin zip operation
     struct timeval now;
     time_t last_key_ev;
@@ -2423,7 +2610,7 @@ static int rom_zip_wrapper(const char* backup_path) {
 
             // wake-up screen brightness on key event
             if (is_dimmed)
-                ui_dim_screen(0);
+                ui_dim_screen(false);
 
             // support cancel nandroid tar backup
             if (key_event == GO_BACK) {
@@ -2435,7 +2622,7 @@ static int rom_zip_wrapper(const char* backup_path) {
             }
         } else if (!is_dimmed && dim_timeout.value != 0 && (now.tv_sec - last_key_ev) >= dim_timeout.value) {
             // dim screen on timeout
-            ui_dim_screen(1);
+            ui_dim_screen(true);
         }
 
         tmp[PATH_MAX - 1] = '\0';
@@ -2449,26 +2636,27 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
         ui_print("Can't mount %s\n", target_volume);
         return -1;
     }
+
     int ret = 0;
+    char cmd[PATH_MAX];
     char tmp_path[PATH_MAX];
     sprintf(tmp_path, "%s/%s/tmp", target_volume, CUSTOM_ROM_PATH);
 
     ui_print("\nPreparing ROM structure...\n");
-    char cmd[PATH_MAX];
     sprintf(cmd, "rm -rf %s", tmp_path);
     __system(cmd);
     sprintf(cmd, "mkdir -p %s/META-INF/com/google/android", tmp_path);
     __system(cmd);
 
-    if (NULL == source_path) {
+    if (source_path == NULL) {
         // create a nandroid backup from existing ROM and use it for update.zip
         backup_recovery = 0, backup_wimax = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
         nandroid_force_backup_format("tar");
         ret = nandroid_backup(tmp_path);
         nandroid_force_backup_format("");
         backup_recovery = 1, backup_wimax = 1, backup_data = 1, backup_cache = 1, backup_sdext = 1;
-        if (0 != ret) {
-            ui_print("Error while creating a nandroid image!\n");
+        if (ret != 0) {
+            LOGE("Error while creating a nandroid image!\n");
             return ret;
         }
     } else if (nandroid_add_preload.value) {
@@ -2491,20 +2679,22 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     ensure_path_unmounted("/system");
 
     //restore nandroid backup source folder
-    if (!(NULL == source_path)) {
+    if (source_path != NULL) {
         sprintf(cmd, "cd %s; mv boot.* system.* preload.* %s", tmp_path, source_path);
         __system(cmd);
     }
+
     //remove tmp folder
     sprintf(cmd, "rm -rf '%s'", tmp_path);
     __system(cmd);
-    sync();
-    ui_set_background(BACKGROUND_ICON_NONE);
-    ui_reset_progress();
-    if (0 != ret) {
-        ui_print("Error while making a zip image!\n");
-    } else ui_print("Custom ROM saved in %s/%s\n", target_volume, CUSTOM_ROM_PATH);
-    return ret;
+
+    if (ret != 0) {
+        return print_and_error("Error while making a zip image!\n", ret);
+    }
+
+    finish_nandroid_job();
+    ui_print("Custom ROM saved in %s/%s\n", target_volume, CUSTOM_ROM_PATH);
+    return 0;
 }
 
 //select target volume for custom ROM
@@ -2513,11 +2703,11 @@ static void custom_rom_target_volume(const char* source_path) {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {"Choose custom ROM target", "", NULL};
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    const char* headers[] = {"Choose custom ROM target", "", NULL};
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Create ROM in ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2536,6 +2726,7 @@ static void custom_rom_target_volume(const char* source_path) {
 
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -2547,15 +2738,16 @@ static void choose_nandroid_menu() {
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
 
-    static const char* headers[] = {  "Choose a nandroid backup",
-                                      "to export",
-                                      "",
-                                      NULL
+    const char* headers[] = {
+        "Choose a nandroid backup",
+        "to export",
+        "",
+        NULL
     };
-    static char* list[MAX_NUM_MANAGED_VOLUMES + 1];
+    char* list[MAX_NUM_MANAGED_VOLUMES + 1];
     char list_prefix[] = "Choose from ";
     char buf[80];
-    memset(list, 0, MAX_NUM_MANAGED_VOLUMES + 1);
+    memset(list, 0, sizeof(list));
     sprintf(buf, "%s%s", list_prefix, primary_path);
     list[0] = strdup(buf);
 
@@ -2599,6 +2791,7 @@ static void choose_nandroid_menu() {
 out:
     free(list[0]);
     if (extra_paths != NULL) {
+        free_string_array(extra_paths);
         for(i = 0; i < num_extra_volumes; i++)
             free(list[i + 1]);
     }
@@ -2606,13 +2799,13 @@ out:
 
 //start Clone ROM to update.zip menu
 void custom_rom_menu() {
-    static const char* headers[] = {
+    const char* headers[] = {
         "Create Custom ROM",
         "",
         NULL
     };
 
-    static char* list[] = {
+    char* list[] = {
         "Create from Current ROM",
         "Create from Previous Backup",
         "Settings...",
@@ -2643,6 +2836,254 @@ void custom_rom_menu() {
 }
 //-------- End Clone ROM to update.zip
 
+
+/*******************************/
+/*   Start Recovery Lock Code  */
+/*******************************/
+
+// drop invalid key codes: touch events (BTN_*) and faked ignored event key (KEY_ESC)
+static int is_valid_key_code(int key_code) {
+    if (key_code == KEY_ESC)
+        return 0;
+    if (key_code >= BTN_TOOL_PEN && key_code <= BTN_GEAR_UP)
+        return 0;
+    return 1;
+}
+
+// setup / change recovery lock passkey
+static void recovery_change_passkey() {
+    int pass_key[RECOVERY_LOCK_MAX_CHARS];
+    char pass_display[128] = "";
+    char pass_string[128] = "";
+    int i = 0;
+    int key_match = 1;
+
+    // type in new passkey
+    ui_SetShowText(false);
+    ui_clear_key_queue();
+    for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+        char tmp[64];
+        ui_update_screen(); // remove previous drawing
+        draw_visible_text_line(2, "* New Passkey (6 chars) *", 1);
+        draw_visible_text_line(4, pass_display, 1);
+        while (1) {
+            pass_key[i] = ui_wait_key();
+            if (is_valid_key_code(pass_key[i]))
+                break;
+        }
+        sprintf(tmp, "%d,", pass_key[i]);
+        strcat(pass_string, tmp);
+        strcat(pass_display, "* ");
+        // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
+    }
+
+    // verify passkey
+    strcpy(pass_display, "");
+    ui_clear_key_queue();
+    for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+        ui_update_screen();
+        draw_visible_text_line(2, "* Retype Passkey *", 1);
+        draw_visible_text_line(4, pass_display, 1);
+
+        int input_key;
+        while (1) {
+            input_key = ui_wait_key();
+            if (is_valid_key_code(input_key))
+                break;
+        }
+
+        if (input_key != pass_key[i]) {
+            key_match = 0;
+            LOGE("Passkey doesn't match\n"); // will remove any previous drawing (actual ui_print will show on returning to menu)
+            draw_visible_text_line(2, "* Passkey mismatch! *", 1);
+            draw_visible_text_line(4, "Press a key to exit", 1);
+            ui_clear_key_queue();
+            ui_wait_key();
+            break;
+        }
+        strcat(pass_display, "* ");
+        // LOGI("new_key[%d]=%ld\n", i, pass_key[i]); // debug
+    }
+
+    // if passkey was entered twice correctly, save to lock file
+    if (key_match) {
+        write_string_to_file(RECOVERY_LOCK_FILE, pass_string);
+        ui_print("Recovery Lock is enabled\n");
+    }
+
+    ui_SetShowText(true);
+}
+
+// check if recovery needs to be locked and prompt for a pass key if it is defined
+void check_recovery_lock() {
+    LOGI("Checking for recovery lock...\n");
+    if (!file_found(RECOVERY_LOCK_FILE)) {
+        ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        property_set("sys.usb.recovery_lock", "0");
+        return;
+    }
+
+    char line[1024];
+    char *ptr;
+    FILE *fp = fopen(RECOVERY_LOCK_FILE, "rb");
+    if (fp == NULL) {
+        LOGE("failed to open lock file\n");
+        ensure_path_unmounted(RECOVERY_LOCK_FILE);
+        property_set("sys.usb.recovery_lock", "0");
+        return;
+    }
+
+    // read password file (one line)
+    ptr = fgets(line, sizeof(line), fp);
+    fclose(fp);
+    ensure_path_unmounted(RECOVERY_LOCK_FILE);
+    if (ptr == NULL) {
+        LOGE("failed to read lock file\n");
+        property_set("sys.usb.recovery_lock", "0");
+        return;
+    }
+
+    // hide screen menus and ui_print
+    // this function can be called on recovery start (show_text == 0) or from menus (show_text == 1) to lock recovery or reset password
+    bool visible = ui_IsTextVisible();
+    ui_SetShowText(false);
+
+    // parse the password: "key1,key2,key3,key4..."
+    int i = 0;
+    int pass_chars = 0;
+    char** pass_key = (char**)malloc((RECOVERY_LOCK_MAX_CHARS) * sizeof(char*));
+    memset(pass_key, 0, sizeof(pass_key));
+    ptr = strtok(line, ", \n");
+    while (i < RECOVERY_LOCK_MAX_CHARS && ptr != NULL) {
+        pass_key[i] = strdup(ptr);
+        // LOGI("Passkey[%d]=%s\n", i, pass_key[i]); // debug
+        ptr = strtok(NULL, ", \n");
+        ++i;
+    }
+
+    pass_chars = i;
+
+    // lock adb (should be already locked if on recovery boot)
+    property_set("sys.usb.recovery_lock", "1");
+    // property_set("sys.usb.recovery_lock", "0"); // debug
+
+    // prompt for pass key
+    // key_err: number of wrong key input by user
+    long int key_input[RECOVERY_LOCK_MAX_CHARS] = { 0 };
+    int key_err = 0;
+    char pass_display[128] = "";
+    char trials_left_message[64];
+
+    if (pass_chars != RECOVERY_LOCK_MAX_CHARS) {
+        // don't allow pass if key file was tempered with
+        // this will only allow passwords of RECOVERY_LOCK_MAX_CHARS characters
+        LOGI("unusual passkey length (%d)\n", pass_chars);
+        key_err = RECOVERY_LOCK_MAX_ERROR;
+    }
+
+    ui_clear_key_queue();
+
+    // workaround to refresh display buffers with active background
+    // this is needed to avoid first passkey prompt screen background to be black on recovery start
+    draw_visible_text_line(2, "* Recovery Locked *", 1);
+    ui_update_screen(); // will wipe above text line and properly refresh the buffers
+
+    while (key_err < RECOVERY_LOCK_MAX_ERROR) {
+        // prompt for the key
+        for (i = 0; i < RECOVERY_LOCK_MAX_CHARS; ++i) {
+            sprintf(trials_left_message, "Trials left: %d", RECOVERY_LOCK_MAX_ERROR - key_err);
+            draw_visible_text_line(2, "* Recovery Locked *", 1);
+            draw_visible_text_line(3, trials_left_message, 1);
+            draw_visible_text_line(5, pass_display, 1);
+            while (1) {
+                key_input[i] = ui_wait_key();
+                if (is_valid_key_code(key_input[i]))
+                    break;
+            }
+            strcat(pass_display, "* ");
+            ui_update_screen(); // remove any previous writing to screen
+            // LOGI("key press=%d\n", key_input[i]); // debug
+        }
+
+        // reset displayed input key on screen
+        strcpy(pass_display, "");
+
+        // check if the input key length is valid
+        if (i != pass_chars) {
+            ++key_err;
+            continue;
+        }
+
+        // verify the input key
+        for (i = 0; i < pass_chars; ++i) {
+            if (key_input[i] != strtol(pass_key[i], NULL, 10)) {
+                ++key_err;
+                break;
+            }
+        }
+
+        // break loop if the input key is valid
+        if (i == pass_chars)
+            break;
+    }
+
+    for (i = 0; i < pass_chars; ++i) {
+        free(pass_key[i]);
+    }
+    free(pass_key);
+
+    if (key_err >= RECOVERY_LOCK_MAX_ERROR) {
+        LOGI("Max pass key errors reached!\n");
+        ui_set_background(BACKGROUND_ICON_ERROR); // will also remove previous drawing
+        draw_visible_text_line(2, "Wrong pass!", 1);
+        draw_visible_text_line(4, "Press a key to reboot", 1);
+        ui_clear_key_queue();
+        ui_wait_key();
+        reboot_main_system(ANDROID_RB_RESTART, 0, 0);
+    }
+
+    // unlock and continue
+    LOGI("Recovery unlocked\n");
+    ui_SetShowText(visible);
+    property_set("sys.usb.recovery_lock", "0");
+}
+
+// setup a passkey to lock recovery
+void show_recovery_lock_menu() {
+    // prompt for password if needed before allowing any modification
+    check_recovery_lock();
+
+    const char* headers[] = {
+        "Recovery Lock Setup",
+        "",
+        NULL
+    };
+
+    char* list[] = {
+        "Change Recovery Passkey",
+        "Disable Recovery Lock",
+        NULL
+    };
+
+    for (;;) {
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item) {
+            case 0: {
+                recovery_change_passkey();
+                break;
+            }
+            case 1: {
+                if (confirm_selection("Disable Recovery Lock ?", "Yes - Disable Lock")) {
+                    delete_a_file(RECOVERY_LOCK_FILE);
+                }
+                break;
+            }
+        }
+    }
+}
+//-------- End recovery lock code
 
 // display and log the libtouch_gui version
 // called on recovery start (onscreen == ) and from About menu

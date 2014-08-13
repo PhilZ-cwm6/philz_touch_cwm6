@@ -31,7 +31,9 @@
 #define MMCUTILS_H_
 
 /* Some useful define used to access the MBR/EBR table */
+#ifndef BLOCK_SIZE  // fix warning when including <sys/mount.h> which will include <linux/fs.h> that also defines BLOCK_SIZE. This is not used anyway
 #define BLOCK_SIZE                0x200
+#endif
 #define TABLE_ENTRY_0             0x1BE
 #define TABLE_ENTRY_1             0x1CE
 #define TABLE_ENTRY_2             0x1DE

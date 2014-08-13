@@ -16,9 +16,8 @@ OBJECTS += fb2png adb_screenshoot
 
 ALL: $(OBJECTS)
 
-fb2png: main.o fb.o img_process.o fb2png.o
-	$(CC) $(CFLAGS) main.o fb.o img_process.o fb2png.o -o fb2png $(LDFLAGS)
-	# $(CC) $(CFLAGS) main.o fb.o img_process.o fb2png.o -o fb2png
+fb2png: main.o fb2png_main.o fb.o img_process.o fb2png.o
+	$(CC) $(CFLAGS) main.o fb2png_main.o fb.o img_process.o fb2png.o -o fb2png $(LDFLAGS)
 
 adb_screenshoot: adb_screenshoot.o fb.o img_process.o
 	$(CC) $(CFLAGS) adb_screenshoot.o fb.o img_process.o -o adb_screenshoot $(LDFLAGS)

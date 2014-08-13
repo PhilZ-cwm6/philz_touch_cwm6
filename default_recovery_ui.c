@@ -24,16 +24,17 @@
 
 char* MENU_HEADERS[] = { NULL };
 
-char* MENU_ITEMS[] = { "Reboot System Now",
-                       "Install Zip",
-                       "Wipe Data/Factory Reset",
-                       "Wipe Cache Partition",
-                       "Backup and Restore",
-                       "Mounts and Storage",
-                       "Advanced",
-                       "PhilZ Settings",
-                       "Power Options",
-                       NULL };
+char* MENU_ITEMS[] = {
+    "Reboot System Now",
+    "Install Zip",
+    "Wipe and Format Options",
+    "Backup and Restore",
+    "Mounts and Storage",
+    "Advanced Functions",
+    "Recovery Settings",
+    "Power Options",
+    NULL
+};
 
 void device_ui_init(UIParameters* ui_parameters) {
 }

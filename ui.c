@@ -27,41 +27,44 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "common.h"
 #include <cutils/android_reboot.h>
 #include <cutils/properties.h>
-#include "minui/minui.h"
-#include "recovery_ui.h"
-#include "voldclient/voldclient.h"
 
+#include "voldclient/voldclient.h"
+#include "minui/minui.h"
+#include "common.h"
+#include "recovery_ui.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "ui.h"
 
 extern int __system(const char *command);
 
-#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(PHILZ_TOUCH_RECOVERY)
 static int gShowBackButton = 1;
 #else
 static int gShowBackButton = 0;
 #endif
 
 #define UI_WAIT_KEY_TIMEOUT_SEC    3600
-#define UI_KEY_REPEAT_INTERVAL 80
-#define UI_KEY_WAIT_REPEAT 400
+#define UI_KEY_REPEAT_INTERVAL      80
+#define UI_KEY_WAIT_REPEAT          400
+#define UI_UPDATE_PROGRESS_INTERVAL 300
 
+#define DEFAULT_INSTALL_OVERLAY_OFFSET_Y    190
 UIParameters ui_parameters = {
     6,       // indeterminate progress bar frames
     20,      // fps
     7,       // installation icon frames (0 == static image)
-    13, 190, // installation icon overlay offset
+    13, DEFAULT_INSTALL_OVERLAY_OFFSET_Y, // installation icon overlay offset
 };
 
 pthread_mutex_t gUpdateMutex = PTHREAD_MUTEX_INITIALIZER;
 gr_surface gBackgroundIcon[NUM_BACKGROUND_ICONS];
 static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
+static gr_surface gStageMarkerEmpty;
+static gr_surface gStageMarkerFill;
 gr_surface gProgressBarEmpty;
 gr_surface gProgressBarFill;
 gr_surface gBackground;
@@ -74,20 +77,25 @@ static int ui_log_stdout = 1;
 int boardRepeatableKeys[64], boardNumRepeatableKeys = 0;
 
 struct bitmaps_array BITMAPS[] = {
-    { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING], "icon_installing" },
-    { &gBackgroundIcon[BACKGROUND_ICON_ERROR],      "icon_error" },
-    { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],  "icon_clockwork" },
-    { &gBackgroundIcon[BACKGROUND_ICON_CID],  "icon_cid" },
-    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING], "icon_firmware_install" },
-    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
-    { &gProgressBarEmpty,               "progress_empty" },
-    { &gProgressBarFill,                "progress_fill" },
+    { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING],             "icon_installing" },
+    { &gBackgroundIcon[BACKGROUND_ICON_ERROR],                  "icon_error" },
+    { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],              "icon_clockwork" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING],    "icon_firmware_install" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR],         "icon_firmware_error" },
+    { &gProgressBarEmpty,                                       "progress_empty" },
+    { &gProgressBarFill,                                        "progress_fill" },
 #ifdef PHILZ_TOUCH_RECOVERY
-    { &gVirtualKeys,                    "virtual_keys" },
+    { &gVirtualKeys,                                            "virtual_keys" },
 #endif
-    { &gBackground,                "stitch" },
-    { NULL,                             NULL },
+    { &gBackground,                                             "stitch" },
+    { &gStageMarkerEmpty,                                       "stage_empty" },
+    { &gStageMarkerFill,                                        "stage_fill" },
+    { NULL,                                                     NULL },
 };
+
+// stage num / max to display for multi stage packages
+static int stage = -1;
+static int max_stage = -1;
 
 static int gCurrentIcon = 0;
 static int gInstallingFrame = 0;
@@ -105,8 +113,8 @@ static int gPagesIdentical = 0;
 char text[MAX_ROWS][MAX_COLS];
 int text_cols = 0, text_rows = 0;
 int text_col = 0, text_row = 0, text_top = 0;
-int show_text = 0;
-int show_text_ever = 0;   // has show_text ever been 1?
+bool show_text = 0;
+bool show_text_ever = 0;   // has show_text ever been 1?
 
 char menu[MENU_MAX_ROWS][MENU_MAX_COLS];
 int show_menu = 0;
@@ -125,16 +133,6 @@ pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 int key_queue[256], key_queue_len = 0;
 unsigned long key_last_repeat[KEY_MAX + 1], key_press_time[KEY_MAX + 1];
 volatile char key_pressed[KEY_MAX + 1];
-
-void update_screen_locked(void);
-
-#ifdef BOARD_TOUCH_RECOVERY
-#include "../../vendor/koush/recovery/touch.c"
-#else
-    #if defined(BOARD_RECOVERY_SWIPE) && !defined(PHILZ_TOUCH_RECOVERY)
-    #include "swipe.c"
-    #endif
-#endif
 
 // Return the current time as a double (including fractions of a second).
 static double now() {
@@ -166,36 +164,66 @@ static void draw_background_locked(int icon)
     // gr_color(0, 0, 0, 255);
     // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
-    {
-        int bw = gr_get_width(gBackground);
-        int bh = gr_get_height(gBackground);
-        int bx = 0;
-        int by = 0;
-        for (by = 0; by < gr_fb_height(); by += bh) {
-            for (bx = 0; bx < gr_fb_width(); bx += bw) {
-                gr_blit(gBackground, 0, 0, bw, bh, bx, by);
-            }
+    int bw = gr_get_width(gBackground);
+    int bh = gr_get_height(gBackground);
+    int bx = 0;
+    int by = 0;
+
+    // draw the background image as a mosaic if it is smaller than display
+    for (by = 0; by < gr_fb_height(); by += bh) {
+        for (bx = 0; bx < gr_fb_width(); bx += bw) {
+            gr_blit(gBackground, 0, 0, bw, bh, bx, by);
         }
     }
 
+    // draw the background icon if any
     if (icon) {
         gr_surface surface = gBackgroundIcon[icon];
         int iconWidth = gr_get_width(surface);
         int iconHeight = gr_get_height(surface);
+        int stageHeight = gr_get_height(gStageMarkerEmpty);
+
+        int sh = (max_stage >= 0) ? stageHeight : 0;
+
         int iconX = (gr_fb_width() - iconWidth) / 2;
-        int iconY = (gr_fb_height() - iconHeight) / 2;
+        int iconY = (gr_fb_height() - (iconHeight + sh)) / 2;
+
         gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
         if (icon == BACKGROUND_ICON_INSTALLING) {
             draw_install_overlay_locked(gInstallingFrame);
         }
+
+        if (stageHeight > 0) {
+            int sw = gr_get_width(gStageMarkerEmpty);
+            int x = (gr_fb_width() - max_stage * gr_get_width(gStageMarkerEmpty)) / 2;
+            int y = iconY + iconHeight + 20;
+            int i;
+            for (i = 0; i < max_stage; ++i) {
+                gr_blit((i < stage) ? gStageMarkerFill : gStageMarkerEmpty,
+                        0, 0, sw, stageHeight, x, y);
+                x += sw;
+            }
+        }
     }
 }
 
-// Draw the progress bar (if any) on the screen.  Does not flip pages.
+// increment background progress icon frame (installation animation)
+// called only with gUpdateMutex locked
+static void ui_increment_frame() {
+    gInstallingFrame =
+        (gInstallingFrame + 1) % ui_parameters.installing_frames;
+}
+
+// Draw the progress bar (if any) on the screen. Does not flip pages.
 // Should only be called with gUpdateMutex locked.
+// never called if !ui_has_initialized
+static long long t_last_progress_update = 0;
 static void draw_progress_locked()
 {
     if (gCurrentIcon == BACKGROUND_ICON_INSTALLING) {
+        // update the installation animation, if active
+        if (ui_parameters.installing_frames > 0)
+            ui_increment_frame();
         draw_install_overlay_locked(gInstallingFrame);
     }
 
@@ -229,6 +257,8 @@ static void draw_progress_locked()
             frame = (frame + 1) % ui_parameters.indeterminate_frames;
         }
     }
+
+    t_last_progress_update = timenow_msec();
 }
 
 #ifndef PHILZ_TOUCH_RECOVERY
@@ -241,18 +271,12 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-#endif
+//#define MENU_TEXT_COLOR 255, 160, 49, 255
+#define MENU_TEXT_COLOR 0, 191, 255, 255
+#define NORMAL_TEXT_COLOR 200, 200, 200, 255
+#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
 
-// we keep these even in PHILZ_TOUCH_RECOVERY to not break compiling
-// they have no effect in PhilZ Touch builds
-// only used for native dual boot devices
-static int menuTextColor[4] = {0, 191, 255, 255};
-void ui_setMenuTextColor(int r, int g, int b, int a) {
-    menuTextColor[0] = r;
-    menuTextColor[1] = g;
-    menuTextColor[2] = b;
-    menuTextColor[3] = a;
-}
+#endif
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
@@ -263,7 +287,7 @@ void draw_screen_locked(void)
     draw_progress_locked();
 
 #ifdef PHILZ_TOUCH_RECOVERY
-        draw_touch_menu();
+    draw_touch_menu();
 #else
     if (show_text) {
         // don't "disable" the background anymore with this...
@@ -275,8 +299,7 @@ void draw_screen_locked(void)
         int j = 0;
         int row = 0;            // current row that we are drawing on
         if (show_menu) {
-#ifndef BOARD_TOUCH_RECOVERY
-            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+            gr_color(MENU_TEXT_COLOR);
             gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
                     gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
@@ -291,14 +314,14 @@ void draw_screen_locked(void)
             else
                 j = menu_items - menu_show_start;
 
-            gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+            gr_color(MENU_TEXT_COLOR);
             for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
                     draw_text_line(i - menu_show_start , menu[i]);
-                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+                    gr_color(MENU_TEXT_COLOR);
                 } else {
-                    gr_color(menuTextColor[0], menuTextColor[1], menuTextColor[2], menuTextColor[3]);
+                    gr_color(MENU_TEXT_COLOR);
                     draw_text_line(i - menu_show_start, menu[i]);
                 }
                 row++;
@@ -308,9 +331,6 @@ void draw_screen_locked(void)
 
             gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
                     gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
-#else
-            row = draw_touch_menu(menu, menu_items, menu_top, menu_sel, menu_show_start);
-#endif
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -344,6 +364,12 @@ void update_screen_locked(void)
 static void update_progress_locked(void)
 {
     if (!ui_has_initialized) return;
+
+    // minimum of UI_UPDATE_PROGRESS_INTERVAL msec delay between progress updates if we have a text overlay
+    // exception: gProgressScopeDuration != 0: to keep zip installer refresh behaviour
+    if (show_text && t_last_progress_update > 0 && gProgressScopeDuration == 0 && timenow_msec() - t_last_progress_update < UI_UPDATE_PROGRESS_INTERVAL)
+        return;
+
     if (show_text || !gPagesIdentical) {
         draw_screen_locked();    // Must redraw the whole screen
         gPagesIdentical = 1;
@@ -363,32 +389,23 @@ static void *progress_thread(void *cookie)
 
         int redraw = 0;
 
-        // update the installation animation, if active
-        // skip this if we have a text overlay (too expensive to update)
-        if (gCurrentIcon == BACKGROUND_ICON_INSTALLING &&
-            ui_parameters.installing_frames > 0 &&
-            !show_text) {
-            gInstallingFrame =
-                (gInstallingFrame + 1) % ui_parameters.installing_frames;
-            redraw = 1;
-        }
-
         // update the progress bar animation, if active
         // skip this if we have a text overlay (too expensive to update)
-        if (gProgressBarType == PROGRESSBAR_TYPE_INDETERMINATE && !show_text) {
+        if (gProgressBarType == PROGRESSBAR_TYPE_INDETERMINATE) {
             redraw = 1;
-        }
-
-        // move the progress bar forward on timed intervals, if configured
-        int duration = gProgressScopeDuration;
-        if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && duration > 0) {
+        } else if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL && gProgressScopeDuration > 0) {
+            // move the progress bar forward on timed intervals, if configured
             double elapsed = now() - gProgressScopeTime;
-            float progress = 1.0 * elapsed / duration;
+            float progress = 1.0 * elapsed / gProgressScopeDuration;
             if (progress > 1.0) progress = 1.0;
             if (progress > gProgress) {
                 gProgress = progress;
                 redraw = 1;
             }
+        }
+
+        if (gCurrentIcon == BACKGROUND_ICON_INSTALLING) {
+            redraw = 1;
         }
 
         if (redraw) update_progress_locked();
@@ -415,13 +432,9 @@ static int input_callback(int fd, short revents, void *data)
     if (ret)
         return -1;
 
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     if (touch_handle_input(fd, ev))
         return 0;
-#else
-#ifdef BOARD_RECOVERY_SWIPE
-    swipe_handle_input(fd, &ev);
-#endif
 #endif
 
     if (ev.type == EV_SYN) {
@@ -504,16 +517,14 @@ void ui_init(void)
     ui_has_initialized = 1;
     gr_init();
     ev_init(input_callback, NULL);
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     touch_init();
 #endif
 
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
-#ifdef BOARD_TOUCH_RECOVERY
-    max_menu_rows = get_max_menu_rows(max_menu_rows);
-#endif
+
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
@@ -602,6 +613,10 @@ void ui_init(void)
     //ui_print("Clockworkmod 6.0.1.5\n");
 }
 
+int ui_is_initialized() {
+    return ui_has_initialized;
+}
+
 char *ui_copy_image(int icon, int *width, int *height, int *bpp) {
     pthread_mutex_lock(&gUpdateMutex);
     draw_background_locked(icon);
@@ -631,8 +646,19 @@ void ui_set_background(int icon)
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
+// return current background icon
+int ui_get_background_icon() {
+    int icon;
+    pthread_mutex_lock(&gUpdateMutex);
+    icon = gCurrentIcon;
+    pthread_mutex_unlock(&gUpdateMutex);
+    return icon;
+}
+
 void ui_show_indeterminate_progress()
 {
+    if (!ui_has_initialized) return;
+
     pthread_mutex_lock(&gUpdateMutex);
     if (gProgressBarType != PROGRESSBAR_TYPE_INDETERMINATE) {
         gProgressBarType = PROGRESSBAR_TYPE_INDETERMINATE;
@@ -643,6 +669,8 @@ void ui_show_indeterminate_progress()
 
 void ui_show_progress(float portion, int seconds)
 {
+    if (!ui_has_initialized) return;
+
     pthread_mutex_lock(&gUpdateMutex);
     gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
     gProgressScopeStart += gProgressScopeSize;
@@ -656,6 +684,8 @@ void ui_show_progress(float portion, int seconds)
 
 void ui_set_progress(float fraction)
 {
+    if (!ui_has_initialized) return;
+
     pthread_mutex_lock(&gUpdateMutex);
     if (fraction < 0.0) fraction = 0.0;
     if (fraction > 1.0) fraction = 1.0;
@@ -673,44 +703,45 @@ void ui_set_progress(float fraction)
 
 void ui_reset_progress()
 {
+    if (!ui_has_initialized) return;
+
     pthread_mutex_lock(&gUpdateMutex);
     gProgressBarType = PROGRESSBAR_TYPE_NONE;
-    gProgressScopeStart = gProgressScopeSize = 0;
-    gProgressScopeTime = gProgressScopeDuration = 0;
+    gProgressScopeStart = 0;
+    gProgressScopeSize = 0;
+    gProgressScopeTime = 0;
+    gProgressScopeDuration = 0;
     gProgress = 0;
     update_screen_locked();
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-static long delta_milliseconds(struct timeval from, struct timeval to) {
-    long delta_sec = (to.tv_sec - from.tv_sec)*1000;
-    long delta_usec = (to.tv_usec - from.tv_usec)/1000;
-    return (delta_sec + delta_usec);
+// do a reset and show the progress bar without updating screen
+// it will be drawn on next call to update screen locked
+// this is a loop friendly version to avoid flashy effects in loop calls
+void ui_quick_reset_and_show_progress(float portion, int seconds)
+{
+    if (!ui_has_initialized) return;
+
+    pthread_mutex_lock(&gUpdateMutex);
+    gProgressBarType = PROGRESSBAR_TYPE_NORMAL;
+    gProgressScopeStart = 0;
+    gProgressScopeSize = portion;
+    gProgressScopeTime = now();
+    gProgressScopeDuration = seconds;
+    gProgress = 0;
+    pthread_mutex_unlock(&gUpdateMutex);
 }
 
-static struct timeval lastupdate = (struct timeval) {0};
-static int ui_nice = 0;
-static int ui_niced = 0;
-void ui_set_nice(int enabled) {
-    ui_nice = enabled;
-}
-#define NICE_INTERVAL 300
-int ui_was_niced() {
-    return ui_niced;
-}
 int ui_get_text_cols() {
     return text_cols;
 }
 
-// exclude specified line from writing to log for next ui_print() calls
-// pass -1 to disable and restore all logging
-// for now, used only in ui_nice_print() to not write backup size progress in log
-// calling 2 times a ui_print() there will cause whole screen to refresh and flashy effect on deleted lines
-// to improve: support multi line exclude, use another delimiter to preserve \n if needed
-// first line is 0
-static int no_stdout_line = -1;
-void ui_nolog_lines(int lines) {
-    no_stdout_line = lines;
+static int ui_print_no_screen_update = 0;
+static int ui_print_replace_lines = 0;
+void ui_set_nandroid_print(int enable, int num) {
+    ui_print_no_screen_update = enable;
+    ui_print_replace_lines = num;
 }
 
 void ui_print(const char *fmt, ...)
@@ -721,53 +752,24 @@ void ui_print(const char *fmt, ...)
     vsnprintf(buf, 256, fmt, ap);
     va_end(ap);
 
-    // check if we need to exclude some line from write to log file
-    // first line is line 0
-    if (ui_log_stdout && no_stdout_line >= 0) {
-        char str[256];
-        char buf2[256];
-        char buf3[256] = "";
-
-        // copy the buffer to modify it
-        // check for new lines until we find the line to exclude from writing to recovery.log file
-        strcpy(buf2, buf);
-        char *ptr = strtok(buf2, "\n");
-        int i = 0;
-        while(ptr != NULL) {
-            // parse the buffer and exclude the line we do not want to write to recovery.log file
-            if (i != no_stdout_line) {
-                strcpy(str, ptr);
-                // log only nandroid non empty lines (empty lines are turned into spaces by nandroid_callback()
-                if (strcmp(str, " ") != 0) {
-                    strcat(str, "\n");
-                    strcat(buf3, str);
-                }
-            }
-            ptr = strtok(NULL, "\n");
-            ++i;
-        }
-        fputs(buf3, stdout);
-    }
-    else if (ui_log_stdout)
+    // write text to log file
+    if (ui_log_stdout)
         fputs(buf, stdout);
 
+    if (!ui_has_initialized)
+        return;
+
     // now, we write log to screen
-    // if we are running 'ui nice' mode, we do not want to force a screen update
-    // for this line if not necessary.
-    ui_niced = 0;
-    if (ui_nice) {
-        struct timeval curtime;
-        gettimeofday(&curtime, NULL);
-        long ms = delta_milliseconds(lastupdate, curtime);
-        if (ms < NICE_INTERVAL && ms >= 0) {
-            ui_niced = 1;
-            return;
+    pthread_mutex_lock(&gUpdateMutex);
+    if (ui_print_replace_lines) {
+        int i;
+        for(i = 0; i < ui_print_replace_lines; ++i) {
+            text[text_row][0] = '\0';
+            text_row = (text_row - 1 + text_rows) % text_rows;
+            text_col = 0;
         }
     }
 
-    // This can get called before ui_init(), so be careful.
-    pthread_mutex_lock(&gUpdateMutex);
-    gettimeofday(&lastupdate, NULL);
     if (text_rows > 0 && text_cols > 0) {
         char *ptr;
         for (ptr = buf; *ptr != '\0'; ++ptr) {
@@ -780,7 +782,8 @@ void ui_print(const char *fmt, ...)
             if (*ptr != '\n') text[text_row][text_col++] = *ptr;
         }
         text[text_row][text_col] = '\0';
-        update_screen_locked();
+        if (!ui_print_no_screen_update)
+            update_screen_locked();
     }
     pthread_mutex_unlock(&gUpdateMutex);
 }
@@ -913,7 +916,7 @@ void ui_end_menu() {
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-int ui_text_visible()
+bool ui_IsTextVisible()
 {
     pthread_mutex_lock(&gUpdateMutex);
     int visible = show_text;
@@ -921,7 +924,8 @@ int ui_text_visible()
     return visible;
 }
 
-int ui_text_ever_visible()
+// show_text was visible at least once
+bool ui_WasTextEverVisible()
 {
     pthread_mutex_lock(&gUpdateMutex);
     int ever_visible = show_text_ever;
@@ -929,13 +933,20 @@ int ui_text_ever_visible()
     return ever_visible;
 }
 
-void ui_show_text(int visible)
+// immediately refresh screen and show text
+void ui_ShowText(bool visible)
 {
     pthread_mutex_lock(&gUpdateMutex);
     show_text = visible;
     if (show_text) show_text_ever = 1;
     update_screen_locked();
     pthread_mutex_unlock(&gUpdateMutex);
+}
+
+// show text, but not immediately: next screen update will show text
+void ui_SetShowText(bool visible) {
+    show_text = visible;
+    if (show_text) show_text_ever = 1;
 }
 
 // Return true if USB is connected.
@@ -1002,6 +1013,11 @@ int ui_wait_key()
 #endif
     } while ((timeouts > 0 || usb_connected()) && key_queue_len == 0);
 
+#ifdef PHILZ_TOUCH_RECOVERY
+    // on key press, immediately wake up screen (only if key_queue_len != 0)
+    ui_refresh_display_state(&display_state);
+#endif
+
     int key = -1;
     if (key_queue_len > 0) {
         key = key_queue[0];
@@ -1061,7 +1077,7 @@ int ui_wait_key_with_repeat()
         }
 #ifdef PHILZ_TOUCH_RECOVERY
         // either a key was pressed (key_queue_len > 0) or reboot timer (timeouts) is reached
-        // wake up screen if it was blanked or dimmed but only if no key was pressed (key_queue_len == 0)
+        // wake up screen if it was blanked or dimmed but only if a key was pressed (key_queue_len > 0)
         // this will avoid wake up screen after reboot timer reached AND USB cable is connected (no reboot) and screen was blanked/dimmed
         ui_refresh_display_state(&display_state);
 #endif
@@ -1153,10 +1169,6 @@ int ui_should_log_stdout()
     return ui_log_stdout;
 }
 
-void ui_set_show_text(int value) {
-    show_text = value;
-}
-
 void ui_set_showing_back_button(int showBackButton) {
     gShowBackButton = showBackButton;
 }
@@ -1170,30 +1182,28 @@ int ui_get_selected_item() {
 }
 
 int ui_handle_key(int key, int visible) {
-#if defined(BOARD_TOUCH_RECOVERY) || defined(PHILZ_TOUCH_RECOVERY)
+#ifdef PHILZ_TOUCH_RECOVERY
     return touch_handle_key(key, visible);
 #else
     return device_handle_key(key, visible);
 #endif
 }
 
-// called by nandroid_callback()
-// it will delete num first lines from the log in memory
-// that way, on next ui_print, they do not appear. This avoids screen to scroll during nandroid progress
-void ui_delete_line(int num) {
+// must be called after ui_init()
+void ui_SetStage(int current, int max) {
     pthread_mutex_lock(&gUpdateMutex);
-    int i;
-    for(i = 0; i < num; ++i) {
-        text[text_row][0] = '\0';
-        text_row = (text_row - 1 + text_rows) % text_rows;
-        text_col = 0;
+    stage = current;
+    max_stage = max;
+
+    if (gInstallationOverlay != NULL && gBackgroundIcon[BACKGROUND_ICON_INSTALLING] != NULL) {
+        // Adjust the offset to account for the positioning of the
+        // base image on the screen.
+        gr_surface bg = gBackgroundIcon[BACKGROUND_ICON_INSTALLING];
+        ui_parameters.install_overlay_offset_y = DEFAULT_INSTALL_OVERLAY_OFFSET_Y +
+            (gr_fb_height() - (gr_get_height(bg) +
+                               ((max_stage >= 0) ? gr_get_height(gStageMarkerEmpty) : 0))) / 2;
     }
     pthread_mutex_unlock(&gUpdateMutex);
-}
-
-void ui_increment_frame() {
-    gInstallingFrame =
-        (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }
 
 #ifdef NOT_ENOUGH_RAINBOWS

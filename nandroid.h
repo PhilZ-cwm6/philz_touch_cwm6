@@ -18,6 +18,19 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 #define NANDROID_BACKUP_FORMAT_DUP 1
 #define NANDROID_BACKUP_FORMAT_TGZ 2
 
+#define NANDROID_ERROR_GENERAL 1
+
+// MTK devices support
+#ifndef BOARD_USE_MTK_LAYOUT
+#define BOOT_PARTITION_MOUNT_POINT "/boot"
+#else
+    #ifndef BOARD_MTK_BOOT_LABEL
+    #define BOOT_PARTITION_MOUNT_POINT "/bootimg"
+    #else
+    #define BOOT_PARTITION_MOUNT_POINT BOARD_MTK_BOOT_LABEL
+    #endif
+#endif
+
 
 /**********************************/
 /* Custom nandroid + TWRP backup  */
@@ -27,6 +40,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 /**********************************/
 
 void finish_nandroid_job();
+int print_and_error(const char* message, int ret);
 int gen_nandroid_md5sum(const char* backup_path);
 int verify_nandroid_md5sum(const char* backup_path);
 int gen_twrp_md5sum(const char* backup_path);

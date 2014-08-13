@@ -34,15 +34,17 @@
 #include <linux/xattr.h>
 #include <inttypes.h>
 
+#include "bootloader.h"
+#include "applypatch/applypatch.h"
+#include "cutils/android_reboot.h"
 #include "cutils/misc.h"
 #include "cutils/properties.h"
 #include "edify/expr.h"
 #include "mincrypt/sha.h"
 #include "minzip/DirUtil.h"
-#include "mounts.h"
+#include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "updater.h"
-#include "applypatch/applypatch.h"
 
 #include <dirent.h>
 
@@ -108,13 +110,13 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
         const MtdPartition* mtd;
         mtd = mtd_find_partition_by_name(location);
         if (mtd == NULL) {
-            fprintf(stderr, "%s: no mtd partition named \"%s\"",
+            printf("%s: no mtd partition named \"%s\"",
                     name, location);
             result = strdup("");
             goto done;
         }
         if (mtd_mount_partition(mtd, mount_point, fs_type, 0 /* rw */) != 0) {
-            fprintf(stderr, "mtd mount of %s failed: %s\n",
+            printf("mtd mount of %s failed: %s\n",
                     location, strerror(errno));
             result = strdup("");
             goto done;
@@ -123,7 +125,7 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
     } else {
         if (mount(location, mount_point, fs_type,
                   MS_NOATIME | MS_NODEV | MS_NODIRATIME, "") < 0) {
-            fprintf(stderr, "%s: failed to mount %s at %s: %s\n",
+            printf("%s: failed to mount %s at %s: %s\n",
                     name, location, mount_point, strerror(errno));
             result = strdup("");
         } else {
@@ -186,7 +188,7 @@ Value* UnmountFn(const char* name, State* state, int argc, Expr* argv[]) {
     scan_mounted_volumes();
     const MountedVolume* vol = find_mounted_volume_by_mount_point(mount_point);
     if (vol == NULL) {
-        fprintf(stderr, "unmount of %s failed; no such volume\n", mount_point);
+        printf("unmount of %s failed; no such volume\n", mount_point);
         result = strdup("");
     } else {
         unmount_mounted_volume(vol);
@@ -244,25 +246,25 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
         mtd_scan_partitions();
         const MtdPartition* mtd = mtd_find_partition_by_name(location);
         if (mtd == NULL) {
-            fprintf(stderr, "%s: no mtd partition named \"%s\"",
+            printf("%s: no mtd partition named \"%s\"",
                     name, location);
             result = strdup("");
             goto done;
         }
         MtdWriteContext* ctx = mtd_write_partition(mtd);
         if (ctx == NULL) {
-            fprintf(stderr, "%s: can't write \"%s\"", name, location);
+            printf("%s: can't write \"%s\"", name, location);
             result = strdup("");
             goto done;
         }
         if (mtd_erase_blocks(ctx, -1) == -1) {
             mtd_write_close(ctx);
-            fprintf(stderr, "%s: failed to erase \"%s\"", name, location);
+            printf("%s: failed to erase \"%s\"", name, location);
             result = strdup("");
             goto done;
         }
         if (mtd_write_close(ctx) != 0) {
-            fprintf(stderr, "%s: failed to close \"%s\"", name, location);
+            printf("%s: failed to close \"%s\"", name, location);
             result = strdup("");
             goto done;
         }
@@ -271,7 +273,7 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
     } else if (strcmp(fs_type, "ext4") == 0) {
         int status = make_ext4fs(location, atoll(fs_size), mount_point, sehandle);
         if (status != 0) {
-            fprintf(stderr, "%s: make_ext4fs failed (%d) on %s",
+            printf("%s: make_ext4fs failed (%d) on %s",
                     name, status, location);
             result = strdup("");
             goto done;
@@ -279,7 +281,7 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
         result = location;
 #endif
     } else {
-        fprintf(stderr, "%s: unsupported fs_type \"%s\" partition_type \"%s\"",
+        printf("%s: unsupported fs_type \"%s\" partition_type \"%s\"",
                 name, fs_type, partition_type);
     }
 
@@ -440,13 +442,13 @@ Value* PackageExtractFileFn(const char* name, State* state,
         ZipArchive* za = ((UpdaterInfo*)(state->cookie))->package_zip;
         const ZipEntry* entry = mzFindZipEntry(za, zip_path);
         if (entry == NULL) {
-            fprintf(stderr, "%s: no %s in package\n", name, zip_path);
+            printf("%s: no %s in package\n", name, zip_path);
             goto done2;
         }
 
         FILE* f = fopen(dest_path, "wb");
         if (f == NULL) {
-            fprintf(stderr, "%s: can't open %s for write: %s\n",
+            printf("%s: can't open %s for write: %s\n",
                     name, dest_path, strerror(errno));
             goto done2;
         }
@@ -472,14 +474,14 @@ Value* PackageExtractFileFn(const char* name, State* state,
         ZipArchive* za = ((UpdaterInfo*)(state->cookie))->package_zip;
         const ZipEntry* entry = mzFindZipEntry(za, zip_path);
         if (entry == NULL) {
-            fprintf(stderr, "%s: no %s in package\n", name, zip_path);
+            printf("%s: no %s in package\n", name, zip_path);
             goto done1;
         }
 
         v->size = mzGetZipEntryUncompLen(entry);
         v->data = malloc(v->size);
         if (v->data == NULL) {
-            fprintf(stderr, "%s: failed to allocate %ld bytes for %s\n",
+            printf("%s: failed to allocate %ld bytes for %s\n",
                     name, (long)v->size, zip_path);
             goto done1;
         }
@@ -506,13 +508,13 @@ static int make_parents(char* name) {
         *p = '\0';
         if (make_parents(name) < 0) return -1;
         int result = mkdir(name, 0700);
-        if (result == 0) fprintf(stderr, "symlink(): created [%s]\n", name);
+        if (result == 0) printf("symlink(): created [%s]\n", name);
         *p = '/';
         if (result == 0 || errno == EEXIST) {
             // successfully created or already existed; we're done
             return 0;
         } else {
-            fprintf(stderr, "failed to mkdir %s: %s\n", name, strerror(errno));
+            printf("failed to mkdir %s: %s\n", name, strerror(errno));
             return -1;
         }
     }
@@ -540,18 +542,18 @@ Value* SymlinkFn(const char* name, State* state, int argc, Expr* argv[]) {
     for (i = 0; i < argc-1; ++i) {
         if (unlink(srcs[i]) < 0) {
             if (errno != ENOENT) {
-                fprintf(stderr, "%s: failed to remove %s: %s\n",
+                printf("%s: failed to remove %s: %s\n",
                         name, srcs[i], strerror(errno));
                 ++bad;
             }
         }
         if (make_parents(srcs[i])) {
-            fprintf(stderr, "%s: failed to symlink %s to %s: making parents failed\n",
+            printf("%s: failed to symlink %s to %s: making parents failed\n",
                     name, srcs[i], target);
             ++bad;
         }
         if (symlink(target, srcs[i]) < 0) {
-            fprintf(stderr, "%s: failed to symlink %s to %s: %s\n",
+            printf("%s: failed to symlink %s to %s: %s\n",
                     name, srcs[i], target, strerror(errno));
             ++bad;
         }
@@ -960,7 +962,7 @@ Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
 
     buffer = malloc(st.st_size+1);
     if (buffer == NULL) {
-        ErrorAbort(state, "%s: failed to alloc %lld bytes", name, st.st_size+1);
+        ErrorAbort(state, "%s: failed to alloc %lld bytes", name, (long long)st.st_size+1);
         goto done;
     }
 
@@ -973,7 +975,7 @@ Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
 
     if (fread(buffer, 1, st.st_size, f) != st.st_size) {
         ErrorAbort(state, "%s: failed to read %lld bytes from %s",
-                   name, st.st_size+1, filename);
+                   name, (long long)st.st_size+1, filename);
         fclose(f);
         goto done;
     }
@@ -1032,7 +1034,7 @@ static bool write_raw_image_cb(const unsigned char* data,
                                int data_len, void* ctx) {
     int r = mtd_write_data((MtdWriteContext*)ctx, (const char *)data, data_len);
     if (r == data_len) return true;
-    fprintf(stderr, "%s\n", strerror(errno));
+    printf("%s\n", strerror(errno));
     return false;
 }
 
@@ -1046,11 +1048,12 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         return NULL;
     }
 
+    char* partition = NULL;
     if (partition_value->type != VAL_STRING) {
         ErrorAbort(state, "partition argument to %s must be string", name);
         goto done;
     }
-    char* partition = partition_value->data;
+    partition = partition_value->data;
     if (strlen(partition) == 0) {
         ErrorAbort(state, "partition argument to %s can't be empty", name);
         goto done;
@@ -1334,23 +1337,23 @@ Value* RunProgramFn(const char* name, State* state, int argc, Expr* argv[]) {
     memcpy(args2, args, sizeof(char*) * argc);
     args2[argc] = NULL;
 
-    fprintf(stderr, "about to run program [%s] with %d args\n", args2[0], argc);
+    printf("about to run program [%s] with %d args\n", args2[0], argc);
 
     pid_t child = fork();
     if (child == 0) {
         execv(args2[0], args2);
-        fprintf(stderr, "run_program: execv failed: %s\n", strerror(errno));
+        printf("run_program: execv failed: %s\n", strerror(errno));
         _exit(1);
     }
     int status;
     waitpid(child, &status, 0);
     if (WIFEXITED(status)) {
         if (WEXITSTATUS(status) != 0) {
-            fprintf(stderr, "run_program: child exited with status %d\n",
+            printf("run_program: child exited with status %d\n",
                     WEXITSTATUS(status));
         }
     } else if (WIFSIGNALED(status)) {
-        fprintf(stderr, "run_program: child terminated by signal %d\n",
+        printf("run_program: child terminated by signal %d\n",
                 WTERMSIG(status));
     }
 
@@ -1399,7 +1402,7 @@ Value* Sha1CheckFn(const char* name, State* state, int argc, Expr* argv[]) {
     }
 
     if (args[0]->size < 0) {
-        fprintf(stderr, "%s(): no file contents received", name);
+        printf("%s(): no file contents received", name);
         return StringValue(strdup(""));
     }
     uint8_t digest[SHA_DIGEST_SIZE];
@@ -1414,12 +1417,12 @@ Value* Sha1CheckFn(const char* name, State* state, int argc, Expr* argv[]) {
     uint8_t* arg_digest = malloc(SHA_DIGEST_SIZE);
     for (i = 1; i < argc; ++i) {
         if (args[i]->type != VAL_STRING) {
-            fprintf(stderr, "%s(): arg %d is not a string; skipping",
+            printf("%s(): arg %d is not a string; skipping",
                     name, i);
         } else if (ParseSha1(args[i]->data, arg_digest) != 0) {
             // Warn about bad args and skip them.
-            fprintf(stderr, "%s(): error parsing \"%s\" as sha-1; skipping",
-                    name, args[i]->data);
+            printf("%s(): error parsing \"%s\" as sha-1; skipping",
+                   name, args[i]->data);
         } else if (memcmp(digest, arg_digest, SHA_DIGEST_SIZE) == 0) {
             break;
         }
@@ -1465,6 +1468,122 @@ Value* ReadFileFn(const char* name, State* state, int argc, Expr* argv[]) {
 
     free(filename);
     return v;
+}
+
+// Immediately reboot the device.  Recovery is not finished normally,
+// so if you reboot into recovery it will re-start applying the
+// current package (because nothing has cleared the copy of the
+// arguments stored in the BCB).
+//
+// The first argument is the block device for the misc partition
+// ("/misc" in the fstab).  The second argument is the argument
+// passed to the android reboot property.  It can be "recovery" to
+// boot from the recovery partition, or "" (empty string) to boot
+// from the regular boot partition.
+Value* RebootNowFn(const char* name, State* state, int argc, Expr* argv[]) {
+    if (argc != 2) {
+        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
+    }
+
+    char* filename;
+    char* property;
+    if (ReadArgs(state, argv, 2, &filename, &property) < 0) return NULL;
+
+    char buffer[80];
+
+    // zero out the 'command' field of the bootloader message.
+    memset(buffer, 0, sizeof(((struct bootloader_message*)0)->command));
+    FILE* f = fopen(filename, "r+b");
+    fseek(f, offsetof(struct bootloader_message, command), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
+    fwrite(buffer, sizeof(((struct bootloader_message*)0)->command), 1, f);
+    fclose(f);
+    free(filename);
+
+    strcpy(buffer, "reboot,");
+    if (property != NULL) {
+        strncat(buffer, property, sizeof(buffer)-10);
+    }
+
+    property_set(ANDROID_RB_PROPERTY, buffer);
+
+    sleep(5);
+    // Attempt to reboot using older methods in case the recovery
+    // that we are updating does not support init reboots
+    android_reboot(ANDROID_RB_RESTART, 0, 0);
+
+    sleep(5);
+    free(property);
+    ErrorAbort(state, "%s() failed to reboot", name);
+    return NULL;
+}
+
+// Store a string value somewhere that future invocations of recovery
+// can access it.  This value is called the "stage" and can be used to
+// drive packages that need to do reboots in the middle of
+// installation and keep track of where they are in the multi-stage
+// install.
+//
+// The first argument is the block device for the misc partition
+// ("/misc" in the fstab), which is where this value is stored.  The
+// second argument is the string to store; it should not exceed 31
+// bytes.
+Value* SetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
+    if (argc != 2) {
+        return ErrorAbort(state, "%s() expects 2 args, got %d", name, argc);
+    }
+
+    char* filename;
+    char* stagestr;
+    if (ReadArgs(state, argv, 2, &filename, &stagestr) < 0) return NULL;
+
+    // Store this value in the misc partition, immediately after the
+    // bootloader message that the main recovery uses to save its
+    // arguments in case of the device restarting midway through
+    // package installation.
+    FILE* f = fopen(filename, "r+b");
+    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
+    int to_write = strlen(stagestr)+1;
+    int max_size = sizeof(((struct bootloader_message*)0)->stage);
+    if (to_write > max_size) {
+        to_write = max_size;
+        stagestr[max_size-1] = 0;
+    }
+    fwrite(stagestr, to_write, 1, f);
+    fclose(f);
+
+    free(stagestr);
+    return StringValue(filename);
+}
+
+// Return the value most recently saved with SetStageFn.  The argument
+// is the block device for the misc partition.
+// Note we accept two arguments for compatibility with existing ota
+// generators that expect the upstream behavior.
+Value* GetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
+    if (argc != 1 && argc != 2) {
+        return ErrorAbort(state, "%s() expects 1 or 2 args, got %d", name, argc);
+    }
+
+    char* filename;
+    if (ReadArgs(state, argv, 1, &filename) < 0) return NULL;
+
+    char buffer[sizeof(((struct bootloader_message*)0)->stage)];
+    FILE* f = fopen(filename, "rb");
+    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
+#ifdef BOARD_RECOVERY_BLDRMSG_OFFSET
+    fseek(f, BOARD_RECOVERY_BLDRMSG_OFFSET, SEEK_CUR);
+#endif
+    fread(buffer, sizeof(buffer), 1, f);
+    fclose(f);
+    buffer[sizeof(buffer)-1] = '\0';
+
+    return StringValue(strdup(buffer));
 }
 
 void RegisterInstallFunctions() {
@@ -1515,4 +1634,8 @@ void RegisterInstallFunctions() {
 
     RegisterFunction("run_program", RunProgramFn);
     RegisterFunction("collect_backup_data", CollectBackupDataFn);
+
+    RegisterFunction("reboot_now", RebootNowFn);
+    RegisterFunction("get_stage", GetStageFn);
+    RegisterFunction("set_stage", SetStageFn);
 }

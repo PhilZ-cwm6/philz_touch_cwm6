@@ -3,7 +3,6 @@
 LOCAL_PATH := $(call my-dir)
 
 updater_src_files := \
-	../mounts.c \
 	install.c \
 	updater.c
 
@@ -26,6 +25,10 @@ LOCAL_STATIC_LIBRARIES += \
     libext4_utils_static \
     libsparse_static \
     libz
+endif
+
+ifneq ($(BOARD_RECOVERY_BLDRMSG_OFFSET),)
+    LOCAL_CFLAGS += -DBOARD_RECOVERY_BLDRMSG_OFFSET=$(BOARD_RECOVERY_BLDRMSG_OFFSET)
 endif
 
 LOCAL_STATIC_LIBRARIES += libflashutils libmtdutils libmmcutils libbmlutils

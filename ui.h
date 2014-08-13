@@ -1,7 +1,9 @@
 ﻿#ifndef __UI_H
 #define __UI_H
 
-
+#include <linux/input.h>
+#include <pthread.h>
+#include "minui/minui.h"
 #include "ui_defines.h"
 #include "common.h"
 
@@ -41,8 +43,8 @@ extern int text_rows;
 extern int text_col;
 extern int text_row;
 extern int text_top;
-extern int show_text;
-extern int show_text_ever;
+extern bool show_text;
+extern bool show_text_ever;
 extern char menu[MENU_MAX_ROWS][MENU_MAX_COLS];
 extern int show_menu;
 extern int menu_top;
@@ -63,7 +65,9 @@ void update_screen_locked(void);
 
 void draw_screen_locked(void);
 
-void update_screen_locked(void);
+// format toggle menus to screen width
+// used to format toggle menus to device screen width (only touch build)
+void ui_format_gui_menu(char *item_menu, const char* menu_text, const char* menu_option);
 
 #ifdef PHILZ_TOUCH_RECOVERY
 void draw_touch_menu();

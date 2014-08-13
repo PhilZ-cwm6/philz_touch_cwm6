@@ -50,6 +50,11 @@
 
 /******** start philz functions declarartion ********/
 
+// refresh screen and redraw everything
+void ui_update_screen() {
+    update_screen_locked();
+}
+
 // define gui layout default colors and toggle integers
 // MENU_TEXT_COLOR:         text in menus
 // MENU_BACKGROUND_COLOR:   menus background color
@@ -292,6 +297,11 @@ static void draw_virtualkeys_locked() {
         int iconX = (gr_fb_width() - iconWidth) / 2;
         int iconY = (gr_fb_height() - iconHeight);
         gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
+
+        // draw highlight key line
+        gr_color(VK_KEY_HIGHLIGHT_COLOR);
+        gr_fill(iconX, iconY-2,
+                iconX+iconWidth, iconY);
     }
 }
 
@@ -441,7 +451,7 @@ void draw_text_line(int row, const char* t, int height, int align) {
     }
 }
 
-// draw and make visible a text line
+// draw and make visible a text line over current screen (no whole screen redraw)
 // row == 0 is top screen
 void draw_visible_text_line(int row, const char* t, int align) {
     pthread_mutex_lock(&gUpdateMutex);
@@ -702,7 +712,7 @@ void draw_touch_menu() {
             }
 
             // start write bottom line separator, the line just below last menu
-            // the line above virtual buttons, is part of their png image
+            // the line above virtual buttons (pre-KK virtual keys), is part of their png image
             gr_color(MENU_SEPARATOR_COLOR);
             gr_fill(0, (row * MENU_HEIGHT_TOTAL) + (MENU_HEIGHT_TOTAL / 2) - 1,
                     gr_fb_width(), (row * MENU_HEIGHT_TOTAL) + (MENU_HEIGHT_TOTAL / 2) + 1);
@@ -948,9 +958,11 @@ void ui_friendly_log(int engage_friendly_view)
     }
 }
 
-void ui_blank_screen(int blank_screen) {
-    if (blank_screen)
+void ui_blank_screen(bool blank_screen) {
+    if (blank_screen) {
+        ui_dim_screen(true);
         ignore_key_action = 1;
+    }
 
     pthread_mutex_lock(&gUpdateMutex);
     gr_fb_blank(blank_screen);
@@ -958,6 +970,7 @@ void ui_blank_screen(int blank_screen) {
 
     // wake up screen
     if (!blank_screen) {
+        ui_dim_screen(false);
         update_screen_locked();
 
         // some phones (i9500) need special scripts to restore touch after screen wake up
@@ -968,9 +981,12 @@ void ui_blank_screen(int blank_screen) {
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-void ui_dim_screen(int dim_screen) {
+// set brightness to 0 or default value
+// used for timed out dim screen
+// when manually dimming screen, we keep 10 as minimal value to avoid locking user
+void ui_dim_screen(bool dim_screen) {
     if (dim_screen)
-        apply_brightness_value(10);
+        apply_brightness_value(0);
     else
         apply_brightness_value(set_brightness.value);
 
@@ -980,19 +996,20 @@ void ui_dim_screen(int dim_screen) {
 // support refresh batt / clock, dim and blank screen after a set delay and if no key is pressed
 // screen_timeout increment must be same as timeout.tv_sec += increase value or we get out of time sync
 void ui_refresh_display_state(int *screen_timeout) {
-    *screen_timeout += REFRESH_TIME_USB_INTERVAL;
     if (key_queue_len == 0) {
         // no key was pressed
         // dim screen if timer reached
+        *screen_timeout += REFRESH_TIME_USB_INTERVAL;
         if (!is_dimmed && dim_timeout.value != 0 && *screen_timeout >= dim_timeout.value)
-            ui_dim_screen(1);
+            ui_dim_screen(true);
 
         // blank screen if timer reached
         if (!is_blanked && blank_timeout.value != 0 && *screen_timeout >= blank_timeout.value)
-            ui_blank_screen(1); // this will also set is_blanked to 1
+            ui_blank_screen(true); // this will also set is_blanked to 1
 
         // refresh clock and battery display if screen is not blanked
-        if (!is_blanked) {
+        // if text is not visible, no need to refresh clock/time (password prompt start up screen)
+        if (!is_blanked && ui_IsTextVisible()) {
             pthread_mutex_lock(&gUpdateMutex);
             update_screen_locked();
             pthread_mutex_unlock(&gUpdateMutex);
@@ -1000,10 +1017,11 @@ void ui_refresh_display_state(int *screen_timeout) {
     } else {
         // key_queue_len > 0: a key was pressed
         // wake up screen if it was blanked or dimmed
+        // unblank screen will also reset brightness if dimmed
         if (is_blanked)
-            ui_blank_screen(0);
-        if (is_dimmed)
-            ui_dim_screen(0);
+            ui_blank_screen(false);
+        else if (is_dimmed)
+            ui_dim_screen(false);
     }
 }
 /******** end philz functions declarartion ********/
@@ -1275,18 +1293,21 @@ static void toggle_key_pressed(int key_code, int pressed) {
 
 // called to map a touch event to a recovery virtual button
 // it returns the touched key code and highlights the touched virtual button
-int input_buttons() {
+static int input_buttons() {
     pthread_mutex_lock(&gUpdateMutex);
 
     int final_code = -1;
     int start_draw = 0;
     int end_draw = 0;
+
+    gr_surface surface = gVirtualKeys;
     int fbh = gr_fb_height();
     int fbw = gr_fb_width();
-    gr_surface surface = gVirtualKeys;
+    int vk_width = gr_get_width(surface);
+    int keyhight = gr_get_height(surface);
+    int keywidth = vk_width / 4;
+    int keyoffset = (fbw - vk_width) / 2;  // pixels from left display edge to start of virtual keys
 
-    int keywidth = gr_get_width(surface) / 4;
-    int keyoffset = (fbw - gr_get_width(surface)) / 2;
     if (touch_x < (keywidth + keyoffset + 1)) {
         // down button
         final_code = KEY_DOWN; // 108
@@ -1295,29 +1316,31 @@ int input_buttons() {
     } else if (touch_x < ((keywidth * 2) + keyoffset + 1)) {
         // up button
         final_code = KEY_UP; // 103
-        start_draw = keywidth + keyoffset + 1;
+        start_draw = keyoffset + keywidth + 1;
         end_draw = (keywidth * 2) + keyoffset;
     } else if (touch_x < ((keywidth * 3) + keyoffset + 1)) {
         // back button
         final_code = KEY_BACK; // 158
-        start_draw = (keywidth * 2) + keyoffset + 1;
+        start_draw = keyoffset + (keywidth * 2) + 1;
         end_draw = (keywidth * 3) + keyoffset;
     } else if (touch_x < ((keywidth * 4) + keyoffset + 1)) {
         // enter key
         final_code = KEY_ENTER; // 28
-        start_draw = (keywidth * 3) + keyoffset + 1;
+        start_draw = keyoffset + (keywidth * 3) + 1;
         end_draw = (keywidth * 4) + keyoffset;
+    } else {
+        return final_code;
     }
 
     // start drawing button highlight
-    gr_color(0, 0, 0, 255);     // clear old touch points
-    gr_fill(0, fbh-gr_get_height(surface)-2, start_draw-1,
-            fbh-gr_get_height(surface));
-    gr_fill(end_draw+1, fbh-gr_get_height(surface)-2, fbw,
-            fbh-gr_get_height(surface));
-    gr_color(CYAN_BLUE_CODE);
-    gr_fill(start_draw, fbh-gr_get_height(surface)-2, end_draw,
-            fbh-gr_get_height(surface));
+    // clear old touch points
+    gr_color(0, 0, 0, 255); // black
+    gr_fill(0, fbh-keyhight, 
+            vk_width+keyoffset, fbh-keyhight+3);
+
+    gr_color(VK_KEY_HIGHLIGHT_COLOR);
+    gr_fill(start_draw, fbh-keyhight,
+            end_draw, fbh-keyhight+3);
     gr_flip(); // makes visible the draw buffer we did above, without redrawing whole screen
     pthread_mutex_unlock(&gUpdateMutex);
 
@@ -1360,7 +1383,7 @@ Return codes:
          code will either trigger first touch event time or track x/y coordinates
     *  0 informs it is a finger lifted event
 */
-
+static int current_slot = 0;
 static int lastWasSynReport = 0;
 static int touchReleaseOnNextSynReport = 0;
 static int use_tracking_id_negative_as_touch_release = 0;
@@ -1393,6 +1416,18 @@ static int touch_track(int fd, struct input_event ev) {
             - to do: if needed, properly set different calibration settings for additional
               touch devices (use events.c call rather than loop for fd check like above)
         */
+
+        // lock on first slot and ditch all other slots events
+        if (ev.code == ABS_MT_SLOT) { //47
+            current_slot = ev.value;
+#ifdef RECOVERY_TOUCH_DEBUG
+            LOGI("EV: => EV_ABS ABS_MT_SLOT %d\n", ev.value);
+#endif
+            return 1;
+        }
+        if (current_slot != 0)
+            return 1;
+
         switch (ev.code)
         {
             case ABS_X: //00
@@ -1813,7 +1848,7 @@ int touch_handle_input(int fd, struct input_event ev) {
         */
         allow_long_press_move = 0;
         reset_gestures();
-    } else if (ev.type == EV_ABS) {
+    } else if (ev.type == EV_ABS && current_slot == 0) {
         // this is a touch event
         // first touch and all finger swiping after this should be dropped
         if (in_touch == 0) {

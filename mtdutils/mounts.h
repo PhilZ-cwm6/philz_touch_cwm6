@@ -17,12 +17,14 @@
 #ifndef MTDUTILS_MOUNTS_H_
 #define MTDUTILS_MOUNTS_H_
 
-typedef struct {
- const char *device;
- const char *mount_point;
- const char *filesystem;
- const char *flags;
-} MountedVolume;
+struct MountedVolume {
+    const char *device;
+    const char *mount_point;
+    const char *filesystem;
+    const char *flags;
+};
+
+typedef struct MountedVolume MountedVolume;
 
 int scan_mounted_volumes(void);
 
@@ -34,8 +36,5 @@ find_mounted_volume_by_mount_point(const char *mount_point);
 int unmount_mounted_volume(const MountedVolume *volume);
 
 int remount_read_only(const MountedVolume* volume);
-
-const MountedVolume *
-find_mounted_volume_by_real_node(const char *node);
 
 #endif  // MTDUTILS_MOUNTS_H_
