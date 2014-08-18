@@ -947,7 +947,7 @@ int setup_install_mounts() {
         if (fs_mgr_is_voldmanaged(v))
             continue;
         if (strcmp(v->mount_point, "/tmp") == 0 ||
-            strcmp(v->mount_point, "/cache") == 0) {
+                strcmp(v->mount_point, "/cache") == 0) {
             if (ensure_path_mounted(v->mount_point) != 0) return -1;
 
         } else {

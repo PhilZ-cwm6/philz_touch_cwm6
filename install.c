@@ -363,7 +363,9 @@ install_package(const char* path, int* wipe_cache, const char* install_file)
         LOGE("failed to open last_install: %s\n", strerror(errno));
     }
     int result;
-    if (setup_install_mounts() != 0) {
+    if (strstr(path, AROMA_FM_PATH) == NULL && setup_install_mounts() != 0) {
+        // do not umount any partition when starting up aroma file manager from default location
+        // in some devices, aroma have trouble mounting /system and /data if they are unmounted at this stage
         LOGE("failed to set up expected mounts for install; aborting\n");
         result = INSTALL_ERROR;
     } else {
