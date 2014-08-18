@@ -883,7 +883,13 @@ int format_volume(const char* volume) {
         if (ensure_path_unmounted(volume) != 0) {
             LOGE("format_volume failed to unmount %s", v->mount_point);
         }
-        return vold_format_volume(v->mount_point, 1) == CommandOkay ? 0 : -1;
+        if (strcmp(v->fs_type, "auto") == 0) {
+            // Format with current filesystem
+            return vold_format_volume(v->mount_point, 1) == CommandOkay ? 0 : -1;
+        } else {
+            // Format filesystem defined in fstab
+            return vold_custom_format_volume(v->mount_point, v->fs_type, 1) == CommandOkay ? 0 : -1;
+        }
     }
 
     if (strcmp(v->fs_type, "yaffs2") == 0 || strcmp(v->fs_type, "mtd") == 0) {
@@ -985,6 +991,7 @@ void setup_legacy_storage_paths() {
 
 // format to user choice fstype
 // called by nandroid_restore_partition_extended() and format_ext4_or_f2fs()
+// doesn't support vold managed devices
 int format_device(const char *device, const char *path, const char *fs_type) {
     if (is_data_media_volume_path(path)) {
         // we're formatting primary_storage (/sdcard) on /data/media device: issue a rm -rf like command
