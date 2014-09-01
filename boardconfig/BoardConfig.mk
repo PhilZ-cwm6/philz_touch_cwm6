@@ -903,6 +903,15 @@ else ifeq ($(TARGET_PRODUCT), cm_find7)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#Pantech Burst (presto)
+else ifeq ($(TARGET_PRODUCT), full_presto)
+    TARGET_COMMON_NAME := Pantech Burst P9070
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BATTERY_LEVEL_PATH := "/sys/class/power_supply/batterys/capacity"
+
 #Sony Xperia M (nicki)
 else ifeq ($(TARGET_PRODUCT), cm_nicki)
     TARGET_COMMON_NAME := Xperia M
