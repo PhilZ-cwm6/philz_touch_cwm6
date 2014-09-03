@@ -904,7 +904,7 @@ else ifeq ($(TARGET_DEVICE), find7)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Pantech Burst (presto)
-else ifeq ($(TARGET_DEVICE), full_presto)
+else ifeq ($(TARGET_DEVICE), presto)
     TARGET_COMMON_NAME := Pantech Burst P9070
     TARGET_SCREEN_HEIGHT := 800
     TARGET_SCREEN_WIDTH := 480
