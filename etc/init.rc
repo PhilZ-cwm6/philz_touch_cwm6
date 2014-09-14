@@ -86,6 +86,7 @@ service adbd /sbin/adbd recovery
 service vold /sbin/minivold
     socket vold stream 0660 root mount
     ioprio be 2
+    seclabel u:r:recovery:s0
 
 # recovery lock
 on property:sys.usb.recovery_lock=1
