@@ -1297,6 +1297,7 @@ main(int argc, char **argv) {
         LOGI("Checking for extendedcommand & OpenRecoveryScript...\n");
 
         // we need show_text to show boot scripts log
+        // only run one start up script as some ROMs create both for CWM/TWRP compatibility
         bool text_visible = ui_IsTextVisible();
         ui_SetShowText(true);
         if (0 == check_boot_script_file(EXTENDEDCOMMAND_SCRIPT)) {
@@ -1304,9 +1305,7 @@ main(int argc, char **argv) {
             status = INSTALL_ERROR;
             if (0 == run_and_remove_extendedcommand())
                 status = INSTALL_SUCCESS;
-        }
-
-        if (0 == check_boot_script_file(ORS_BOOT_SCRIPT_FILE)) {
+        } else if (0 == check_boot_script_file(ORS_BOOT_SCRIPT_FILE)) {
             LOGI("Running openrecoveryscript....\n");
             status = INSTALL_ERROR;
             if (0 == run_ors_boot_script())
