@@ -2090,10 +2090,8 @@ int show_custom_zip_menu() {
         else stop_md5_display_thread();
 
         if (confirm) {
-            // when installing from ramdisk paths, do not fail on ensure_path_mounted() commands
-            set_ensure_mount_always_true(1);
+            // warning: this will fail if the file is in a non mountable path like /etc, /res, root path...
             install_zip(files[chosen_item - numDirs - 1]);
-            set_ensure_mount_always_true(0);
         }
     }
     free_string_array(list);

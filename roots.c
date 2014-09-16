@@ -643,6 +643,8 @@ int is_data_media_volume_path(const char* path) {
     return 0;
 }
 
+// ensure_path_mounted_always_true will not try to mount a partition and always return true
+// we need this in md5 thread as ensure_path_mounted_at_mount_point() is not thread friendly
 static int ensure_path_mounted_always_true = 0;
 void set_ensure_mount_always_true(int state) {
     ensure_path_mounted_always_true = state;
