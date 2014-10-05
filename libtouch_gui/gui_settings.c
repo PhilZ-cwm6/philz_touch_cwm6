@@ -130,7 +130,7 @@ int header_text_code[4] = {DEFAULT_HEADER_TEXT_CODE};
 int batt_clock_code[4] = {DEFAULT_BATT_CLOCK_CODE};
 
 // dim and blank screen
-static long int max_brightness_value = 255;
+static long int brightness_max_value = 255;
 bool is_blanked = 0;
 bool is_dimmed = 0;
 
@@ -453,8 +453,7 @@ void apply_brightness_value(long int dim_value) {
     }
 
     if (dim_value < 0) {
-        // recovery start
-        // first get the device maximum brightness value if it exists
+        // recovery start: first get the device maximum brightness value if it exists
         char path[PATH_MAX];
         char value[PROPERTY_VALUE_MAX];
         char value_def[5];
@@ -465,17 +464,17 @@ void apply_brightness_value(long int dim_value) {
             int max = 0;
             fscanf(f, "%d", &max);
             fclose(f);
-            if (max) max_brightness_value = max;
+            if (max) brightness_max_value = max;
         }
 
         // read config file and load brightness value
         sprintf (value_def, "%d", BRIGHTNESS_DEFAULT_VALUE);
         read_config_file(PHILZ_SETTINGS_FILE, set_brightness.key, value, value_def);
         set_brightness.value = strtol(value, NULL, 10);
-        if (set_brightness.value < 10)
-            set_brightness.value = 10;
-        else if (set_brightness.value > max_brightness_value)
-            set_brightness.value = max_brightness_value;
+        if (set_brightness.value < BRIGHTNESS_MIN_VALUE)
+            set_brightness.value = BRIGHTNESS_MIN_VALUE;
+        else if (set_brightness.value > brightness_max_value)
+            set_brightness.value = brightness_max_value;
 
         dim_value = set_brightness.value;
     }
@@ -493,12 +492,12 @@ void apply_brightness_value(long int dim_value) {
 
 static void toggle_brightness() {
     char value[10];
-    if (set_brightness.value >= max_brightness_value) {
-        set_brightness.value = 10;
+    if (set_brightness.value >= brightness_max_value) {
+        set_brightness.value = BRIGHTNESS_MIN_VALUE;
     } else {
-        set_brightness.value += (max_brightness_value / 7);
-        if (set_brightness.value > max_brightness_value)
-            set_brightness.value = max_brightness_value;
+        set_brightness.value += (BRIGHTNESS_MIN_VALUE + ((brightness_max_value - BRIGHTNESS_MIN_VALUE) / 7));
+        if (set_brightness.value > brightness_max_value)
+            set_brightness.value = brightness_max_value;
     }
 
     sprintf(value, "%ld", set_brightness.value);

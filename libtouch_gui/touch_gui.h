@@ -56,7 +56,8 @@ extern int key_gesture;
 #define DOUBLE_TAP_VALIDATION   2
 
 // brightness and blank screen settings
-#define BRIGHTNESS_DEFAULT_VALUE 160
+#define BRIGHTNESS_DEFAULT_VALUE    160
+#define BRIGHTNESS_MIN_VALUE        10
 extern bool is_blanked;
 extern bool is_dimmed;
 void apply_brightness_value(long int dim_value);
