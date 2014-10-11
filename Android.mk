@@ -223,7 +223,7 @@ LOCAL_ADDITIONAL_DEPENDENCIES := \
     killrecovery.sh \
     parted \
     sdparted \
-    su \
+    su.recovery \
     install-su.sh \
     install-recovery.sh \
     99SuperSUDaemon
