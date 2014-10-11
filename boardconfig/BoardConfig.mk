@@ -790,7 +790,7 @@ else ifneq ($(filter $(TARGET_DEVICE),d800 d801 d802 d803 d805 d806 vs980 ls980)
     TARGET_SCREEN_WIDTH := 1080
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
-#LG G3 International(d855)
+#LG G3 International (d855)
 else ifeq ($(TARGET_DEVICE), d855)
     TARGET_COMMON_NAME := LG G3 ($(TARGET_DEVICE))
     KERNEL_EXFAT_MODULE_NAME := "exfat"
