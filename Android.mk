@@ -245,8 +245,12 @@ LOCAL_ADDITIONAL_DEPENDENCIES += \
     mkntfs.recovery \
     raw-backup.sh \
     bootscripts_mnt.sh \
-    stitch.png \
+    stitch.png
+
+ifdef PHILZ_TOUCH_RECOVERY
+LOCAL_ADDITIONAL_DEPENDENCIES += \
     virtual_keys.png
+endif
 
 include $(BUILD_EXECUTABLE)
 
