@@ -1537,7 +1537,7 @@ static int fix_mount(void)
 /**
  * main
  */
-int main(int argc, char **argv)
+int ntfsfix_main(int argc, char **argv)
 {
 	ntfs_volume *vol;
 	unsigned long mnt_flags;

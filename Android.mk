@@ -174,6 +174,11 @@ ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 LOCAL_STATIC_LIBRARIES += libtar_recovery
 endif
 
+ifneq ($(BOARD_USE_NTFS_3G),false)
+LOCAL_CFLAGS += -DBOARD_USE_NTFS_3G
+LOCAL_STATIC_LIBRARIES += libmount.ntfs-3g libntfsfix.recovery libmkntfs.recovery libfuse-lite.recovery libntfs-3g.recovery
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
 LOCAL_CFLAGS += -DUSE_F2FS
 LOCAL_STATIC_LIBRARIES += libmake_f2fs libfsck_f2fs libfibmap_f2fs
@@ -199,6 +204,10 @@ RECOVERY_LINKS := bu make_ext4fs edify busybox flash_image dump_image mkyaffs2im
 
 ifeq ($(BOARD_RECOVERY_USE_LIBTAR),true)
 RECOVERY_LINKS += tar
+endif
+
+ifneq ($(BOARD_USE_NTFS_3G),false)
+RECOVERY_LINKS += mkntfs ntfs-3g ntfsfix
 endif
 
 ifneq ($(BOARD_HAS_NO_FB2PNG),true)
@@ -241,9 +250,6 @@ LOCAL_ADDITIONAL_DEPENDENCIES += updater
 
 LOCAL_ADDITIONAL_DEPENDENCIES += \
     zip \
-    mount.ntfs-3g \
-    mkntfs.recovery \
-    ntfsfix.recovery \
     raw-backup.sh \
     bootscripts_mnt.sh \
     stitch.png

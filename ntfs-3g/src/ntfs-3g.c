@@ -3669,7 +3669,7 @@ static void setup_logging(char *parsed_options)
 	ntfs_log_info("Mount options: %s\n", parsed_options);
 }
 
-int main(int argc, char *argv[])
+int ntfs_3g_main(int argc, char *argv[])
 {
 	char *parsed_options = NULL;
 	struct fuse *fh;
