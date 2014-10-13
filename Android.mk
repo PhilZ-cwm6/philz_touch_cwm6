@@ -243,6 +243,7 @@ LOCAL_ADDITIONAL_DEPENDENCIES += \
     zip \
     mount.ntfs-3g \
     mkntfs.recovery \
+    ntfsfix.recovery \
     raw-backup.sh \
     bootscripts_mnt.sh \
     stitch.png

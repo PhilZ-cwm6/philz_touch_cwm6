@@ -104,6 +104,35 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 include $(BUILD_EXECUTABLE)
 
 
+# ntfsprogs - ntfsfix
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    ntfsprogs/ntfsfix.c \
+    ntfsprogs/utils.c
+
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/../ntfs-3g \
+    $(LOCAL_PATH)/../ntfs-3g/include/fuse-lite \
+    $(LOCAL_PATH)/../ntfs-3g/include/ntfs-3g \
+    $(LOCAL_PATH)/../ntfs-3g/androidglue/include \
+    $(LOCAL_PATH)/../ntfs-3g/ntfsprogs
+
+LOCAL_CFLAGS := -O2 -g -W -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DHAVE_CONFIG_H
+LOCAL_MODULE := ntfsfix.recovery
+
+# need unique module name, but binary name should be same as in vold
+# https://github.com/CyanogenMod/android_system_vold
+LOCAL_MODULE_STEM := ntfsfix
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+LOCAL_MODULE_TAGS := eng
+#libext2_uuid: external/e2fsprogs/lib/uuid
+LOCAL_STATIC_LIBRARIES := libc libext2_uuid libfuse-lite libntfs-3g
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+include $(BUILD_EXECUTABLE)
+
+
 # ntfsprogs - mkntfs
 include $(CLEAR_VARS)
 
