@@ -19,11 +19,18 @@ Clone philz recovery to bootable/recovery-philz folder
 
     git clone https://github.com/PhilZ-cwm6/philz_touch_cwm6 bootable/recovery-philz -b cm-11.0
 
-Now build with RECOVERY_VARIANT flag set to philz.
+Now build with RECOVERY_VARIANT flag set to philz:
 
-    . build/envsetup.sh && lunch && make -j8 recoveryimage RECOVERY_VARIANT=philz
+    . build/envsetup.sh && lunch && mka -j3 recoveryimage RECOVERY_VARIANT=philz
 
 or
 
     export RECOVERY_VARIANT=philz
-    . build/envsetup.sh && lunch && make -j8 recoveryimage
+    . build/envsetup.sh && lunch && mka -j3 recoveryimage
+
+or
+
+    add to device BoardConfig.mk:
+        RECOVERY_VARIANT := philz
+    and run:
+        build/envsetup.sh && lunch && mka -j3 recoveryimage
