@@ -387,6 +387,17 @@ else ifeq ($(TARGET_DEVICE), hlte)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Note 4 LTE - SM-N910F (trlte)
+else ifeq ($(TARGET_DEVICE), trlte)
+    TARGET_COMMON_NAME := Note 4 ($(TARGET_DEVICE))
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_USERIMAGES_USE_F2FS := true
+    TARGET_SCREEN_HEIGHT := 2560
+    TARGET_SCREEN_WIDTH := 1440
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy Note 8.0 GSM (n5100), Wifi (n5110) and LTE (n5120)
 else ifneq ($(filter $(TARGET_DEVICE),n5100 n5110 n5120),)
     TARGET_COMMON_NAME := Galaxy Note 8.0
