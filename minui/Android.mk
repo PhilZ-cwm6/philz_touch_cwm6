@@ -13,7 +13,6 @@ LOCAL_C_INCLUDES +=\
     external/libpng\
     external/zlib
 
-ifeq ($(TARGET_PREBUILT_KERNEL),)
 ifeq ($(call is-vendor-board-platform,QCOM),true)
   LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
   LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
@@ -21,7 +20,6 @@ endif
 
 ifeq ($(TARGET_USES_QCOM_BSP), true)
     LOCAL_CFLAGS += -DMSM_BSP
-endif
 endif
 
 LOCAL_MODULE := libminui
