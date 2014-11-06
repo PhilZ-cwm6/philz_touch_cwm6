@@ -11,9 +11,10 @@ If you haven't build recovery ever before, please look up the thread linked abov
 If you regularly build ROMs/Recoveries for your device, and have a working CWM setup
 on your build machine, then you can quickly set up and build Philz Touch recovery as well
 
-Check these two patches are present in your build/ directory
+Check these three patches are present in your build/ directory
    1. https://github.com/CyanogenMod/android_build/commit/c1b0bb6
    2. https://github.com/CyanogenMod/android_build/commit/6b21727
+   3. https://github.com/CyanogenMod/android_build/commit/fddc5f4
 
 Clone philz recovery to bootable/recovery-philz folder
 
