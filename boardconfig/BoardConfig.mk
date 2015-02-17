@@ -738,6 +738,14 @@ else ifeq ($(TARGET_DEVICE), m4)
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    
+#HTC Incredible S - vivo
+else ifeq ($(TARGET_DEVICE), vivo)
+    TARGET_COMMON_NAME := HTC Incredible S
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #HTC Wildfire S (marvel) - armv6
 else ifeq ($(TARGET_DEVICE), marvel)
