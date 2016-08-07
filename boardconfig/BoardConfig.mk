@@ -848,6 +848,13 @@ else ifeq ($(TARGET_DEVICE), p705)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
+#LG Optimus L9 P760 (p760)
+else ifeq ($(TARGET_PRODUCT), cm_p760)
+    TARGET_COMMON_NAME := Optimus L9 P760
+    TARGET_SCREEN_HEIGHT := 960
+    TARGET_SCREEN_WIDTH := 540
+    BRIGHTNESS_SYS_FILE := "/sys/devices/platform/omap/omap_i2c.2/i2c-2/2-0036/brightness"
+
 #Micromax A57 - a57 (no cm tree)
 else ifeq ($(TARGET_DEVICE), a57)
     TARGET_COMMON_NAME := Micromax_A57
