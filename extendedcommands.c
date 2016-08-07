@@ -3417,6 +3417,7 @@ void show_philz_settings_menu()
                 print_libtouch_version(1);
 #endif
                 //ui_print(EXPAND(BUILD_DATE)"\n");
+        
                 ui_print("Compiled %s at %s\n", __DATE__, __TIME__);
                 break;
             }
