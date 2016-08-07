@@ -125,6 +125,28 @@ else ifeq ($(TARGET_DEVICE), i9103)
     BOARD_HAS_LOW_RESOLUTION := true
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/pwm-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
+    
+       
+    #Galaxy S2 LTE E110S - celoxskt
+else ifeq ($(TARGET_PRODUCT), cm_celoxskt)
+    TARGET_COMMON_NAME := Celoxskt e110s
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 800
+    TARGET_SCREEN_WIDTH := 480
+    BOARD_HAS_LOW_RESOLUTION := true
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
+    
+        #Galaxy NOTE 1 E160K - quincykt
+else ifeq ($(TARGET_PRODUCT), cm_quincykt)
+    TARGET_COMMON_NAME := Quincykt e160k
+    BOOTLOADER_CMD_ARG := "download"
+    KERNEL_EXFAT_MODULE_NAME := "exfat"
+    TARGET_SCREEN_HEIGHT := 1280
+    TARGET_SCREEN_WIDTH := 720
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+    BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Exhibit Variants (codinalte)
 else ifeq ($(TARGET_DEVICE), codinalte)
